@@ -1,3 +1,13 @@
+<script setup>
+import {
+    NLayout,
+    NLayoutHeader,
+    NLayoutContent,
+    NLayoutFooter,
+} from "naive-ui";
+import Sidebar from "@/Components/Sidebar.vue";
+</script>
+
 <template>
     <n-layout has-sider class="min-h-screen">
         <!-- Sidebar Component -->
@@ -15,7 +25,7 @@
                     <h2
                         class="text-lg font-semibold text-gray-800 dark:text-white"
                     >
-                        <slot name="title">Dashboard</slot>
+                        <slot name="title"></slot>
                     </h2>
                 </div>
 
@@ -30,7 +40,7 @@
                 class="p-6 bg-gray-50 dark:bg-gray-900"
                 :native-scrollbar="false"
             >
-                <div class="max-w-7xl mx-auto">
+                <div class="mx-auto">
                     <!-- Page Content -->
                     <slot />
                 </div>
@@ -46,15 +56,3 @@
         </n-layout>
     </n-layout>
 </template>
-
-<script setup>
-import {
-    NLayout,
-    NLayoutHeader,
-    NLayoutContent,
-    NLayoutFooter,
-} from "naive-ui";
-import Sidebar from "@/Components/Sidebar.vue";
-
-defineSlots();
-</script>

@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+// Public Routes
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
@@ -14,14 +16,33 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// Auth Middleware Group (SEMUA route yang butuh auth)
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Dashboard
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard');
+    })->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+    // Profile Routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Resource Routes
+    Route::resource('produk', ProdukController::class)->names([
+        'index' => 'produk.index',
+        'create' => 'produk.create',
+        'store' => 'produk.store',
+        'show' => 'produk.show',
+        'edit' => 'produk.edit',
+        'update' => 'produk.update',
+        'destroy' => 'produk.destroy',
+    ]);
+
+    // Tambahkan route lainnya di sini...
+    // Route::resource('pelanggan', PelangganController::class);
+    // Route::resource('penjualan', PenjualanController::class);
 });
 
-require __DIR__.'/auth.php';
+// Auth Routes (login, register, etc.)
+require __DIR__ . '/auth.php';
