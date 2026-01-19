@@ -20,6 +20,7 @@ class ProdukController extends Controller
         $perPage = $request->input('per_page', 10);
 
         return Inertia::render('Produk/Index', [
+            'pageHeader' => 'Daftar Produk',
             'produks' => $query
                 ->latest()
                 ->paginate($perPage)

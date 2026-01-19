@@ -1,5 +1,5 @@
 <script setup>
-import { h, ref, computed, onMounted, watch } from "vue";
+import { h, inject, ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { usePage, router, useRemember } from "@inertiajs/vue3";
 import { NMenu, NLayoutSider, NIcon, NDropdown, NAvatar } from "naive-ui";
 
@@ -21,10 +21,11 @@ const STORAGE_KEY = "sidebar-collapsed";
 /* =====================
    STATE
 ===================== */
-const collapsed = ref(false);
+const collapsed = inject("sidebarCollapsed");
 const isInitialized = ref(false);
 const page = usePage();
 const expandedKeys = useRemember([], "sidebar-expanded-keys");
+const isMobile = ref(false);
 
 /* =====================
    COMPUTED
@@ -106,11 +107,23 @@ const handleExpandedKeysUpdate = (keys) => {
     expandedKeys.value = keys;
 };
 
+const checkMobile = () => {
+    isMobile.value = window.matchMedia("(max-width: 768px)").matches;
+};
 /* =====================
    INIT (ANTI FLICKER)
 ===================== */
 onMounted(() => {
-    collapsed.value = localStorage.getItem(STORAGE_KEY) === "true";
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    if (isMobile.value) {
+        // ✅ MOBILE: paksa collapsed
+        collapsed.value = true;
+    } else {
+        // ✅ DESKTOP: ambil dari localStorage
+        collapsed.value = localStorage.getItem(STORAGE_KEY) === "true";
+    }
 
     // Ambil segment pertama dari URL
     const firstSegment = "/" + page.url.split("/")[1];
@@ -120,13 +133,21 @@ onMounted(() => {
     isInitialized.value = true;
 });
 
+onUnmounted(() => {
+    window.removeEventListener("resize", checkMobile);
+});
+
 /* =====================
    PERSIST STATE
 ===================== */
-watch(collapsed, (value) => {
-    if (isInitialized.value) {
-        localStorage.setItem(STORAGE_KEY, String(value));
-    }
+watch(collapsed, (val) => {
+    // ⬅️ emit ke parent
+
+    // ⬅️ simpan state (hanya desktop & setelah init)
+    if (!isInitialized.value) return;
+    if (isMobile.value) return;
+
+    localStorage.setItem(STORAGE_KEY, String(val));
 });
 
 // watch(
@@ -150,11 +171,11 @@ watch(collapsed, (value) => {
         show-trigger="arrow-circle"
         bordered
         :native-scrollbar="false"
-        class="bg-white dark:bg-gray-900"
+        class="bg-white dark:bg-gray-900 fixed left-0 top-0 h-screen z-40"
     >
         <!-- LOGO -->
         <div
-            class="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-800 bg-primary-50 dark:bg-primary-900/20"
+            class="h-14 flex items-left justify-center border-b border-gray-100 dark:border-gray-800 bg-primary-50 dark:bg-primary-900/20"
         >
             <div class="flex items-center justify-center w-full px-2">
                 <div class="flex items-center justify-center">
@@ -188,7 +209,7 @@ watch(collapsed, (value) => {
                         <h1
                             class="font-bold text-lg text-primary-600 dark:text-primary-300 whitespace-nowrap"
                         >
-                            Penjualan Pro
+                            Logo
                         </h1>
                         <p
                             class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap"
@@ -224,7 +245,7 @@ watch(collapsed, (value) => {
             </div>
 
             <!-- USER -->
-            <div class="border-t border-gray-200 dark:border-gray-800 p-3">
+            <div class="border-t border-gray-200 dark:border-gray-800">
                 <NDropdown
                     trigger="click"
                     placement="top-start"
@@ -239,7 +260,9 @@ watch(collapsed, (value) => {
                             round
                             :size="collapsed ? 25 : 40"
                             :src="user?.avatar"
-                            :fallback-src="`https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=4f46e5&color=fff`"
+                            :fallback-src="`https://ui-avatars.com/api/?name=${
+                                user?.name || 'User'
+                            }&background=4f46e5&color=fff`"
                         />
 
                         <Transition name="slide-fade" mode="out-in">

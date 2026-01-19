@@ -1,19 +1,14 @@
-import '../css/app.css';
-import './bootstrap';
+import "../css/app.css";
+import "./bootstrap";
 
-import { createInertiaApp } from '@inertiajs/vue3';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { createInertiaApp } from "@inertiajs/vue3";
+import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import { createApp, h } from 'vue';
-import { ZiggyVue } from '../../vendor/tightenco/ziggy';
-import {
-    NConfigProvider,
-    NMessageProvider,
-    dateIdID,
-    idID
-} from 'naive-ui';
+import { createApp, h } from "vue";
+import { ZiggyVue } from "../../vendor/tightenco/ziggy";
+import { NConfigProvider, NMessageProvider, dateIdID, idID } from "naive-ui";
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || "Laravel";
 
 // Definisikan halaman guest
 const guestPages = [
@@ -22,22 +17,22 @@ const guestPages = [
     "Auth/ForgotPassword",
     "Auth/ResetPassword",
     "Auth/VerifyEmail",
-    "Welcome"
+    "Welcome",
 ];
 
 createInertiaApp({
-    title: (title) => title ? `${title} - ${appName}` : appName,
+    title: (title) => (title ? `${title} - ${appName}` : appName),
 
     resolve: async (name) => {
         try {
             const page = await resolvePageComponent(
                 `./Pages/${name}.vue`,
-                import.meta.glob("./Pages/**/*.vue")
+                import.meta.glob("./Pages/**/*.vue"),
             );
 
             // Cek apakah halaman termasuk guest page
-            const isGuestPage = guestPages.some(guestPage =>
-                name.startsWith(guestPage) || name === guestPage
+            const isGuestPage = guestPages.some(
+                (guestPage) => name.startsWith(guestPage) || name === guestPage,
             );
 
             // Assign layout langsung (untuk layout dengan slot)
@@ -53,16 +48,16 @@ createInertiaApp({
             try {
                 const errorPage = await resolvePageComponent(
                     `./Pages/Error.vue`,
-                    import.meta.glob("./Pages/**/*.vue")
+                    import.meta.glob("./Pages/**/*.vue"),
                 );
                 return errorPage;
             } catch {
                 // Fallback minimal
                 return {
                     default: {
-                        name: 'ErrorPage',
-                        template: '<div>Page not found</div>'
-                    }
+                        name: "ErrorPage",
+                        template: "<div>Page not found</div>",
+                    },
                 };
             }
         }
@@ -72,33 +67,41 @@ createInertiaApp({
         // Konfigurasi tema Naive UI
         const themeOverrides = {
             common: {
-                primaryColor: '#4B5563',
-                primaryColorHover: '#374151',
-                primaryColorPressed: '#1F2937',
+                primaryColor: "#4B5563",
+                primaryColorHover: "#374151",
+                primaryColorPressed: "#1F2937",
             },
             Button: {
-                colorPrimary: '#4B5563',
+                colorPrimary: "#4B5563",
             },
         };
 
         const vueApp = createApp({
             render: () =>
-                h(NConfigProvider, {
-                    themeOverrides,
-                    locale: idID, // ✅ Gunakan object locale
-                    dateLocale: dateIdID, // ✅ Gunakan object dateLocale
-                }, {
-                    default: () =>
-                        h(NMessageProvider, {
-                            max: 3,
-                            duration: 3000,
-                            containerStyle: {
-                                top: '60px'
-                            }
-                        }, {
-                            default: () => h(App, props),
-                        }),
-                }),
+                h(
+                    NConfigProvider,
+                    {
+                        themeOverrides,
+                        locale: idID, // ✅ Gunakan object locale
+                        dateLocale: dateIdID, // ✅ Gunakan object dateLocale
+                    },
+                    {
+                        default: () =>
+                            h(
+                                NMessageProvider,
+                                {
+                                    max: 3,
+                                    duration: 3000,
+                                    containerStyle: {
+                                        top: "60px",
+                                    },
+                                },
+                                {
+                                    default: () => h(App, props),
+                                },
+                            ),
+                    },
+                ),
         });
 
         // Gunakan plugin Inertia
@@ -117,7 +120,7 @@ createInertiaApp({
     },
 
     progress: {
-        color: '#4B5563',
+        color: "#4B5563",
         showSpinner: true,
         delay: 250,
     },
