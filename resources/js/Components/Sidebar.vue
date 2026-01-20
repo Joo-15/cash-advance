@@ -11,6 +11,7 @@ import {
     LogOutOutline,
     PersonCircleOutline,
     StorefrontOutline,
+    BookOutline,
 } from "@vicons/ionicons5";
 
 /* =====================
@@ -53,7 +54,15 @@ const menuOptions = [
         key: "/produk", // ✅ HARUS ADA SLASH
         icon: renderIcon(CubeOutline),
         children: [
-            { label: "Daftar Produk", key: "/produk" },
+            {
+                type: "divider",
+                key: "divider-1",
+            },
+            {
+                label: "Daftar Produk",
+                key: "/produk",
+                icon: renderIcon(BookOutline),
+            },
             { label: "Kategori Produk", key: "/produk/kategori" },
             { label: "Stok Produk", key: "/produk/stok" },
         ],

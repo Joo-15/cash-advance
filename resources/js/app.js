@@ -74,7 +74,7 @@ createInertiaApp({
         // Konfigurasi tema Naive UI
         const themeOverrides = {
             common: {
-                primaryColor: "#4B5563",
+                // primaryColor: "#4B5563",
                 primaryColorHover: "#374151",
                 primaryColorPressed: "#1F2937",
             },
