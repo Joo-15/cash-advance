@@ -7,22 +7,31 @@ import {
 } from "naive-ui";
 import Sidebar from "@/Components/Sidebar.vue";
 import { usePage } from "@inertiajs/vue3";
-import { ref, provide } from "vue";
+import { ref, provide, watch, onMounted } from "vue";
 // import { inject } from "vue";
 
 // const collapsed = inject("sidebarCollapsed", false);
 const page = usePage();
 const sidebarCollapsed = ref(false);
+const isReady = ref(false);
 
 provide("sidebarCollapsed", sidebarCollapsed);
 
-// const props = defineProps<{
-//     header: string;
-// }>();
+// watch(sidebarCollapsed, (newVal, oldVal) => {
+//     console.log("Sidebar collapsed berubah:");
+//     console.log("Dari:", oldVal);
+//     console.log("Ke:", newVal);
+// });
+
+onMounted(() => {
+    sidebarCollapsed.value =
+        localStorage.getItem("sidebar-collapsed") === "true";
+    isReady.value = true;
+});
 </script>
 
 <template>
-    <n-layout has-sider class="min-h-screen">
+    <n-layout v-if="isReady" has-sider class="min-h-screen">
         <!-- Sidebar Component -->
         <Sidebar />
 
@@ -32,7 +41,7 @@ provide("sidebarCollapsed", sidebarCollapsed);
             <n-layout-header
                 bordered
                 :class="sidebarCollapsed ? 'ml-[64px]' : 'ml-[260px]'"
-                class="h-14 px-6 flex items-center justify-between bg-white dark:bg-gray-800"
+                class="h-14 px-6 flex items-center justify-between bg-white transition-all duration-300 dark:bg-gray-800"
             >
                 <div class="flex items-center gap-4">
                     <!-- Page Title -->

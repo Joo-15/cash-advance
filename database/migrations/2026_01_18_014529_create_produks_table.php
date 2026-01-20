@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('produks', function (Blueprint $table) {
             $table->id();
+            $table->string('nama');
+            $table->decimal('harga', 8, 2);
             $table->timestamps();
         });
     }

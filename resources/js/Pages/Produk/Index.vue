@@ -1,7 +1,14 @@
 <script setup>
 import { ref, h, watch, onBeforeUnmount } from "vue";
 import { router } from "@inertiajs/vue3";
-import { NDataTable, NPagination, NButton, NInput, useMessage } from "naive-ui";
+import {
+    NDataTable,
+    NPagination,
+    NButton,
+    NInput,
+    useMessage,
+    useDialog,
+} from "naive-ui";
 import { debounce } from "lodash";
 
 const props = defineProps({
@@ -12,6 +19,7 @@ const props = defineProps({
 const search = ref(props.filters.search || "");
 const pageSize = ref(Number(props.produks.per_page || 10));
 const form = ref({ nama: "", harga: "" });
+const dialog = useDialog();
 
 const message = useMessage(); // <-- ini yang benar sekarang
 
@@ -36,9 +44,17 @@ const columns = [
 ];
 
 const hapus = (id) => {
-    if (confirm("Hapus data?")) {
-        router.delete(`/produk/${id}`, { preserveScroll: true });
-    }
+    dialog.warning({
+        title: "Konfirmasi",
+        content: "Hapus data?",
+        positiveText: "Hapus",
+        negativeText: "Batal",
+        onPositiveClick: () => {
+            router.delete(route("produk.destroy", id), {
+                preserveScroll: true,
+            });
+        },
+    });
 };
 
 const submitForm = () => {
@@ -72,7 +88,7 @@ const handlePageChange = (page) => {
     router.get(
         "/produk",
         { page, search: search.value, per_page: pageSize.value },
-        { preserveState: true },
+        { preserveState: true, preserveScroll: true },
     );
 };
 
@@ -81,7 +97,14 @@ const handlePageSizeChange = (size) => {
     router.get(
         "/produk",
         { page: 1, search: search.value, per_page: size },
-        { preserveState: true },
+        {
+            preserveState: true,
+            onFinish: () => {
+                document
+                    .querySelector(".n-data-table")
+                    ?.scrollIntoView({ behavior: "smooth" });
+            },
+        },
     );
 };
 
@@ -91,7 +114,7 @@ onBeforeUnmount(() => doSearch.cancel());
 </script>
 
 <template>
-    <div class="p-6">
+    <div class="p-4">
         <h1 class="text-xl font-bold mb-4">Produk</h1>
 
         <!-- Form tambah data -->

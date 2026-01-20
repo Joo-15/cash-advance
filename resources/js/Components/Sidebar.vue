@@ -141,8 +141,6 @@ onUnmounted(() => {
    PERSIST STATE
 ===================== */
 watch(collapsed, (val) => {
-    // ⬅️ emit ke parent
-
     // ⬅️ simpan state (hanya desktop & setelah init)
     if (!isInitialized.value) return;
     if (isMobile.value) return;
@@ -163,8 +161,7 @@ watch(collapsed, (val) => {
     <!-- v-if adalah KUNCI agar tidak ada animasi nutup saat refresh -->
     <NLayoutSider
         v-if="isInitialized"
-        :collapsed="collapsed"
-        @update:collapsed="collapsed = $event"
+        v-model:collapsed="collapsed"
         collapse-mode="width"
         :collapsed-width="64"
         :width="260"

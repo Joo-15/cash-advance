@@ -6,7 +6,14 @@ import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { createApp, h } from "vue";
 import { ZiggyVue } from "../../vendor/tightenco/ziggy";
-import { NConfigProvider, NMessageProvider, dateIdID, idID } from "naive-ui";
+import {
+    NConfigProvider,
+    NDialogProvider,
+    NMessageProvider,
+    NNotificationProvider,
+    dateIdID,
+    idID,
+} from "naive-ui";
 
 const appName = import.meta.env.VITE_APP_NAME || "Laravel";
 
@@ -82,8 +89,8 @@ createInertiaApp({
                     NConfigProvider,
                     {
                         themeOverrides,
-                        locale: idID, // ✅ Gunakan object locale
-                        dateLocale: dateIdID, // ✅ Gunakan object dateLocale
+                        locale: idID,
+                        dateLocale: dateIdID,
                     },
                     {
                         default: () =>
@@ -97,7 +104,22 @@ createInertiaApp({
                                     },
                                 },
                                 {
-                                    default: () => h(App, props),
+                                    default: () =>
+                                        h(
+                                            NDialogProvider,
+                                            {},
+                                            {
+                                                default: () =>
+                                                    h(
+                                                        NNotificationProvider,
+                                                        {},
+                                                        {
+                                                            default: () =>
+                                                                h(App, props),
+                                                        },
+                                                    ),
+                                            },
+                                        ),
                                 },
                             ),
                     },
