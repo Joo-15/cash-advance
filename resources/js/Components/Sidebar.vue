@@ -119,6 +119,13 @@ const handleExpandedKeysUpdate = (keys) => {
 const checkMobile = () => {
     isMobile.value = window.matchMedia("(max-width: 768px)").matches;
 };
+
+const getFirstSegment = () => {
+    const cleanUrl = page.url.split("?")[0]; // buang query
+    const segments = cleanUrl.split("/").filter(Boolean);
+
+    return segments.length ? "/" + segments[0] : "/";
+};
 /* =====================
    INIT (ANTI FLICKER)
 ===================== */
@@ -134,10 +141,8 @@ onMounted(() => {
         collapsed.value = localStorage.getItem(STORAGE_KEY) === "true";
     }
 
-    // Ambil segment pertama dari URL
-    const firstSegment = "/" + page.url.split("/")[1];
-
-    expandedKeys.value = [firstSegment]; // ⬅️ submenu aktif saat refresh
+    // ✅ Ambil segment pertama dari URL (AMAN)
+    expandedKeys.value = [getFirstSegment()];
 
     isInitialized.value = true;
 });
@@ -157,14 +162,14 @@ watch(collapsed, (val) => {
     localStorage.setItem(STORAGE_KEY, String(val));
 });
 
-// watch(
-//     () => page.url,
-//     (url) => {
-//         const firstSegment = "/" + url.split("/")[1];
-//         expandedKeys.value = [firstSegment];
-//     },
-//     { immediate: true },
-// );
+// sidebar logic
+watch(
+    () => page.url,
+    () => {
+        expandedKeys.value = [getFirstSegment()];
+    },
+    { immediate: true },
+);
 </script>
 <template>
     <!-- v-if adalah KUNCI agar tidak ada animasi nutup saat refresh -->

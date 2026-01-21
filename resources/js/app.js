@@ -14,6 +14,7 @@ import {
     dateIdID,
     idID,
 } from "naive-ui";
+import { createPinia } from "pinia";
 
 const appName = import.meta.env.VITE_APP_NAME || "Laravel";
 
@@ -126,11 +127,15 @@ createInertiaApp({
                 ),
         });
 
+        const pinia = createPinia();
+
         // Gunakan plugin Inertia
         vueApp.use(plugin);
 
         // Gunakan Ziggy untuk routing
         vueApp.use(ZiggyVue);
+
+        vueApp.use(pinia);
 
         // Mount aplikasi
         vueApp.mount(el);
