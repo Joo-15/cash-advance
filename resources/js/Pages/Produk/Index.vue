@@ -1,31 +1,65 @@
 <script setup>
-import { ref, h, watch, onBeforeUnmount } from "vue";
+/* =====================
+ | Imports
+ ===================== */
+import { ref, h } from "vue";
 import { router } from "@inertiajs/vue3";
-import {
-    NDataTable,
-    NPagination,
-    NButton,
-    NInput,
-    useMessage,
-    useDialog,
-} from "naive-ui";
-import { debounce } from "lodash";
+import { NButton, NInput, useMessage, useDialog } from "naive-ui";
 
+import { useInertiaDataTable } from "@/Composables/useInertiaDataTable";
+import InertiaDataTable from "@/Components/DataTable/InertiaDataTable.vue";
+
+/* =====================
+ | Props (Inertia)
+ ===================== */
 const props = defineProps({
-    produks: Object,
-    filters: Object,
+    produks: {
+        type: Object,
+        required: true,
+    },
+    filters: {
+        type: Object,
+        required: true,
+    },
 });
 
-const search = ref(props.filters.search || "");
-const pageSize = ref(Number(props.produks.per_page || 10));
-const form = ref({ nama: "", harga: "" });
+/* =====================
+ | DataTable Composable
+ ===================== */
+// NOTE:
+// - route() dipanggil di Page (BENAR)
+// - composable hanya menerima URL, tidak tahu Ziggy
+const { search, pageSize, handlePageChange, handlePageSizeChange } =
+    useInertiaDataTable({
+        route: route("produk.index"),
+        initialSearch: props.filters.search ?? "",
+        initialPageSize: Number(props.produks.per_page ?? 10),
+        only: ["produks"],
+    });
+
+/* =====================
+ | Local State
+ ===================== */
+const form = ref({
+    nama: "",
+    harga: "",
+});
+
 const dialog = useDialog();
+const message = useMessage();
 
-const message = useMessage(); // <-- ini yang benar sekarang
-
+/* =====================
+ | Table Columns
+ ===================== */
 const columns = [
-    { title: "Nama", key: "nama" },
-    { title: "Harga", key: "harga" },
+    {
+        title: "Nama",
+        key: "nama",
+    },
+    {
+        title: "Harga",
+        key: "harga",
+    },
     {
         title: "Aksi",
         key: "aksi",
@@ -43,6 +77,9 @@ const columns = [
     },
 ];
 
+/* =====================
+ | Actions
+ ===================== */
 const hapus = (id) => {
     dialog.warning({
         title: "Konfirmasi",
@@ -63,61 +100,26 @@ const submitForm = () => {
         return;
     }
 
-    router.post("/produk", form.value, {
+    router.post(route("produk.store"), form.value, {
         preserveScroll: true,
         onSuccess: () => {
             message.success("Produk berhasil ditambahkan");
             form.value = { nama: "", harga: "" };
         },
-        onError: () => {
-            message.error("Terjadi kesalahan");
-        },
     });
 };
-
-// Debounce search
-const doSearch = debounce((value) => {
-    router.get(
-        "/produk",
-        { search: value, page: 1, per_page: pageSize.value },
-        { preserveState: true, replace: true, only: ["produks"] },
-    );
-}, 300);
-
-const handlePageChange = (page) => {
-    router.get(
-        "/produk",
-        { page, search: search.value, per_page: pageSize.value },
-        { preserveState: true, preserveScroll: true },
-    );
-};
-
-const handlePageSizeChange = (size) => {
-    pageSize.value = size;
-    router.get(
-        "/produk",
-        { page: 1, search: search.value, per_page: size },
-        {
-            preserveState: true,
-            onFinish: () => {
-                document
-                    .querySelector(".n-data-table")
-                    ?.scrollIntoView({ behavior: "smooth" });
-            },
-        },
-    );
-};
-
-watch(search, (value) => doSearch(value));
-
-onBeforeUnmount(() => doSearch.cancel());
 </script>
 
 <template>
     <div class="p-4">
+        <!-- =====================
+             Header
+        ===================== -->
         <h1 class="text-xl font-bold mb-4">Produk</h1>
 
-        <!-- Form tambah data -->
+        <!-- =====================
+             Form Tambah Produk
+        ===================== -->
         <div class="mb-6 flex flex-wrap gap-2 items-end">
             <n-input
                 v-model:value="form.nama"
@@ -133,7 +135,9 @@ onBeforeUnmount(() => doSearch.cancel());
             <n-button type="primary" @click="submitForm"> Tambah </n-button>
         </div>
 
-        <!-- Search -->
+        <!-- =====================
+             Search
+        ===================== -->
         <div class="mb-4 w-64">
             <n-input
                 v-model:value="search"
@@ -142,37 +146,16 @@ onBeforeUnmount(() => doSearch.cancel());
             />
         </div>
 
-        <!-- Table -->
-        <n-data-table
-            remote
-            bordered
+        <!-- =====================
+             Data Table
+        ===================== -->
+        <inertia-data-table
             :columns="columns"
             :data="produks.data"
-            :pagination="false"
+            :meta="produks"
+            :page-size="pageSize"
+            @update:page="handlePageChange"
+            @update:pageSize="handlePageSizeChange"
         />
-
-        <!-- Footer -->
-        <div
-            class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
-        >
-            <!-- Info -->
-            <div class="text-sm text-gray-600">
-                Menampilkan
-                <b>{{ produks.from }}</b> – <b>{{ produks.to }}</b> dari
-                <b>{{ produks.total }}</b> data
-            </div>
-
-            <!-- Pagination -->
-            <n-pagination
-                :page="produks.current_page"
-                :page-size="pageSize"
-                :item-count="produks.total"
-                show-size-picker
-                show-quick-jumper
-                :page-sizes="[5, 10, 20, 50, 100]"
-                @update:page="handlePageChange"
-                @update:page-size="handlePageSizeChange"
-            />
-        </div>
     </div>
 </template>

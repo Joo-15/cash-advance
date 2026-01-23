@@ -3,9 +3,9 @@ import "./bootstrap";
 
 import { createInertiaApp } from "@inertiajs/vue3";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+// import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { createApp, h } from "vue";
-import { ZiggyVue } from "../../vendor/tightenco/ziggy";
+import { ZiggyVue } from "ziggy-js";
 import {
     NConfigProvider,
     NDialogProvider,
@@ -15,6 +15,7 @@ import {
     idID,
 } from "naive-ui";
 import { createPinia } from "pinia";
+import AppLayout from "./Layouts/AppLayout.vue";
 
 const appName = import.meta.env.VITE_APP_NAME || "Laravel";
 
@@ -45,7 +46,7 @@ createInertiaApp({
 
             // Assign layout langsung (untuk layout dengan slot)
             if (!page.default.layout && !isGuestPage) {
-                page.default.layout = AuthenticatedLayout;
+                page.default.layout = AppLayout;
             }
 
             return page;
