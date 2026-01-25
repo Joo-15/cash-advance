@@ -11,6 +11,7 @@ export function useInertiaDataTable({
 }) {
     const search = ref(initialSearch || "");
     const pageSize = ref(Number(initialPageSize || 10));
+    const loading = ref(false);
 
     const doSearch = debounce((value) => {
         router.get(
@@ -24,9 +25,16 @@ export function useInertiaDataTable({
                 preserveState: true,
                 replace: true,
                 only,
+                onStart: () => {
+                    loading.value = true
+                },
+                onFinish: () => {
+                    loading.value = false
+                },
             },
-        );
-    }, debounceTime);
+        )
+    }, debounceTime)
+
 
     const handlePageChange = (page) => {
         router.get(
@@ -61,14 +69,26 @@ export function useInertiaDataTable({
         );
     };
 
-    watch(search, (value) => doSearch(value));
+    const handleClear = () => {
+        search.value = ''
+        loading.value = false
+
+        doSearch('')
+    }
+
+    watch(search, (value) => {
+        doSearch(value)
+    })
+
 
     onBeforeUnmount(() => doSearch.cancel());
 
     return {
+        loading,
         search,
         pageSize,
         handlePageChange,
         handlePageSizeChange,
+        handleClear,
     };
 }

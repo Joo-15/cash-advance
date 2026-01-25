@@ -29,13 +29,19 @@ const props = defineProps({
 // NOTE:
 // - route() dipanggil di Page (BENAR)
 // - composable hanya menerima URL, tidak tahu Ziggy
-const { search, pageSize, handlePageChange, handlePageSizeChange } =
-    useInertiaDataTable({
-        route: route("produk.index"),
-        initialSearch: props.filters.search ?? "",
-        initialPageSize: Number(props.produks.per_page ?? 10),
-        only: ["produks"],
-    });
+const {
+    loading,
+    search,
+    pageSize,
+    handlePageChange,
+    handlePageSizeChange,
+    handleClear,
+} = useInertiaDataTable({
+    route: route("produk.index"),
+    initialSearch: props.filters.search ?? "",
+    initialPageSize: Number(props.produks.per_page ?? 10),
+    only: ["produks"],
+});
 
 /* =====================
  | Local State
@@ -55,6 +61,8 @@ const columns = [
     {
         title: "Nama",
         key: "nama",
+        sorter: true,
+        sortOrder: false,
     },
     {
         title: "Harga",
@@ -143,6 +151,8 @@ const submitForm = () => {
                 v-model:value="search"
                 placeholder="Cari produk..."
                 clearable
+                :loading="loading"
+                @clear="handleClear"
             />
         </div>
 

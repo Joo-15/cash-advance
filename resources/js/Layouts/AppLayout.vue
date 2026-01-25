@@ -7,10 +7,8 @@ import {
 } from "naive-ui";
 import Sidebar from "@/Components/Sidebar.vue";
 import { usePage } from "@inertiajs/vue3";
-import { ref, provide, watch, onMounted } from "vue";
-// import { inject } from "vue";
+import { ref, provide, onMounted } from "vue";
 
-// const collapsed = inject("sidebarCollapsed", false);
 const page = usePage();
 const sidebarCollapsed = ref(false);
 const isReady = ref(false);
@@ -40,7 +38,7 @@ onMounted(() => {
             <!-- Header -->
             <n-layout-header
                 bordered
-                :class="sidebarCollapsed ? 'ml-[64px]' : 'ml-[260px]'"
+                :class="sidebarCollapsed ? 'ml-[64px]' : 'ml-[230px]'"
                 class="h-14 px-6 flex items-center justify-between bg-white transition-all duration-300 dark:bg-gray-800"
             >
                 <div class="flex items-center gap-4">
@@ -63,7 +61,7 @@ onMounted(() => {
             <!-- Content Area -->
             <n-layout-content
                 class="min-h-screen transition-all duration-300"
-                :class="sidebarCollapsed ? 'ml-[64px]' : 'ml-[260px]'"
+                :class="sidebarCollapsed ? 'ml-[64px]' : 'ml-[230px]'"
                 :native-scrollbar="false"
             >
                 <div class="mx-auto p-4">

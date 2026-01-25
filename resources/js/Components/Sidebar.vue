@@ -178,7 +178,7 @@ watch(
         v-model:collapsed="collapsed"
         collapse-mode="width"
         :collapsed-width="64"
-        :width="260"
+        :width="230"
         show-trigger="arrow-circle"
         bordered
         :native-scrollbar="false"
