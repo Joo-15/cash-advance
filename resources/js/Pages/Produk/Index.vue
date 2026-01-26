@@ -119,7 +119,7 @@ const submitForm = () => {
 </script>
 
 <template>
-    <div class="p-4">
+    <div class="">
         <!-- =====================
              Header
         ===================== -->
