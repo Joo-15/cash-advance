@@ -77,6 +77,7 @@ export function useInertiaDataTable({
     }
 
     watch(search, (value) => {
+        loading.value = true
         doSearch(value)
     })
 

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Produk extends Model
 {
-    use HasFactory;
+    use HasFactory; // Fitur untuk data Dummy
 
     protected $fillable = [
         'nama',

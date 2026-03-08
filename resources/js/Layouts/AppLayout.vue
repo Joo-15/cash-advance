@@ -76,11 +76,9 @@ onMounted(() => {
         <!-- HEADER FIXED -->
         <n-layout-header
             bordered
-            class="px-2 h-12 flex items-center justify-between bg-indigo-500 text-white dark:bg-gray-800 fixed top-0 left-0 right-0 z-50"
+            class="h-14 px-6 flex items-center justify-between bg-gradient-to-r from-green-600 via-green-500 to-green-500 text-white fixed top-0 left-0 right-0 z-50 shadow-md"
         >
-            <h2 class="text-lg font-semibold">
-                {{ page.props.pageHeader ?? "Dashboard" }}
-            </h2>
+            <h2 class="text-lg font-semibold">Belum Punya Nama</h2>
             <div class="dark:border-gray-800">
                 <NDropdown
                     trigger="click"
@@ -139,7 +137,7 @@ onMounted(() => {
                     :class="sidebarCollapsed ? 'ml-[64px]' : 'ml-[230px]'"
                     :native-scrollbar="false"
                 >
-                    <div class="mx-auto pt-16 px-4">
+                    <div class="mx-auto pt-12 px-4">
                         <slot />
                     </div>
                 </n-layout-content>

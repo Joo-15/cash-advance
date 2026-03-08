@@ -74,23 +74,23 @@ createInertiaApp({
 
     setup({ el, App, props, plugin }) {
         // Konfigurasi tema Naive UI
-        const themeOverrides = {
-            common: {
-                primaryColor: "#4B5563",
-                primaryColorHover: "#374151",
-                primaryColorPressed: "#1F2937",
-            },
-            Button: {
-                colorPrimary: "#4B5563",
-            },
-        };
+        // const themeOverrides = {
+        //     common: {
+        //         primaryColor: "#4B5563",
+        //         primaryColorHover: "#374151",
+        //         primaryColorPressed: "#1F2937",
+        //     },
+        //     Button: {
+        //         colorPrimary: "#4B5563",
+        //     },
+        // };
 
         const vueApp = createApp({
             render: () =>
                 h(
                     NConfigProvider,
                     {
-                        themeOverrides,
+                        // themeOverrides,
                         locale: idID,
                         dateLocale: dateIdID,
                     },

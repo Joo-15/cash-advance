@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\Produks\ProdukController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Web\CashAdvanceController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -29,15 +30,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Resource Routes
-    Route::resource('produk', ProdukController::class)->names([
-        'index' => 'produk.index',
-        'create' => 'produk.create',
-        'store' => 'produk.store',
-        'show' => 'produk.show',
-        'edit' => 'produk.edit',
-        'update' => 'produk.update',
-        'destroy' => 'produk.destroy',
-    ]);
+    Route::resource('produk', ProdukController::class);
+    Route::resource('pengajuan-pinjaman', CashAdvanceController::class);
+
+    // Route::resource('produk', ProdukController::class)->names([
+    //     'index' => 'produk.index',
+    //     'create' => 'produk.create',
+    //     'store' => 'produk.store',
+    //     'show' => 'produk.show',
+    //     'edit' => 'produk.edit',
+    //     'update' => 'produk.update',
+    //     'destroy' => 'produk.destroy',
+    // ]);
+
+
 
     // Tambahkan route lainnya di sini...
     // Route::resource('pelanggan', PelangganController::class);

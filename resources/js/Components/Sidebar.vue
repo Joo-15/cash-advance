@@ -67,15 +67,63 @@ const menuOptions = [
             { label: "Stok Produk", key: "/produk/stok" },
         ],
     },
+    {
+        label: "Pengajuan Pinjaman",
+        key: "/pengajuan-pinjaman", // ✅ HARUS ADA SLASH
+        icon: renderIcon(CubeOutline),
+        children: [
+            {
+                type: "divider",
+                key: "divider-1",
+            },
+            {
+                label: "Buat Pengajuan",
+                key: "/pinjaman",
+            },
+            {
+                label: "Data Pengajuan",
+                key: "/pengajuan-pinjaman",
+            },
+        ],
+    },
 
     {
-        label: "Pengguna",
-        key: "/pengguna",
+        label: "Approval",
+        key: "/approval",
         icon: renderIcon(PeopleOutline),
     },
     {
-        label: "Pengaturan",
-        key: "/pengaturan",
+        label: "Pelaporan",
+        key: "/pelaporan",
+        icon: renderIcon(SettingsOutline),
+    },
+    {
+        label: "Data Master",
+        key: "/data-master", // ✅ HARUS ADA SLASH
+        icon: renderIcon(CubeOutline),
+        children: [
+            {
+                type: "divider",
+                key: "divider-1",
+            },
+            {
+                label: "Data Departemen",
+                key: "/data-master/departemen",
+            },
+            {
+                label: "Data Pengajuan",
+                key: "/pinjaman",
+            },
+        ],
+    },
+    {
+        label: "Manajemen User",
+        key: "/user",
+        icon: renderIcon(SettingsOutline),
+    },
+    {
+        label: "Hak Akses",
+        key: "/hak-akses",
         icon: renderIcon(SettingsOutline),
     },
 ];
