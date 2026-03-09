@@ -2,7 +2,7 @@
 /* =====================
  | Imports
  ===================== */
-import { ref, h, nextTick, computed } from "vue";
+import { ref, h, computed } from "vue";
 import { usePage, router } from "@inertiajs/vue3";
 import {
     NButton,
@@ -11,11 +11,18 @@ import {
     useDialog,
     NIcon,
     NSelect,
+    NSpace,
 } from "naive-ui";
 
 import { useInertiaDataTable } from "@/Composables/useInertiaDataTable";
 import InertiaDataTable from "@/Components/DataTable/InertiaDataTable.vue";
-import { PencilOutline, TrashOutline } from "@vicons/ionicons5";
+import {
+    Add,
+    DownloadOutline,
+    PencilOutline,
+    RefreshOutline,
+    TrashOutline,
+} from "@vicons/ionicons5";
 import EditCashAdvance from "./EditCashAdvance.vue";
 import { STATUS_OPTIONS } from "@/Constants/status";
 import { CASH_ADVANCE_STATS } from "@/Constants/cashAdvanceStats";
@@ -42,10 +49,9 @@ const props = defineProps({
 /* =====================
  | Local State
  ===================== */
-const status = ref(null);
 const statusOptions = STATUS_OPTIONS;
 const stats = CASH_ADVANCE_STATS;
-const { form } = useCashAdvanceForm;
+const { form } = useCashAdvanceForm();
 
 const editModal = ref(false);
 const selectedRow = ref(null);
@@ -71,16 +77,19 @@ const rows = computed(() => {
 // - route() dipanggil di Page (BENAR)
 // - composable hanya menerima URL, tidak tahu Ziggy
 const {
-    loading,
-    search,
-    pageSize,
+    loadingSearch,
+    loadingReset,
+    filters,
     handlePageChange,
     handlePageSizeChange,
     handleClear,
 } = useInertiaDataTable({
     route: route("pengajuan-pinjaman.index"),
-    initialSearch: props.filters.search ?? "",
-    initialPageSize: Number(props.cashadvance.per_page ?? 10),
+    filters: {
+        search: props.filters.search || "",
+        status: props.filters.status || null,
+        pageSize: Number(props.cashadvance.per_page ?? 10),
+    },
     only: ["cashadvance"],
 });
 
@@ -101,6 +110,10 @@ const columns = [
     {
         title: "Jumlah",
         key: "jumlah",
+    },
+    {
+        title: "Status",
+        key: "status",
     },
     {
         title: "Aksi",
@@ -150,13 +163,16 @@ const columns = [
  | Actions
  ===================== */
 const edit = async (row) => {
-    if (row.detail) {
-        selectedRow.value = { ...row }; // langsung pakai
-    } else {
-        const { data } = await axios.get(`/pengajuan-pinjaman/${row.id}`);
-        selectedRow.value = data; // ambil detail
+    try {
+        const data = row.detail
+            ? row
+            : (await axios.get(route("pengajuan-pinjaman.show", row.id))).data;
+
+        selectedRow.value = { ...data };
+        editModal.value = true;
+    } catch (error) {
+        console.error("Error mengambil detail:", error);
     }
-    editModal.value = true;
 };
 
 const hapus = (id) => {
@@ -183,21 +199,6 @@ const hapus = (id) => {
     });
 };
 
-const submitForm = () => {
-    if (!form.value.nama || !form.value.harga) {
-        message.warning("Nama dan harga harus diisi");
-        return;
-    }
-
-    router.post(route("produk.store"), form.value, {
-        preserveScroll: true,
-        onSuccess: () => {
-            message.success("Produk berhasil ditambahkan");
-            form.value = { nama: "", harga: "" };
-        },
-    });
-};
-
 const refreshData = () => {
     // Refresh data dari Inertia
     router.reload({ only: ["cashadvance"] });
@@ -209,10 +210,32 @@ const refreshData = () => {
         <!-- =====================
          Header
         ===================== -->
-        <div class="flex items-center justify-between py-2">
-            <h1 class="text-2xl font-semibold text-gray-800 p-2">
+        <div
+            class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between py-2"
+        >
+            <h1 class="text-2xl font-bold text-gray-800 p-2">
                 {{ page.props.pageHeader ?? "Dashboard" }}
             </h1>
+
+            <n-space wrap>
+                <n-button ghost type="primary" @click="">
+                    <template #icon>
+                        <n-icon>
+                            <DownloadOutline />
+                        </n-icon>
+                    </template>
+                    Download Excel
+                </n-button>
+
+                <n-button color="#8a2be2" @click="">
+                    <template #icon>
+                        <n-icon>
+                            <Add />
+                        </n-icon>
+                    </template>
+                    Ajukan Pinjaman
+                </n-button>
+            </n-space>
         </div>
 
         <!-- Stats Grid -->
@@ -230,7 +253,7 @@ const refreshData = () => {
 
                     <div
                         :class="[
-                            'w-10 h-10 rounded-lg flex items-center justify-center',
+                            'w-10 h-4 rounded-lg flex items-center justify-center',
                             stat.key === 'total_pengajuan' && 'bg-blue-50',
                             stat.key === 'pengajuan_disetujui' && 'bg-green-50',
                             stat.key === 'pengajuan_pending' && 'bg-yellow-50',
@@ -313,25 +336,35 @@ const refreshData = () => {
                 <div class="flex-1">
                     <n-input
                         class=""
-                        size="large"
-                        v-model:value="search"
+                        v-model:value="filters.search"
                         placeholder="Cari pinjaman..."
                         clearable
-                        :loading="loading"
-                        @clear="handleClear"
+                        :loading="loadingSearch"
                     />
                 </div>
 
                 <!-- Filter Status -->
                 <div class="w-56">
                     <n-select
-                        size="large"
-                        v-model:value="status"
+                        v-model:value="filters.status"
                         :options="statusOptions"
                         placeholder="Filter Status"
                         clearable
                     />
                 </div>
+                <n-button
+                    :loading="loadingReset"
+                    @click="handleClear"
+                    strong
+                    secondary
+                >
+                    <template #icon>
+                        <n-icon>
+                            <RefreshOutline />
+                        </n-icon>
+                    </template>
+                    Reset
+                </n-button>
             </div>
         </div>
 
@@ -343,7 +376,7 @@ const refreshData = () => {
                 :columns="columns"
                 :data="rows"
                 :meta="cashadvance"
-                :page-size="pageSize"
+                :page-size="filters.pageSize"
                 @update:page="handlePageChange"
                 @update:pageSize="handlePageSizeChange"
             />
@@ -352,6 +385,7 @@ const refreshData = () => {
     <!-- =====================
              Modal
     ===================== -->
+
     <EditCashAdvance
         v-model:show="editModal"
         :data-edit="selectedRow"

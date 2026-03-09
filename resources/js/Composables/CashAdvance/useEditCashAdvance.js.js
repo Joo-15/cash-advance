@@ -1,18 +1,19 @@
 import { computed, ref, watch } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { useMessage } from "naive-ui";
+import { sleep } from "@/utils/helpers";
 
 export function useEditCashAdvance({
     props,
+    loadingEdit,
     emits,
     routeName,
-    formDefault = {},
     formRef,
 }) {
     /* ========================
      | State
      ======================== */
-    const form = ref({ ...formDefault });
+    const form = ref({});
     const loading = ref(false);
     const message = useMessage();
     const page = usePage();
@@ -32,10 +33,40 @@ export function useEditCashAdvance({
         () => props.dataEdit,
         (val) => {
             if (val && Object.keys(val).length > 0) {
-                form.value = { ...val };
+                form.value = {
+                    ...val,
+                    tanggal: val.tanggal
+                        ? new Date(val.tanggal).getTime()
+                        : null,
+                };
             }
         },
         { immediate: true, deep: true }
+    );
+
+    watch(
+        () => props.dataEdit,
+        (val) => {
+            if (val) {
+                Object.assign(form, {
+                    ...val,
+                    tanggal: val.tanggal ? new Date(val.tanggal).getTime() : null
+                })
+            }
+        },
+        { immediate: true }
+    )
+
+    watch(
+        () => props.show,
+        async (val) => {
+            if (val) {
+                loadingEdit.value = true;
+
+                await sleep(500);
+                loadingEdit.value = false;
+            }
+        }
     );
 
     /* ========================
@@ -76,7 +107,6 @@ export function useEditCashAdvance({
         form,
         showModal,
         loading,
-        form,
         submit,
     };
 }

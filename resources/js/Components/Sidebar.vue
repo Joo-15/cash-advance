@@ -8,9 +8,6 @@ import {
     CubeOutline,
     PeopleOutline,
     SettingsOutline,
-    LogOutOutline,
-    PersonCircleOutline,
-    StorefrontOutline,
     BookOutline,
 } from "@vicons/ionicons5";
 
@@ -68,23 +65,9 @@ const menuOptions = [
         ],
     },
     {
-        label: "Pengajuan Pinjaman",
-        key: "/pengajuan-pinjaman", // ✅ HARUS ADA SLASH
+        label: "Pengajuan Baru",
+        key: "/pengajuan-pinjaman",
         icon: renderIcon(CubeOutline),
-        children: [
-            {
-                type: "divider",
-                key: "divider-1",
-            },
-            {
-                label: "Buat Pengajuan",
-                key: "/pinjaman",
-            },
-            {
-                label: "Data Pengajuan",
-                key: "/pengajuan-pinjaman",
-            },
-        ],
     },
 
     {

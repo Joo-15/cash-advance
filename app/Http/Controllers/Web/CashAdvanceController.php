@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\CashAdvance;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -20,6 +21,9 @@ class CashAdvanceController extends Controller
             ->when($request->search, function ($query, $search) {
                 $query->where('keperluan', 'like', "%{$search}%");
             })
+            ->when($request->status, function ($query, $status) {
+                $query->where('status', $status);
+            })
             ->when($request->sort_by, function ($query) use ($request) {
                 $query->orderBy(
                     $request->sort_by,
@@ -30,9 +34,9 @@ class CashAdvanceController extends Controller
             ->withQueryString();
 
         return Inertia::render('CashAdvance/IndexCashAdvance', [
-            'pageHeader' => 'Daftar Pengajuan Pinjaman',
+            'pageHeader' => 'Pengajuan Pinjaman',
             'cashadvance' => $cashadvance,
-            'filters' => $request->only(['search', 'per_page']),
+            'filters' => $request->only(['search', 'status', 'per_page']),
             'statData' => [
                 'total_pengajuan' => CashAdvance::count(),
                 'pengajuan_disetujui' => CashAdvance::where('status', 'approved')->count(),
@@ -85,6 +89,11 @@ class CashAdvanceController extends Controller
         ]);
 
         CashAdvance::where('id', $id)->update([
+            'tanggal' => $request->tanggal
+                ? Carbon::createFromTimestampMs($request->tanggal)
+                ->setTimezone('Asia/Jakarta')
+                ->format('Y-m-d')
+                : null,
             'keperluan' => $request->keperluan,
             'jumlah' => $request->jumlah,
             'status' => $request->status,
