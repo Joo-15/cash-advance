@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,6 +17,19 @@ class CashAdvance extends Model
         'jumlah',
         'status',
     ];
+
+    // Mutator
+    public function setTanggalAttribute($value)
+    {
+        if (!$value) {
+            $this->attributes['tanggal'] = null;
+            return;
+        }
+
+        $this->attributes['tanggal'] = Carbon::createFromTimestampMs($value)
+            ->setTimezone('Asia/Jakarta')
+            ->format('Y-m-d');
+    }
 
     public function user()
     {

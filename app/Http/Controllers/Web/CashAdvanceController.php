@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\CashAdvance;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class CashAdvanceController extends Controller
@@ -24,12 +24,7 @@ class CashAdvanceController extends Controller
             ->when($request->status, function ($query, $status) {
                 $query->where('status', $status);
             })
-            ->when($request->sort_by, function ($query) use ($request) {
-                $query->orderBy(
-                    $request->sort_by,
-                    $request->sort_type ?? 'desc'
-                );
-            })
+            ->latest()
             ->paginate($perPage)
             ->withQueryString();
 
@@ -59,7 +54,17 @@ class CashAdvanceController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        // dd($request->all());
+        // Validasi
+        $validated = $request->validate([
+            'tanggal' => 'required',
+            'keperluan' => 'required|string|max:255',
+            'jumlah' => 'required|numeric|min:0',
+        ]);
+
+        // Simpan - semua logic otomatis di-handle oleh observer
+        CashAdvance::create($validated);
+        return redirect()->back()->with('success', 'Data berhasil disimpan');
     }
 
     /**
@@ -88,16 +93,14 @@ class CashAdvanceController extends Controller
             'jumlah' => 'required|numeric',
         ]);
 
-        CashAdvance::where('id', $id)->update([
-            'tanggal' => $request->tanggal
-                ? Carbon::createFromTimestampMs($request->tanggal)
-                ->setTimezone('Asia/Jakarta')
-                ->format('Y-m-d')
-                : null,
-            'keperluan' => $request->keperluan,
-            'jumlah' => $request->jumlah,
-            'status' => $request->status,
-        ]);
+        $cashAdvance = CashAdvance::findOrFail($id);
+
+        $cashAdvance->tanggal = $request->tanggal;
+        $cashAdvance->keperluan = $request->keperluan;
+        $cashAdvance->jumlah = $request->jumlah;
+        $cashAdvance->status = $request->status;
+
+        $cashAdvance->save();
 
         return back()->with('success', 'Data berhasil diupdate');
     }

@@ -23,10 +23,13 @@ import {
     RefreshOutline,
     TrashOutline,
 } from "@vicons/ionicons5";
-import EditCashAdvance from "./EditCashAdvance.vue";
+// import EditCashAdvance from "./EditCashAdvance.vue";
 import { STATUS_OPTIONS } from "@/Constants/status";
 import { CASH_ADVANCE_STATS } from "@/Constants/cashAdvanceStats";
 import { useCashAdvanceForm } from "@/Composables/CashAdvance/useCashAdvanceForm";
+// import CreateCashAdvance from "./CreateCashAdvance.vue";
+import FormCashAdvance from "./FormCashAdvance.vue";
+import { formatRupiah } from "@/utils/helpers";
 
 /* =====================
  | Props (Inertia)
@@ -51,9 +54,8 @@ const props = defineProps({
  ===================== */
 const statusOptions = STATUS_OPTIONS;
 const stats = CASH_ADVANCE_STATS;
-const { form } = useCashAdvanceForm();
 
-const editModal = ref(false);
+const modal = ref(false);
 const selectedRow = ref(null);
 
 const dialog = useDialog();
@@ -110,6 +112,9 @@ const columns = [
     {
         title: "Jumlah",
         key: "jumlah",
+        render(row) {
+            return h("span", {}, formatRupiah(row.jumlah));
+        },
     },
     {
         title: "Status",
@@ -162,6 +167,11 @@ const columns = [
 /* =====================
  | Actions
  ===================== */
+const tambah = () => {
+    selectedRow.value = null;
+    modal.value = true;
+};
+
 const edit = async (row) => {
     try {
         const data = row.detail
@@ -169,7 +179,7 @@ const edit = async (row) => {
             : (await axios.get(route("pengajuan-pinjaman.show", row.id))).data;
 
         selectedRow.value = { ...data };
-        editModal.value = true;
+        modal.value = true;
     } catch (error) {
         console.error("Error mengambil detail:", error);
     }
@@ -227,7 +237,7 @@ const refreshData = () => {
                     Download Excel
                 </n-button>
 
-                <n-button color="#8a2be2" @click="">
+                <n-button color="#8a2be2" @click="tambah">
                     <template #icon>
                         <n-icon>
                             <Add />
@@ -385,9 +395,15 @@ const refreshData = () => {
     <!-- =====================
              Modal
     ===================== -->
-
+    <!-- <CreateCashAdvance v-model:show="modal" @updated="refreshData" />
     <EditCashAdvance
-        v-model:show="editModal"
+        v-model:show="modal"
+        :data-edit="selectedRow"
+        @updated="refreshData"
+    /> -->
+
+    <FormCashAdvance
+        v-model:show="modal"
         :data-edit="selectedRow"
         @updated="refreshData"
     />
