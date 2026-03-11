@@ -8,10 +8,11 @@ export function useInertiaDataTable({
     filters: initialFilters = {},
     initialPageSize = 10,
     only = [],
-    debounceTime = 300,
+    debounceTime = 200,
 }) {
     const loadingSearch = ref(false);
     const loadingReset = ref(false);
+    const loadingStatus = ref(false);
     const currentPage = ref(1);
 
     // Reactive filter lokal
@@ -37,7 +38,7 @@ export function useInertiaDataTable({
             params.order = filters.order;
         }
 
-        console.log("🚀 Fetching with params:", params);
+        // console.log("🚀 Fetching with params:", params);
 
         router.get(route, params, {
             preserveState: true,
@@ -52,6 +53,7 @@ export function useInertiaDataTable({
             onFinish: () => {
                 loadingSearch.value = false;
                 loadingReset.value = false;
+                loadingStatus.value = false;
             },
         });
     };
@@ -74,7 +76,10 @@ export function useInertiaDataTable({
     // Watch status
     watch(
         () => filters.status,
-        () => debouncedFetch(),
+        () => {
+            loadingStatus.value = true;
+            debouncedFetch()
+        },
     );
 
     // Cancel debounce saat component unmount
@@ -96,16 +101,29 @@ export function useInertiaDataTable({
 
     // ============ SORTING ============
     const handleSortChange = (sortOptions) => {
-        console.log("📊 useInertiaDataTable - Sort options:", sortOptions);
+        // console.log("📊 useInertiaDataTable - Sort options received:", sortOptions);
+        // console.log("📊 Current filters before update:", {
+        //     sort: filters.sort,
+        //     order: filters.order,
+        //     search: filters.search,
+        //     status: filters.status
+        // });
 
-        if (!sortOptions) {
+        if (!sortOptions || !sortOptions.field) {
             // Reset sorting
             filters.sort = null;
             filters.order = null;
+            // console.log("📊 Sort reset - filters after:", filters);
         } else {
-            // Update filters dengan sorting baru
+            // InertiaDataTable mengirim format: { field: 'tanggal', order: 'asc'/'desc' }
             filters.sort = sortOptions.field;
-            filters.order = sortOptions.order;
+            filters.order = sortOptions.order; // Langsung pakai 'asc' atau 'desc'
+
+            // console.log("📊 Sort updated:", {
+            //     field: sortOptions.field,
+            //     order: sortOptions.order,
+            //     filters: filters
+            // });
         }
 
         // Reset ke halaman 1 dan fetch data
@@ -115,11 +133,13 @@ export function useInertiaDataTable({
 
     // ============ CLEAR FILTERS ============
     const handleClear = () => {
-        console.log("🧹 useInertiaDataTable - Clearing all filters");
-        console.log("Before clear:", {
-            sort: filters.sort,
-            order: filters.order,
-        });
+        // console.log("🧹 useInertiaDataTable - Clearing all filters");
+        // console.log("Before clear:", {
+        //     sort: filters.sort,
+        //     order: filters.order,
+        //     search: filters.search,
+        //     status: filters.status
+        // });
 
         loadingReset.value = true;
 
@@ -129,10 +149,12 @@ export function useInertiaDataTable({
         filters.sort = null;
         filters.order = null;
 
-        console.log("After clear:", {
-            sort: filters.sort,
-            order: filters.order,
-        });
+        // console.log("After clear:", {
+        //     sort: filters.sort,
+        //     order: filters.order,
+        //     search: filters.search,
+        //     status: filters.status
+        // });
 
         currentPage.value = 1;
         fetchData();
@@ -141,6 +163,7 @@ export function useInertiaDataTable({
     return {
         loadingSearch,
         loadingReset,
+        loadingStatus,
         filters,
         handlePageChange,
         handlePageSizeChange,
