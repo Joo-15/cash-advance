@@ -2,7 +2,7 @@
 /* =====================
  | Imports
  ===================== */
-import { ref, h, computed } from "vue";
+import { ref, h, computed, watch } from "vue";
 import { usePage, router } from "@inertiajs/vue3";
 import {
     NButton,
@@ -18,18 +18,18 @@ import { useInertiaDataTable } from "@/Composables/useInertiaDataTable";
 import InertiaDataTable from "@/Components/DataTable/InertiaDataTable.vue";
 import {
     Add,
+    CashOutline,
     DownloadOutline,
+    EyeOutline,
     PencilOutline,
     RefreshOutline,
     TrashOutline,
 } from "@vicons/ionicons5";
-// import EditCashAdvance from "./EditCashAdvance.vue";
 import { STATUS_OPTIONS } from "@/Constants/status";
 import { CASH_ADVANCE_STATS } from "@/Constants/cashAdvanceStats";
-import { useCashAdvanceForm } from "@/Composables/CashAdvance/useCashAdvanceForm";
-// import CreateCashAdvance from "./CreateCashAdvance.vue";
 import FormCashAdvance from "./FormCashAdvance.vue";
 import { formatRupiah } from "@/utils/helpers";
+import { useTableColumns } from "@/Composables/useTableColumns";
 
 /* =====================
  | Props (Inertia)
@@ -43,7 +43,13 @@ const props = defineProps({
     },
     filters: {
         type: Object,
-        required: true,
+        default: () => ({
+            sort: null,
+            order: null,
+            pageSize: 10,
+            page: 1,
+            search: "",
+        }),
     },
     statData: Object,
     flash: Object,
@@ -64,6 +70,9 @@ const message = useMessage();
 /* =====================
  Computed / Derived State
  ===================== */
+// const emit = defineEmits(["edit", "delete", "view-detail"]);
+
+const { createColumns } = useTableColumns();
 
 const rows = computed(() => {
     return props.cashadvance.data.map((row) => ({
@@ -84,6 +93,7 @@ const {
     filters,
     handlePageChange,
     handlePageSizeChange,
+    handleSortChange,
     handleClear,
 } = useInertiaDataTable({
     route: route("pengajuan-pinjaman.index"),
@@ -91,6 +101,8 @@ const {
         search: props.filters.search || "",
         status: props.filters.status || null,
         pageSize: Number(props.cashadvance.per_page ?? 10),
+        sort: props.filters.sort || null, // ✅ Tambahkan dari props
+        order: props.filters.order || null, // ✅ Tambahkan dari props
     },
     only: ["cashadvance"],
 });
@@ -98,71 +110,92 @@ const {
 /* =====================
  | Table Columns
  ===================== */
-const columns = [
+
+// Konfigurasi kolom dari component
+const columnConfig = [
     {
         title: "Tanggal",
         key: "tanggal",
-        sorter: true,
-        sortOrder: false,
+        type: "date",
+        width: 120,
+        sorter: true, // Auto detect dari type
+        sortOrder:
+            filters.sort === "tanggal"
+                ? filters.order === "asc"
+                    ? "ascend"
+                    : "descend"
+                : false,
+        width: 120,
     },
     {
         title: "Keperluan",
         key: "keperluan",
+        width: 200,
+        ellipsis: {
+            tooltip: true,
+        },
     },
     {
         title: "Jumlah",
         key: "jumlah",
-        render(row) {
-            return h("span", {}, formatRupiah(row.jumlah));
-        },
+        type: "currency",
+        currency: "IDR",
+        align: "right",
+        sorter: true, // Auto detect dari type
+        sortOrder:
+            props.filters?.sort === "jumlah"
+                ? props.filters?.order === "asc"
+                    ? "ascend"
+                    : "descend"
+                : false,
+        width: 150,
     },
     {
         title: "Status",
         key: "status",
+        type: "status",
+        width: 80,
+        align: "center",
+        statusMap: {
+            pending: { type: "warning", label: "Pandding" },
+            approved: { type: "success", label: "Approved" },
+            rejected: { type: "error", label: "Rejected" },
+            default: { type: "default", label: "Unknown" },
+        },
     },
     {
         title: "Aksi",
-        key: "aksi",
-        render(row) {
-            return [
-                h(
-                    NButton,
-                    {
-                        strong: true,
-                        secondary: true,
-                        circle: true,
-                        type: "info",
-                        size: "small",
-                        onClick: () => edit(row),
-                    },
-                    {
-                        icon: () =>
-                            h(NIcon, null, {
-                                default: () => h(PencilOutline),
-                            }),
-                    },
-                ),
-                h(
-                    NButton,
-                    {
-                        strong: true,
-                        secondary: true,
-                        circle: true,
-                        type: "error",
-                        size: "small",
-                        style: "margin-left:6px",
-                        onClick: () => hapus(row.id),
-                    },
-                    {
-                        // slot default bisa diisi dengan text, tapi kalau pakai icon biasanya pakai #icon slot
-                        icon: () =>
-                            h(NIcon, null, { default: () => h(TrashOutline) }),
-                    },
-                ),
-            ];
+        key: "actions",
+        type: "action",
+        width: 100,
+        fixed: "center",
+        actionConfig: {
+            showEdit: true,
+            showDelete: true,
+            showView: true,
+            size: "small",
+            editProps: {
+                disabled: false,
+            },
+            deleteProps: {
+                // Props khusus untuk delete button
+            },
+            // customButtons: [
+            //     {
+            //         type: "warning",
+            //         icon: CashOutline,
+            //         tooltip: "Proses Pembayaran",
+            //         onClick: (row) => handlePayment(row),
+            //     },
+            // ],
         },
     },
 ];
+
+// Generate columns dengan actions
+const columns = computed(() => {
+    return createColumns(columnConfig, actions);
+});
 
 /* =====================
  | Actions
@@ -207,6 +240,13 @@ const hapus = (id) => {
             });
         },
     });
+};
+
+// Actions handlers
+const actions = {
+    onEdit: edit,
+    onDelete: hapus,
+    // onView: viewDetail, // Jika ada tombol view
 };
 
 const refreshData = () => {
@@ -389,18 +429,10 @@ const refreshData = () => {
                 :page-size="filters.pageSize"
                 @update:page="handlePageChange"
                 @update:pageSize="handlePageSizeChange"
+                @update:sorter="handleSortChange"
             />
         </div>
     </div>
-    <!-- =====================
-             Modal
-    ===================== -->
-    <!-- <CreateCashAdvance v-model:show="modal" @updated="refreshData" />
-    <EditCashAdvance
-        v-model:show="modal"
-        :data-edit="selectedRow"
-        @updated="refreshData"
-    /> -->
 
     <FormCashAdvance
         v-model:show="modal"

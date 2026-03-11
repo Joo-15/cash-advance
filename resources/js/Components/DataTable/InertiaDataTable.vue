@@ -1,10 +1,7 @@
 <script setup>
 import { NDataTable, NPagination } from "naive-ui";
 
-/* =====================
- | Props
- ===================== */
-defineProps({
+const props = defineProps({
     columns: {
         type: Array,
         required: true,
@@ -21,41 +18,51 @@ defineProps({
         type: Number,
         required: true,
     },
+    loading: {
+        type: Boolean,
+        default: false,
+    },
 });
 
-/* =====================
- | Emits
- ===================== */
-defineEmits(["update:page", "update:pageSize"]);
+const emit = defineEmits(["update:page", "update:pageSize", "update:sorter"]);
+
+const handleSorterChange = (sorter) => {
+    console.log("Sorter changed:", sorter);
+
+    let sortOptions = null;
+    if (sorter && sorter.columnKey && sorter.order) {
+        sortOptions = {
+            field: sorter.columnKey,
+            order: sorter.order === "ascend" ? "asc" : "desc",
+        };
+    }
+    emit("update:sorter", sortOptions);
+};
+
+const handlePageChange = (page) => emit("update:page", page);
+const handlePageSizeChange = (pageSize) => emit("update:pageSize", pageSize);
 </script>
 
 <template>
     <div>
-        <!-- =====================
-             Data Table
-        ===================== -->
         <n-data-table
             remote
             bordered
             :columns="columns"
+            :loading="loading"
             :data="data"
             :pagination="false"
+            @update:sorter="handleSorterChange"
         />
 
-        <!-- =====================
-             Footer
-        ===================== -->
         <div
             class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
         >
-            <!-- Info -->
             <div class="text-sm text-gray-600">
-                Menampilkan
-                <b>{{ meta.from }}</b> – <b>{{ meta.to }}</b> dari
+                Menampilkan <b>{{ meta.from }}</b> – <b>{{ meta.to }}</b> dari
                 <b>{{ meta.total }}</b> data
             </div>
 
-            <!-- Pagination -->
             <n-pagination
                 :page="meta.current_page"
                 :page-size="pageSize"
@@ -63,8 +70,8 @@ defineEmits(["update:page", "update:pageSize"]);
                 show-size-picker
                 show-quick-jumper
                 :page-sizes="[5, 10, 20, 50, 100]"
-                @update:page="$emit('update:page', $event)"
-                @update:page-size="$emit('update:pageSize', $event)"
+                @update:page="handlePageChange"
+                @update:page-size="handlePageSizeChange"
             />
         </div>
     </div>

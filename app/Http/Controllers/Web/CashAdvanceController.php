@@ -24,14 +24,30 @@ class CashAdvanceController extends Controller
             ->when($request->status, function ($query, $status) {
                 $query->where('status', $status);
             })
-            ->latest()
+            ->when($request->sort && $request->order, function ($query) use ($request) {
+                // Whitelist field yang boleh di-sort
+                $allowedSorts = ['tanggal', 'keperluan', 'jumlah', 'status'];
+
+                if (in_array($request->sort, $allowedSorts)) {
+                    $query->orderBy($request->sort, $request->order);
+                }
+            }, function ($query) {
+                // Default sorting jika tidak ada parameter sort
+                $query->latest('tanggal'); // latest() = orderBy('created_at', 'desc')
+            })
             ->paginate($perPage)
             ->withQueryString();
 
         return Inertia::render('CashAdvance/IndexCashAdvance', [
             'pageHeader' => 'Pengajuan Pinjaman',
             'cashadvance' => $cashadvance,
-            'filters' => $request->only(['search', 'status', 'per_page']),
+            'filters' => $request->only([
+                'search',
+                'status',
+                'per_page',
+                'sort',
+                'order'
+            ]),
             'statData' => [
                 'total_pengajuan' => CashAdvance::count(),
                 'pengajuan_disetujui' => CashAdvance::where('status', 'approved')->count(),
