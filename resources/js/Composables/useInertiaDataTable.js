@@ -13,6 +13,7 @@ export function useInertiaDataTable({
     const loadingSearch = ref(false);
     const loadingReset = ref(false);
     const loadingStatus = ref(false);
+    const loadingSort = ref(false);
     const currentPage = ref(1);
 
     // Reactive filter lokal
@@ -54,6 +55,7 @@ export function useInertiaDataTable({
                 loadingSearch.value = false;
                 loadingReset.value = false;
                 loadingStatus.value = false;
+                loadingSort.value = false;
             },
         });
     };
@@ -127,8 +129,8 @@ export function useInertiaDataTable({
         }
 
         // Reset ke halaman 1 dan fetch data
-        currentPage.value = 1;
-        fetchData();
+        // currentPage.value = 1;
+        // fetchData();
     };
 
     // ============ CLEAR FILTERS ============
@@ -156,15 +158,16 @@ export function useInertiaDataTable({
         //     status: filters.status
         // });
 
-        currentPage.value = 1;
-        fetchData();
+        debouncedFetch();
     };
 
     return {
         loadingSearch,
         loadingReset,
         loadingStatus,
+        loadingSort,
         filters,
+        debouncedFetch,
         handlePageChange,
         handlePageSizeChange,
         handleSortChange,

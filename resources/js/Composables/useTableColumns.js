@@ -34,7 +34,6 @@ export function useTableColumns(customConfig = {}) {
     // State untuk menyimpan sort order yang aktif
     const activeSortKey = ref(null);
     const activeSortOrder = ref(null);
-    const loadingSort = ref(false);
 
     /**
      * ===================================================
@@ -491,7 +490,6 @@ export function useTableColumns(customConfig = {}) {
         // State
         activeSortKey,
         activeSortOrder,
-        loadingSort,
 
         // Expose renderers
         renderers: {

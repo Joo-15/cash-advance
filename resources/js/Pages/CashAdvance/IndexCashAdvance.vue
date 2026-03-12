@@ -19,7 +19,7 @@ const props = defineProps({
     statData: Object,
 });
 
-const { createColumns, resetSort, hasActiveSort, updateSort, loadingSort } =
+const { createColumns, resetSort, hasActiveSort, updateSort } =
     useTableColumns();
 
 // ✅ Buat computed value untuk hasActiveSort (fungsi → boolean)
@@ -35,7 +35,9 @@ const {
     loadingSearch,
     loadingReset,
     loadingStatus,
+    loadingSort,
     filters,
+    debouncedFetch,
     handlePageChange,
     handlePageSizeChange,
     handleSortChange: datatableHandleSortChange,
@@ -127,8 +129,9 @@ const handleSortChange = async (sortOptions) => {
 
         loadingSort.value = true;
 
-        await sleep(300);
-        loadingSort.value = false;
+        // await sleep(500);
+        // loadingSort.value = false;
+        debouncedFetch();
     } else {
         resetSort();
     }
@@ -151,7 +154,7 @@ const handleResetSort = async () => {
     filters.order = null;
     loadingSort.value = true;
 
-    await sleep(300);
+    await sleep(500);
     loadingSort.value = false;
 
     fetchData();
