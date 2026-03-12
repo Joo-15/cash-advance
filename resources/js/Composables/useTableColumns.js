@@ -34,6 +34,7 @@ export function useTableColumns(customConfig = {}) {
     // State untuk menyimpan sort order yang aktif
     const activeSortKey = ref(null);
     const activeSortOrder = ref(null);
+    const loadingSort = ref(false);
 
     /**
      * ===================================================
@@ -382,14 +383,18 @@ export function useTableColumns(customConfig = {}) {
     /**
      * RESET SORT - Fungsi untuk mereset icon sorting
      */
+    const instanceId = Math.random().toString(36).substring(7);
+    console.log(`🆕 useTableColumns INSTANCE ${instanceId} dibuat di ${new Error().stack.split('\n')[1]}`);
+
+
+
     const resetSort = () => {
-        console.log('🟠 useTableColumns - resetSort DIPANGGIL!', new Date().toISOString());
-        console.log('🟠 activeSortKey sebelumnya:', activeSortKey.value);
+        // console.log(`🟠 INSTANCE ${instanceId} - resetSort DIPANGGIL!`, new Date().toISOString());
+        // console.log(`🟠 activeSortKey sebelumnya:`, activeSortKey.value);
         activeSortKey.value = null;
         activeSortOrder.value = null;
-        console.log('🟠 activeSortKey setelah reset:', activeSortKey.value);
+        // console.log(`🟠 activeSortKey setelah reset:`, activeSortKey.value);
     };
-
     /**
      * Set sort order
      */
@@ -403,8 +408,8 @@ export function useTableColumns(customConfig = {}) {
      * Update sort dari external
      */
     const updateSort = (sortKey, sortOrder) => {
-        console.log('📢 updateSort dipanggil dengan:', { sortKey, sortOrder });
-        console.log('📢 activeSortKey SEBELUM:', activeSortKey.value);
+        // console.log('📢 updateSort dipanggil dengan:', { sortKey, sortOrder });
+        // console.log('📢 activeSortKey SEBELUM:', activeSortKey.value);
 
         if (!sortKey || sortOrder === false || sortOrder === null || sortOrder === undefined) {
             resetSort();
@@ -412,7 +417,7 @@ export function useTableColumns(customConfig = {}) {
             setSort(sortKey, sortOrder);
         }
 
-        console.log('📢 activeSortKey SESUDAH:', activeSortKey.value);
+        // console.log('📢 activeSortKey SESUDAH:', activeSortKey.value);
     };
 
     /**
@@ -486,6 +491,7 @@ export function useTableColumns(customConfig = {}) {
         // State
         activeSortKey,
         activeSortOrder,
+        loadingSort,
 
         // Expose renderers
         renderers: {

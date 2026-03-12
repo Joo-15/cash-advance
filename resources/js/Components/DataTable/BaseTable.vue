@@ -1,19 +1,26 @@
+<!-- Components/DataTable/BaseTable.vue -->
 <script setup>
 import { computed, ref, watch } from "vue";
-import { NBadge, NTag } from "naive-ui";
+import { NButton, NIcon, NTag } from "naive-ui";
 import InertiaDataTable from "@/Components/DataTable/InertiaDataTable.vue";
-import { useTableColumns } from "@/Composables/useTableColumns";
+import { RefreshOutline } from "@vicons/ionicons5";
 
+// Props - TERIMA semua dari parent
 const props = defineProps({
-    columns: { type: Array, required: true },
+    columns: { type: Array, required: true }, // Columns SUDAH diproses
     dataRef: { type: Array, required: true },
     meta: { type: Object, required: true },
     filters: { type: Object, required: true },
+    loadingReset: { type: Boolean, default: false },
     loadingRef: { type: Boolean, default: false },
     actions: { type: Object, default: () => ({}) },
     pageSize: { type: Number, default: 10 },
     showActiveFilters: { type: Boolean, default: true },
     statusOptions: { type: Array, default: () => [] },
+
+    // Props baru dari parent - fungsi dari composable
+    hasActiveSortFn: { type: Function, required: true },
+    resetSortFn: { type: Function, required: true },
 });
 
 const emit = defineEmits([
@@ -21,37 +28,21 @@ const emit = defineEmits([
     "update:pageSize",
     "update:sorter",
     "clear-filter",
-    "reset-sort",
 ]);
 
-// Ambil fungsi dan state dari composable
-const {
-    createColumns,
-    resetSort,
-    hasActiveSort,
-    updateSort,
-    activeSortKey, // ✅ activeSortKey sekarang sudah tersedia
-} = useTableColumns();
-
-// Key untuk memaksa re-render tabel
+// Key untuk memaksa re-render tabel (optional)
 const tableKey = ref(0);
 
-const tableColumns = computed(() =>
-    createColumns(props.columns, props.actions),
-);
+// HAPUS panggilan useTableColumns di sini!
+// Langsung gunakan props.columns yang sudah diproses
 
 const handleSortChange = (sortOptions) => {
-    if (sortOptions?.field) {
-        const order = sortOptions.order === "asc" ? "ascend" : "descend";
-        updateSort(sortOptions.field, order);
-    } else {
-        resetSort();
-    }
+    // Emit ke parent, parent yang akan handle update di composable
     emit("update:sorter", sortOptions);
 };
 
 const handleClear = () => {
-    resetSort();
+    props.resetSortFn(); // Panggil resetSort dari parent
     emit("clear-filter");
 };
 
@@ -60,17 +51,16 @@ const getStatusLabel = (value) => {
     return option?.label || value;
 };
 
-watch(
-    () => activeSortKey.value,
-    (newVal, oldVal) => {
-        console.log("🟣 BaseTable - activeSortKey berubah:", {
-            dari: oldVal,
-            ke: newVal,
-        });
-        tableKey.value += 1;
-        console.log("🟣 BaseTable - tableKey:", tableKey.value);
-    },
-);
+// // Watch untuk debugging (optional)
+// watch(
+//     () => props.filters,
+//     () => {
+//         // Force re-render jika perlu
+//         tableKey.value += 1;
+//     },
+//     { deep: true },
+// );
+//
 </script>
 
 <template>
@@ -79,7 +69,7 @@ watch(
         <div
             v-if="
                 showActiveFilters &&
-                (filters.search || filters.status || hasActiveSort())
+                (filters.search || filters.status || hasActiveSortFn())
             "
             class="mb-4 flex flex-wrap gap-2"
         >
@@ -100,18 +90,24 @@ watch(
                 Status: {{ getStatusLabel(filters.status) }}
             </n-tag>
             <n-tag
-                v-if="hasActiveSort()"
+                v-if="hasActiveSortFn()"
                 type="warning"
                 closable
-                @close="resetSort()"
+                @close="resetSortFn()"
             >
                 Sort Active
             </n-tag>
+            <n-button size="small" ghost @click="handleClear" strong>
+                <template #icon>
+                    <n-icon><refresh-outline /></n-icon>
+                </template>
+                Reset All
+            </n-button>
         </div>
 
         <inertia-data-table
             :key="tableKey"
-            :columns="tableColumns"
+            :columns="columns"
             :data="dataRef"
             :meta="meta"
             :page-size="pageSize"

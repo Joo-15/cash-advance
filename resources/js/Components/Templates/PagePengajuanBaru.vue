@@ -175,7 +175,7 @@ const getColor = (colorName) =>
                 </div>
 
                 <!-- Tombol Reset dengan Badge jika ada sort aktif -->
-                <n-badge v-if="true" type="info" :value="1" :max="1">
+                <!-- <n-badge v-if="hasActiveSort" type="info" :value="1" :max="1">
                     <n-button
                         :loading="loadingReset"
                         @click="handleResetSort"
@@ -188,11 +188,11 @@ const getColor = (colorName) =>
                         </template>
                         Reset All
                     </n-button>
-                </n-badge>
+                </n-badge> -->
 
                 <!-- Tombol Reset biasa jika tidak ada sort -->
-                <n-button
-                    v-else
+                <!-- <n-button
+                    v-if="hasActiveSort"
                     :loading="loadingReset"
                     @click="handleClear"
                     strong
@@ -202,43 +202,7 @@ const getColor = (colorName) =>
                         <n-icon><RefreshOutline /></n-icon>
                     </template>
                     Reset
-                </n-button>
-            </div>
-
-            <!-- Active Filters Info -->
-            <div
-                v-if="filters.search || filters.status || hasActiveSort"
-                class="mt-2 flex flex-wrap gap-2"
-            >
-                <n-tag
-                    v-if="filters.search"
-                    type="info"
-                    closable
-                    @close="$emit('update:search', '')"
-                >
-                    Search: {{ filters.search }}
-                </n-tag>
-                <n-tag
-                    v-if="filters.status"
-                    type="info"
-                    closable
-                    @close="$emit('update:status', null)"
-                >
-                    Status:
-                    {{
-                        statusOptions.find(
-                            (opt) => opt.value === filters.status,
-                        )?.label
-                    }}
-                </n-tag>
-                <n-tag
-                    v-if="hasActiveSort"
-                    type="warning"
-                    closable
-                    @close="handleResetSort"
-                >
-                    Sort Active
-                </n-tag>
+                </n-button> -->
             </div>
         </div>
 

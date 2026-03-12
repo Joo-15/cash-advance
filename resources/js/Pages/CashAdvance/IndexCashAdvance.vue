@@ -10,6 +10,7 @@ import { CASH_ADVANCE_STATS } from "@/Constants/cashAdvanceStats";
 import BaseTable from "@/Components/DataTable/BaseTable.vue";
 import PagePengajuanBaru from "@/Components/Templates/PagePengajuanBaru.vue";
 import { useTableColumns } from "@/Composables/useTableColumns";
+import { sleep } from "@/utils/helpers";
 
 const page = usePage();
 const props = defineProps({
@@ -18,8 +19,8 @@ const props = defineProps({
     statData: Object,
 });
 
-// Table Columns Composable
-const { hasActiveSort, resetSort } = useTableColumns();
+const { createColumns, resetSort, hasActiveSort, updateSort, loadingSort } =
+    useTableColumns();
 
 // ✅ Buat computed value untuk hasActiveSort (fungsi → boolean)
 const hasActiveSortValue = computed(() => hasActiveSort());
@@ -39,6 +40,7 @@ const {
     handlePageSizeChange,
     handleSortChange: datatableHandleSortChange,
     handleClear: datatableHandleClear,
+    fetchData,
 } = useInertiaDataTable({
     route: route("pengajuan-pinjaman.index"),
     filters: {
@@ -114,28 +116,45 @@ const actions = {
     onDelete: hapus,
 };
 
+const tableColumns = computed(() => createColumns(columnConfig, actions));
+
 // Handlers
-const handleSortChange = (sortOptions) => {
+const handleSortChange = async (sortOptions) => {
+    // Update sort di composable
+    if (sortOptions?.field) {
+        const order = sortOptions.order === "asc" ? "ascend" : "descend";
+        updateSort(sortOptions.field, order);
+
+        loadingSort.value = true;
+
+        await sleep(300);
+        loadingSort.value = false;
+    } else {
+        resetSort();
+    }
+    // Kirim ke InertiaDataTable
     datatableHandleSortChange(sortOptions);
 };
 
 const handleClear = () => {
-    datatableHandleClear();
+    resetSort(); // Reset sort di composable
+    datatableHandleClear(); // Clear filters di Inertia
 };
 
 const handleDownload = () => {
-    // Implement download logic
     console.log("Download Excel");
 };
 
-const handleResetSort = () => {
-    console.log(
-        "🟢 Index - handleResetSort DIPANGGIL!",
-        new Date().toISOString(),
-    );
-    console.log("🟢 Index - memanggil resetSort()");
+const handleResetSort = async () => {
     resetSort();
-    console.log("🟢 Index - resetSort() selesai dipanggil");
+    filters.sort = null;
+    filters.order = null;
+    loadingSort.value = true;
+
+    await sleep(300);
+    loadingSort.value = false;
+
+    fetchData();
 };
 </script>
 
@@ -159,14 +178,20 @@ const handleResetSort = () => {
     >
         <template #table>
             <BaseTable
-                :columns="columnConfig"
+                :columns="tableColumns"
                 :data-ref="rows"
                 :meta="cashadvance"
                 :filters="filters"
-                :actions="actions"
                 :status-options="STATUS_OPTIONS"
                 :page-size="filters.pageSize"
-                :loading-ref="loadingSearch || loadingReset || loadingStatus"
+                :loading-ref="
+                    loadingSearch ||
+                    loadingReset ||
+                    loadingStatus ||
+                    loadingSort
+                "
+                :has-active-sort-fn="hasActiveSort"
+                :reset-sort-fn="handleResetSort"
                 @update:page="handlePageChange"
                 @update:pageSize="handlePageSizeChange"
                 @update:sorter="handleSortChange"
