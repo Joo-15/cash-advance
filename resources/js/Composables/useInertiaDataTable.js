@@ -80,7 +80,7 @@ export function useInertiaDataTable({
         () => filters.status,
         () => {
             loadingStatus.value = true;
-            debouncedFetch()
+            debouncedFetch();
         },
     );
 

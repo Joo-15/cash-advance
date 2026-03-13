@@ -19,24 +19,26 @@ export function useCrud(options = {}) {
 
     const dialog = useDialog();
     const message = useMessage();
-    const modal = ref(false);
+    const modalForm = ref(false);
     const selectedRow = ref(null);
     const loading = ref(false);
 
     const tambah = () => {
         selectedRow.value = null;
-        modal.value = true;
+        modalForm.value = true;
     };
 
     const edit = async (row, fetchDetail = true) => {
         try {
             loading.value = true;
-            const data = fetchDetail && !row.detail
-                ? (await axios.get(route(`${routePrefix}.show`, row.id))).data
-                : row;
+            const data =
+                fetchDetail && !row.detail
+                    ? (await axios.get(route(`${routePrefix}.show`, row.id)))
+                          .data
+                    : row;
 
             selectedRow.value = { ...data };
-            modal.value = true;
+            modalForm.value = true;
         } catch (error) {
             console.error("Error:", error);
             message.error(messages.errorFetch);
@@ -85,7 +87,7 @@ export function useCrud(options = {}) {
 
     return {
         // State
-        modal,
+        modalForm,
         selectedRow,
         loading,
 

@@ -10,7 +10,7 @@ import { CASH_ADVANCE_STATS } from "@/Constants/cashAdvanceStats";
 import BaseTable from "@/Components/DataTable/BaseTable.vue";
 import PagePengajuanBaru from "@/Components/Templates/PagePengajuanBaru.vue";
 import { useTableColumns } from "@/Composables/useTableColumns";
-import { sleep } from "@/utils/helpers";
+import CashAdvanceForm from "./CashAdvanceForm.vue";
 
 const page = usePage();
 const props = defineProps({
@@ -26,7 +26,7 @@ const { createColumns, resetSort, hasActiveSort, updateSort } =
 const hasActiveSortValue = computed(() => hasActiveSort());
 
 // CRUD Operations
-const { modal, selectedRow, tambah, edit, hapus, refresh } = useCrud({
+const { modalForm, selectedRow, tambah, edit, hapus, refresh } = useCrud({
     routePrefix: "pengajuan-pinjaman",
 });
 
@@ -42,7 +42,6 @@ const {
     handlePageSizeChange,
     handleSortChange: datatableHandleSortChange,
     handleClear: datatableHandleClear,
-    fetchData,
 } = useInertiaDataTable({
     route: route("pengajuan-pinjaman.index"),
     filters: {
@@ -128,9 +127,6 @@ const handleSortChange = async (sortOptions) => {
         updateSort(sortOptions.field, order);
 
         loadingSort.value = true;
-
-        // await sleep(500);
-        // loadingSort.value = false;
         debouncedFetch();
     } else {
         resetSort();
@@ -154,10 +150,7 @@ const handleResetSort = async () => {
     filters.order = null;
     loadingSort.value = true;
 
-    await sleep(500);
-    loadingSort.value = false;
-
-    fetchData();
+    debouncedFetch();
 };
 </script>
 
@@ -204,7 +197,7 @@ const handleResetSort = async () => {
     </PagePengajuanBaru>
 
     <FormCashAdvance
-        v-model:show="modal"
+        v-model:show-modal="modalForm"
         :data-edit="selectedRow"
         @updated="refresh"
     />

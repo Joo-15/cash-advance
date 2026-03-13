@@ -21,9 +21,12 @@
         "vue": "^3.4.0"
     },
     "dependencies": {
+        "@vee-validate/yup": "^4.15.1",
         "@vicons/ionicons5": "^0.13.0",
         "naive-ui": "^2.43.2",
         "pinia": "^3.0.4",
+        "vee-validate": "^4.15.1",
+        "yup": "^1.7.1",
         "ziggy-js": "^2.6.0"
     }
 }
