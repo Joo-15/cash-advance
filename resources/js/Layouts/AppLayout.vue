@@ -8,17 +8,25 @@ import {
     NTooltip,
     NIcon,
     NAvatar,
+    useMessage,
 } from "naive-ui";
 import Sidebar from "@/Components/Sidebar.vue";
 import { router, usePage } from "@inertiajs/vue3";
-import { ref, provide, onMounted, h } from "vue";
-import { LogOutOutline, PersonCircleOutline } from "@vicons/ionicons5";
+import { ref, provide, onMounted, h, watchEffect } from "vue";
+import {
+    LogOutOutline,
+    MedicalSharp,
+    Person,
+    PersonCircleOutline,
+} from "@vicons/ionicons5";
 import { computed } from "vue";
 
 /* =====================
    STATE
 ===================== */
+
 const page = usePage();
+const message = useMessage();
 const sidebarCollapsed = ref(false);
 const isReady = ref(false);
 
@@ -64,6 +72,26 @@ const avatarSrc = computed(() => {
     return user.value?.avatar || undefined;
 });
 
+watchEffect(() => {
+    const flash = page.props.flash;
+
+    if (flash.success) {
+        message.success(flash.success);
+        // Clear setelah ditampilkan (opsional)
+        flash.success = null;
+    }
+
+    if (flash.error) {
+        message.error(flash.error);
+        flash.error = null;
+    }
+
+    if (flash.warning) {
+        message.warning(flash.warning);
+        flash.warning = null;
+    }
+});
+
 onMounted(() => {
     sidebarCollapsed.value =
         localStorage.getItem("sidebar-collapsed") === "true";
@@ -76,11 +104,13 @@ onMounted(() => {
         <!-- HEADER FIXED -->
         <n-layout-header
             bordered
-            class="h-14 px-6 flex items-center justify-between bg-gradient-to-r from-green-600 via-green-600 to-green-600 text-white fixed top-0 left-0 right-0 z-50 shadow-md"
+            class="h-14 px-6 flex items-center justify-between bg-gradient-to-r from-green-500 via-green-400 to-green-500 text-white fixed top-0 left-0 right-0 z-50 shadow-md"
         >
             <h2 class="text-lg font-semibold">Belum Punya Nama</h2>
             <div class="dark:border-gray-800">
                 <NDropdown
+                    width="150"
+                    size="small"
                     trigger="click"
                     placement="bottom-end"
                     :options="userDropdownOptions"
@@ -90,7 +120,7 @@ onMounted(() => {
                         class="flex items-center gap-2 rounded-lg cursor-pointer dark:hover:bg-gray-800"
                         :class="{ 'justify-center': sidebarCollapsed }"
                     >
-                        <n-tooltip v-if="sidebarCollapsed" placement="right">
+                        <!-- <n-tooltip v-if="sidebarCollapsed" placement="right">
                             <template #trigger>
                                 <n-avatar
                                     round
@@ -100,25 +130,18 @@ onMounted(() => {
                                 />
                             </template>
                             {{ user?.name || "User" }}
-                        </n-tooltip>
+                        </n-tooltip> -->
 
-                        <n-avatar
-                            v-else
-                            round
-                            :size="28"
-                            :src="user?.avatar"
-                            :fallback-src="avatarFallback"
-                        />
+                        <n-avatar round class="bg-blue-400">
+                            <n-icon size="20">
+                                <Person />
+                            </n-icon>
+                        </n-avatar>
 
                         <Transition name="slide-fade" mode="out-in">
-                            <div v-if="!sidebarCollapsed" class="min-w-0">
+                            <div class="min-w-0">
                                 <p class="font-medium text-sm truncate">
                                     {{ user?.name || "User" }}
-                                </p>
-                                <p
-                                    class="text-xs text-gray-500 dark:text-gray-400 truncate"
-                                >
-                                    {{ user?.email || "user@example.com" }}
                                 </p>
                             </div>
                         </Transition>
@@ -146,7 +169,7 @@ onMounted(() => {
                     bordered
                     class="px-6 py-4 text-center text-sm text-gray-500 bg-white dark:bg-gray-800"
                 >
-                    © 2024 Penjualan Pro. All rights reserved.
+                    © 2024 Cash Advance
                 </n-layout-footer>
             </n-layout>
         </n-layout>

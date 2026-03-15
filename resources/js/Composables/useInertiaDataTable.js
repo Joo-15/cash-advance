@@ -11,9 +11,7 @@ export function useInertiaDataTable({
     debounceTime = 200,
 }) {
     const loadingSearch = ref(false);
-    const loadingReset = ref(false);
-    const loadingStatus = ref(false);
-    const loadingSort = ref(false);
+    const loadingTable = ref(false);
     const currentPage = ref(1);
 
     // Reactive filter lokal
@@ -53,17 +51,18 @@ export function useInertiaDataTable({
             },
             onFinish: () => {
                 loadingSearch.value = false;
-                loadingReset.value = false;
-                loadingStatus.value = false;
-                loadingSort.value = false;
+                // loadingReset.value = false;
+                // loadingStatus.value = false;
+                // loadingSort.value = false;
+                loadingTable.value = false;
             },
         });
     };
 
     // ============ SEARCH & STATUS (Debounced) ============
-    const debouncedFetch = debounce(() => {
+    const debouncedFetch = debounce((page) => {
         currentPage.value = 1;
-        fetchData();
+        fetchData(page);
     }, debounceTime);
 
     // Watch search
@@ -79,7 +78,7 @@ export function useInertiaDataTable({
     watch(
         () => filters.status,
         () => {
-            loadingStatus.value = true;
+            loadingTable.value = true;
             debouncedFetch();
         },
     );
@@ -92,7 +91,8 @@ export function useInertiaDataTable({
     // ============ PAGINATION ============
     const handlePageChange = (page) => {
         currentPage.value = page;
-        fetchData(page);
+        loadingTable.value = true;
+        debouncedFetch(page);
     };
 
     const handlePageSizeChange = (size) => {
@@ -103,13 +103,7 @@ export function useInertiaDataTable({
 
     // ============ SORTING ============
     const handleSortChange = (sortOptions) => {
-        // console.log("📊 useInertiaDataTable - Sort options received:", sortOptions);
-        // console.log("📊 Current filters before update:", {
-        //     sort: filters.sort,
-        //     order: filters.order,
-        //     search: filters.search,
-        //     status: filters.status
-        // });
+
 
         if (!sortOptions || !sortOptions.field) {
             // Reset sorting
@@ -128,9 +122,7 @@ export function useInertiaDataTable({
             // });
         }
 
-        // Reset ke halaman 1 dan fetch data
-        // currentPage.value = 1;
-        // fetchData();
+
     };
 
     // ============ CLEAR FILTERS ============
@@ -143,7 +135,7 @@ export function useInertiaDataTable({
         //     status: filters.status
         // });
 
-        loadingReset.value = true;
+        loadingTable.value = true;
 
         // Reset semua filters
         filters.search = "";
@@ -163,9 +155,7 @@ export function useInertiaDataTable({
 
     return {
         loadingSearch,
-        loadingReset,
-        loadingStatus,
-        loadingSort,
+        loadingTable,
         filters,
         debouncedFetch,
         handlePageChange,

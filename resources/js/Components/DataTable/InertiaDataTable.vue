@@ -27,7 +27,7 @@ const props = defineProps({
 const emit = defineEmits(["update:page", "update:pageSize", "update:sorter"]);
 
 const handleSorterChange = (sorter) => {
-    // console.log("Sorter changed:", sorter);
+    console.log("Sorter changed:", sorter);
     let sortOptions = null;
     if (sorter && sorter.columnKey && sorter.order) {
         sortOptions = {
@@ -38,7 +38,9 @@ const handleSorterChange = (sorter) => {
     emit("update:sorter", sortOptions);
 };
 
-const handlePageChange = (page) => emit("update:page", page);
+const handlePageChange = (page) => {
+    emit("update:page", page);
+};
 const handlePageSizeChange = (pageSize) => emit("update:pageSize", pageSize);
 </script>
 

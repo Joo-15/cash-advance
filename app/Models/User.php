@@ -18,6 +18,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'department_id',
         'name',
         'email',
         'password',
@@ -46,8 +47,14 @@ class User extends Authenticatable
         ];
     }
 
+
     public function cashAdvances()
     {
         return $this->hasMany(CashAdvance::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
     }
 }

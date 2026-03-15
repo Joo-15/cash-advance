@@ -3,16 +3,18 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CashAdvanceRequest;
 use App\Models\CashAdvance;
+use App\Traits\HasFilters;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class CashAdvanceController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    use HasFilters;
+
     public function index(Request $request)
     {
         $perPage = (int) $request->input('per_page', 10);
@@ -31,10 +33,8 @@ class CashAdvanceController extends Controller
                 if (in_array($request->sort, $allowedSorts)) {
                     $query->orderBy($request->sort, $request->order);
                 }
-            }, function ($query) {
-                // Default sorting jika tidak ada parameter sort
-                $query->latest('tanggal'); // latest() = orderBy('created_at', 'desc')
             })
+            ->latest()
             ->paginate($perPage)
             ->withQueryString();
 
@@ -57,83 +57,107 @@ class CashAdvanceController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(CashAdvanceRequest $request)
     {
-        //
+        try {
+            // Ambil data yang sudah divalidasi
+            $validated = $request->validated();
+
+            // Tambahkan metadata
+            $validated['created_by'] = Auth::id();
+            $validated['created_at'] = now();
+            $validated['updated_at'] = now();
+
+            // Simpan cash advance
+            $cashAdvance = CashAdvance::create($validated);
+
+            // Log success (opsional - jika perlu tracking)
+            Log::info('Cash advance created', [
+                'id' => $cashAdvance->id,
+                'jumlah' => $cashAdvance->jumlah,
+                'created_by' => Auth::id()
+            ]);
+
+            return redirect()
+                ->back()
+                ->with('success', 'Pengajuan pinjaman berhasil disimpan');
+        } catch (\Exception $e) {
+            // Log error
+            Log::error('Failed to create cash advance', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id(),
+                'request_data' => $request->except(['_token'])
+            ]);
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal menyimpan data. Silakan coba lagi.');
+        }
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function update(CashAdvanceRequest $request, CashAdvance $pengajuan_pinjaman)
     {
-        // dd($request->all());
-        // Validasi
-        $validated = $request->validate([
-            'tanggal' => 'required',
-            'keperluan' => 'required|string|max:255',
-            'jumlah' => 'required|numeric|min:0',
-        ]);
+        try {
+            $validated = $request->validated();
 
-        // Simpan - semua logic otomatis di-handle oleh observer
-        CashAdvance::create($validated);
-        return redirect()->back()->with('success', 'Data berhasil disimpan');
+            // Tambahkan updated_by
+            $validated['updated_by'] = Auth::id();
+
+            // Update user
+            $pengajuan_pinjaman->update($validated);
+
+            // $filters = $this->getFilters($request);
+
+            return redirect()
+                ->back()
+                ->with('success', "Pengajuan pinjaman berhasil diperbarui");
+        } catch (\Exception $e) {
+            Log::error('Update pengajuan pinjaman failed', [
+                'cashadvance_id' => $pengajuan_pinjaman->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal memperbarui pengajuan pinjaman. Silakan coba lagi.');
+        }
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    // Menggunakan route model binding
+    public function destroy(CashAdvance $pengajuan_pinjaman)
     {
-        //
-    }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
+        try {
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'keperluan' => 'required',
-            'jumlah' => 'required|numeric',
-        ]);
+            $cashAdvanceData = [
+                'id' => $pengajuan_pinjaman->id,
+                'user_id' => $pengajuan_pinjaman->user_id,
+                'tanggal' => $pengajuan_pinjaman->tanggal,
+                'keperluan' => $pengajuan_pinjaman->keperluan,
+                'jumlah' => $pengajuan_pinjaman->jumlah,
+                'status' => $pengajuan_pinjaman->status
+            ];
 
-        $cashAdvance = CashAdvance::findOrFail($id);
+            Log::info('CashAdvance deleted', [
+                'deleted_user' => $cashAdvanceData,
+                'deleted_by' => Auth::id()
+            ]);
 
-        $cashAdvance->tanggal = $request->tanggal;
-        $cashAdvance->keperluan = $request->keperluan;
-        $cashAdvance->jumlah = $request->jumlah;
-        $cashAdvance->status = $request->status;
 
-        $cashAdvance->save();
+            $pengajuan_pinjaman->delete();
 
-        return back()->with('success', 'Data berhasil diupdate');
-    }
+            return redirect()
+                ->back()
+                ->with('success', "Pengajuan pinjaman berhasil dihapus");
+        } catch (\Exception $e) {
+            Log::error('Delete failed', [
+                'pengajuan_pinjaman' => $pengajuan_pinjaman->id,
+                'error' => $e->getMessage()
+            ]);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id, Request $request)
-    {
-        CashAdvance::where('id', $id)->delete();
-
-        $page = $request->input('page', 1);
-
-        return redirect()
-            ->route('pengajuan-pinjaman.index', [
-                'page' => $page
-            ])
-            ->with('success', 'Data pengajuan berhasil dihapus');
+            return back()->with('error', 'Gagal menghapus');
+        }
     }
 }

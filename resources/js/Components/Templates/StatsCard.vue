@@ -6,6 +6,7 @@ import {
     TimeOutline,
     CloseOutline,
 } from "@vicons/ionicons5";
+import { NIcon } from "naive-ui";
 
 const props = defineProps({
     stat: { type: Object, required: true },
@@ -30,31 +31,27 @@ const colors = colorClasses[props.stat.color] || colorClasses.blue;
 </script>
 
 <template>
-    <div
-        class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition"
-    >
-        <div class="flex items-center justify-between mb-3">
-            <p class="text-sm font-medium text-gray-600">
-                {{ stat.label }}
-            </p>
-            <div
-                :class="[
-                    'w-10 h-10 rounded-lg flex items-center justify-center',
-                    colors.bg,
-                ]"
-            >
-                <n-icon
-                    :component="iconMap[stat.icon]"
-                    :class="colors.icon"
-                    size="20"
-                />
-            </div>
+    <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-medium text-gray-600">
+            {{ stat.label }}
+        </p>
+        <div
+            :class="[
+                'w-10 h-10 rounded-lg flex items-center justify-center',
+                colors.bg,
+            ]"
+        >
+            <n-icon
+                :component="iconMap[stat.icon]"
+                :class="colors.icon"
+                size="20"
+            />
         </div>
-        <div>
-            <p class="text-3xl font-bold text-gray-900">
-                {{ value }}
-            </p>
-            <p class="text-xs text-gray-400 mt-1">Data pengajuan</p>
-        </div>
+    </div>
+    <div>
+        <p class="text-3xl font-bold text-gray-900">
+            {{ value }}
+        </p>
+        <!-- <p class="text-xs text-gray-400 mt-1">Data pengajuan</p> -->
     </div>
 </template>

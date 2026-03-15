@@ -47,24 +47,6 @@ const menuOptions = [
         icon: renderIcon(HomeOutline),
     },
     {
-        label: "Produk",
-        key: "/produk", // ✅ HARUS ADA SLASH
-        icon: renderIcon(CubeOutline),
-        children: [
-            {
-                type: "divider",
-                key: "divider-1",
-            },
-            {
-                label: "Daftar Produk",
-                key: "/produk",
-                icon: renderIcon(BookOutline),
-            },
-            { label: "Kategori Produk", key: "/produk/kategori" },
-            { label: "Stok Produk", key: "/produk/stok" },
-        ],
-    },
-    {
         label: "Pengajuan Baru",
         key: "/pengajuan-pinjaman",
         icon: renderIcon(CubeOutline),
@@ -101,7 +83,7 @@ const menuOptions = [
     },
     {
         label: "Manajemen User",
-        key: "/user",
+        key: "/users",
         icon: renderIcon(SettingsOutline),
     },
     {

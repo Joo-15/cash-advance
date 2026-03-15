@@ -5,31 +5,40 @@ import { usePage } from "@inertiajs/vue3";
 
 // Composables
 import { useCrud } from "@/Composables/useCrud";
-import { useDataTable } from "@/Composables/useDataTable";
 
 // Constants
-import { STATUS_OPTIONS } from "@/Constants/status";
-import { CASH_ADVANCE_STATS } from "@/Constants/cashAdvanceStats";
+// import { STATUS_OPTIONS } from "@/Constants/status";
 
 // Components
 import BaseTable from "@/Components/DataTable/BaseTable.vue";
-import FormCashAdvance from "./FormCashAdvance.vue";
+import { useDataTable } from "@/Composables/useDataTable";
 import Container from "@/Components/Layout/Container.vue";
 import PageHeader from "@/Components/Page/PageHeader.vue";
-import StatCards from "@/Components/Page/StatCards.vue";
 import Filters from "@/Components/Page/Filters.vue";
+
+import FormUser from "./FormUser.vue";
+import ModalForm from "@/Components/Page/ModalForm.vue";
 
 // Props definition
 const props = defineProps({
-    cashadvance: { type: Object, required: true },
+    users: { type: Object, required: true },
+    departments: Array,
     filters: { type: Object, default: () => ({}) },
     statData: Object,
 });
-console.log(props.cashadvance.current_page);
+console.log(props.users);
+
 // Composables initialization
 const page = usePage();
+
 // Refs
 const formRef = ref(null);
+
+// CRUD Operations
+const { modalForm, selectedRow, tambah, edit, hapus, refresh } = useCrud({
+    routePrefix: "users",
+    formRef,
+});
 
 // DataTable setup
 const {
@@ -46,16 +55,15 @@ const {
     createColumns,
     hasActiveSort,
 } = useDataTable({
-    route: route("pengajuan-pinjaman.index"),
+    route: route("users.index"),
     filters: {
         search: props.filters.search || "",
         status: props.filters.status || null,
-        pageSize: Number(props.cashadvance.per_page ?? 10),
-        page: Number(props.cashadvance.current_page ?? 1),
+        pageSize: Number(props.users.per_page ?? 10),
         sort: props.filters.sort || null,
         order: props.filters.order || null,
     },
-    only: ["cashadvance"],
+    only: ["users"],
     debounceTime: 300, // Tambahkan debounce time
     tableConfig: {
         currency: "IDR",
@@ -67,55 +75,30 @@ const {
 
 // Table data transformation
 const rows = computed(() =>
-    props.cashadvance.data.map((row) => ({ ...row, detail: true })),
+    props.users.data.map((row) => ({ ...row, detail: true })),
 );
-
-// CRUD Operations
-const { modalForm, selectedRow, tambah, edit, hapus, refresh } = useCrud({
-    routePrefix: "pengajuan-pinjaman",
-    formRef,
-    filter: filters,
-});
 
 // Column configuration
 const columnConfig = [
     {
-        title: "Tanggal",
-        key: "tanggal",
-        type: "date",
+        title: "Username",
+        key: "name",
         width: 120,
         sorter: true, // Aktifkan sorting
     },
     {
-        title: "Keperluan",
-        key: "keperluan",
-        width: 200,
-        ellipsis: { tooltip: true },
-        sorter: true, // Tambahkan sorter jika perlu
+        title: "Email",
+        key: "email",
+        width: 120,
+        sorter: true, // Aktifkan sorting
     },
     {
-        title: "Jumlah",
-        key: "jumlah",
-        type: "currency",
-        currency: "IDR",
-        align: "right",
+        title: "Department",
+        key: "department.name",
+        width: 120,
         sorter: true, // Aktifkan sorting
-        width: 150,
     },
-    {
-        title: "Status",
-        key: "status",
-        type: "status",
-        width: 80,
-        align: "center",
-        sorter: true, // Aktifkan sorting
-        statusMap: {
-            pending: { type: "warning", label: "Pending" },
-            approved: { type: "success", label: "Approved" },
-            rejected: { type: "error", label: "Rejected" },
-            default: { type: "default", label: "Unknown" },
-        },
-    },
+
     {
         title: "Aksi",
         key: "actions",
@@ -145,32 +128,24 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
 const handleDownload = () => {
     console.log("Download Excel");
 };
+console.log("test", !!selectedRow.value);
 </script>
 
 <template>
     <Container>
         <template #header>
             <PageHeader
-                add-button-text="Ajukan Pinjaman"
-                :title="page.props.pageHeader ?? 'Cash Advance'"
+                add-button-text="Tambah Pengguna"
+                :title="page.props.pageHeader ?? 'Pengguna'"
                 :show-add="true"
-                :show-download="true"
+                :show-download="false"
                 @add="tambah"
-                @download="handleDownload"
             ></PageHeader>
-        </template>
-        <template #statCards>
-            <StatCards
-                :stats="CASH_ADVANCE_STATS"
-                :stat-data="statData"
-            ></StatCards>
         </template>
         <template #filters>
             <Filters
                 :filters="filters"
                 :show-search="true"
-                :show-select="true"
-                :select-options="STATUS_OPTIONS"
                 :loading-search="loadingSearch"
                 @update:search="filters.search = $event"
                 @update:status="filters.status = $event"
@@ -180,9 +155,8 @@ const handleDownload = () => {
             <BaseTable
                 :columns="tableColumns"
                 :data-ref="rows"
-                :meta="cashadvance"
+                :meta="users"
                 :filters="filters"
-                :select-options="STATUS_OPTIONS"
                 :page-size="filters.pageSize"
                 :loading-ref="loadingSearch || loadingTable"
                 :has-active-sort-fn="hasActiveSort"
@@ -192,12 +166,28 @@ const handleDownload = () => {
                 @update:sorter="handleSortChange"
                 @clear-filter="handleClear"
             />
-            <FormCashAdvance
+            <ModalForm
+                v-model:show-modal="modalForm"
+                edit-title="Edit Pengguna"
+                create-title="Tambah Pengguna"
+                :data-edit="selectedRow"
+            >
+                <!-- terima closeModal dari slot -->
+                <template #form="{ closeModal }">
+                    <FormUser
+                        :departments-options="departments"
+                        :data-edit="selectedRow"
+                        :close-modal="closeModal"
+                        @updated="refresh"
+                    />
+                </template>
+            </ModalForm>
+            <!-- <FormUser
                 v-model:show-modal="modalForm"
                 ref="formRef"
                 :data-edit="selectedRow"
                 @updated="refresh"
-            />
+            /> -->
         </template>
     </Container>
 </template>

@@ -1,21 +1,13 @@
-<!-- Components/PageTemplate.vue -->
 <script setup>
-import {
-    NButton,
-    NInput,
-    NSelect,
-    NSpace,
-    NIcon,
-    NBadge,
-    NTag,
-} from "naive-ui";
-import { Add, DownloadOutline, RefreshOutline } from "@vicons/ionicons5";
+import { NButton, NInput, NSelect, NSpace, NIcon } from "naive-ui";
+import { Add, DownloadOutline } from "@vicons/ionicons5";
 import {
     DocumentOutline,
     CheckmarkOutline,
     TimeOutline,
     CloseOutline,
 } from "@vicons/ionicons5";
+import StatsCard from "./StatsCard.vue";
 
 // Props dari parent
 const props = defineProps({
@@ -25,7 +17,6 @@ const props = defineProps({
     filters: { type: Object, required: true },
     statusOptions: { type: Array, default: () => [] },
     loadingSearch: { type: Boolean, default: false },
-    loadingReset: { type: Boolean, default: false },
     hasActiveSort: { type: Boolean, default: false }, // Props dari parent
     showDownload: { type: Boolean, default: true },
     showAdd: { type: Boolean, default: true },
@@ -34,30 +25,7 @@ const props = defineProps({
 });
 
 // Emit events ke parent
-const emit = defineEmits([
-    "update:search",
-    "update:status",
-    "clear",
-    "add",
-    "download",
-    "reset-sort", // Ganti dari "has-active-sort" menjadi "reset-sort"
-]);
-
-// Handler untuk clear filter
-const handleClear = () => {
-    emit("clear");
-};
-
-// Handler untuk reset sort
-const handleResetSort = () => {
-    console.log(
-        "🔵 PageTemplate - handleResetSort dipanggil",
-        new Date().toISOString(),
-    );
-    console.log("🔵 PageTemplate - mengirim event reset-sort ke parent");
-    emit("reset-sort");
-    console.log("🔵 PageTemplate - event sudah dikirim");
-};
+const emit = defineEmits(["update:search", "update:status", "add", "download"]);
 
 // Mapping icon string ke komponen icon
 const iconMap = {
@@ -122,32 +90,7 @@ const getColor = (colorName) =>
                 :key="stat.key"
                 class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition"
             >
-                <div class="flex items-center justify-between mb-3">
-                    <p class="text-sm font-medium text-gray-600">
-                        {{ stat.label }}
-                    </p>
-                    <div
-                        :class="[
-                            'w-10 h-10 rounded-lg flex items-center justify-center',
-                            getColor(stat.color).bg,
-                        ]"
-                    >
-                        <n-icon
-                            v-if="stat.icon"
-                            :component="getIcon(stat.icon)"
-                            :class="getColor(stat.color).icon"
-                            size="20"
-                        />
-                    </div>
-                </div>
-                <div>
-                    <p class="text-3xl font-bold text-gray-900">
-                        {{ statData?.[stat.key] ?? 0 }}
-                    </p>
-                    <p class="text-xs text-gray-400 mt-1">
-                        {{ stat.subLabel || "Data" }}
-                    </p>
-                </div>
+                <StatsCard :stat="stat" :value="statData?.[stat.key] ?? 0" />
             </div>
         </div>
 
@@ -173,36 +116,6 @@ const getColor = (colorName) =>
                         @update:value="$emit('update:status', $event)"
                     />
                 </div>
-
-                <!-- Tombol Reset dengan Badge jika ada sort aktif -->
-                <!-- <n-badge v-if="hasActiveSort" type="info" :value="1" :max="1">
-                    <n-button
-                        :loading="loadingReset"
-                        @click="handleResetSort"
-                        strong
-                        secondary
-                        type="warning"
-                    >
-                        <template #icon>
-                            <n-icon><RefreshOutline /></n-icon>
-                        </template>
-                        Reset All
-                    </n-button>
-                </n-badge> -->
-
-                <!-- Tombol Reset biasa jika tidak ada sort -->
-                <!-- <n-button
-                    v-if="hasActiveSort"
-                    :loading="loadingReset"
-                    @click="handleClear"
-                    strong
-                    secondary
-                >
-                    <template #icon>
-                        <n-icon><RefreshOutline /></n-icon>
-                    </template>
-                    Reset
-                </n-button> -->
             </div>
         </div>
 

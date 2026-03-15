@@ -16,7 +16,7 @@ const props = defineProps({
     actions: { type: Object, default: () => ({}) },
     pageSize: { type: Number, default: 10 },
     showActiveFilters: { type: Boolean, default: true },
-    statusOptions: { type: Array, default: () => [] },
+    selectOptions: { type: Array, default: () => [] },
 
     // Props baru dari parent - fungsi dari composable
     hasActiveSortFn: { type: Function, required: true },
@@ -30,47 +30,17 @@ const emit = defineEmits([
     "clear-filter",
 ]);
 
-// Key untuk memaksa re-render tabel (optional)
-const tableKey = ref(0);
-
-// HAPUS panggilan useTableColumns di sini!
-// Langsung gunakan props.columns yang sudah diproses
-
-const handleSortChange = (sortOptions) => {
-    // Emit ke parent, parent yang akan handle update di composable
-    emit("update:sorter", sortOptions);
-};
-
-const handleClear = () => {
-    props.resetSortFn(); // Panggil resetSort dari parent
-    emit("clear-filter");
-};
-
 const getStatusLabel = (value) => {
-    const option = props.statusOptions.find((opt) => opt.value === value);
+    const option = props.selectOptions.find((opt) => opt.value === value);
     return option?.label || value;
 };
-
-// // Watch untuk debugging (optional)
-// watch(
-//     () => props.filters,
-//     () => {
-//         // Force re-render jika perlu
-//         tableKey.value += 1;
-//     },
-//     { deep: true },
-// );
-//
 </script>
 
 <template>
     <div class="bg-white rounded-xl shadow-sm">
         <!-- Active Filters -->
         <div
-            v-if="
-                showActiveFilters &&
-                (filters.search || filters.status || hasActiveSortFn())
-            "
+            v-if="filters.search || filters.status || hasActiveSortFn()"
             class="mb-4 flex flex-wrap gap-2"
         >
             <n-tag
@@ -97,7 +67,7 @@ const getStatusLabel = (value) => {
             >
                 Sort Active
             </n-tag>
-            <n-button size="small" ghost @click="handleClear" strong>
+            <n-button size="small" ghost @click="emit('clear-filter')" strong>
                 <template #icon>
                     <n-icon><refresh-outline /></n-icon>
                 </template>
@@ -106,7 +76,6 @@ const getStatusLabel = (value) => {
         </div>
 
         <inertia-data-table
-            :key="tableKey"
             :columns="columns"
             :data="dataRef"
             :meta="meta"
@@ -114,7 +83,7 @@ const getStatusLabel = (value) => {
             :loading="loadingRef"
             @update:page="$emit('update:page', $event)"
             @update:pageSize="$emit('update:pageSize', $event)"
-            @update:sorter="handleSortChange"
+            @update:sorter="$emit('update:sorter', $event)"
         />
     </div>
 </template>

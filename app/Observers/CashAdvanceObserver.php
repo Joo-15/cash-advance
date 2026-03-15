@@ -19,10 +19,6 @@ class CashAdvanceObserver
         if (empty($cashAdvance->user_id)) {
             $cashAdvance->user_id = Auth::id();
         }
-
-        if (is_numeric($cashAdvance->tanggal) && strlen((string)$cashAdvance->tanggal) >= 13) {
-            $cashAdvance->tanggal = Carbon::createFromTimestamp($cashAdvance->tanggal / 1000)->format('Y-m-d');
-        }
     }
     /**
      * Handle the CashAdvance "created" event.
