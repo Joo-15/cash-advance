@@ -4,7 +4,6 @@ import { useMessage } from "naive-ui";
 
 export function useFormSubmit(options = {}) {
     const {
-        defaultMessage = "Data berhasil disimpan",
         errorMessage = "Terjadi kesalahan",
         preserveScroll = true,
         preserveState = true,
@@ -28,7 +27,7 @@ export function useFormSubmit(options = {}) {
     };
 
     // Helper untuk sleep
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     // Generic submit function
     const submit = async ({
@@ -40,7 +39,6 @@ export function useFormSubmit(options = {}) {
         onError,
         onFinish,
         customFilters = {},
-        customMessage,
     }) => {
         loadingButton.value = true;
 
@@ -71,7 +69,7 @@ export function useFormSubmit(options = {}) {
                 preserveScroll,
                 preserveState,
                 onSuccess: (response) => {
-                    if (typeof onSuccess === 'function') {
+                    if (typeof onSuccess === "function") {
                         onSuccess(response);
                     }
                 },
@@ -95,11 +93,11 @@ export function useFormSubmit(options = {}) {
             };
 
             // Execute request
-            if (method === 'put' || method === 'patch') {
+            if (method === "put" || method === "patch") {
                 router.put(requestUrl, submitData, options);
-            } else if (method === 'post') {
+            } else if (method === "post") {
                 router.post(requestUrl, submitData, options);
-            } else if (method === 'delete') {
+            } else if (method === "delete") {
                 router.delete(requestUrl, {
                     ...options,
                     data: submitData,

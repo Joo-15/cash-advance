@@ -11,19 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('produks', function (Blueprint $table) {
+        Schema::create('approval_steps', function (Blueprint $table) {
             $table->id();
-            $table->string('nama');
-            $table->decimal('harga', 8, 2);
+            $table->integer('step_order');
+            $table->foreignId('role_id')
+                ->constrained()
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('produks');
+        Schema::dropIfExists('approval_steps');
     }
 };

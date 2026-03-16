@@ -4,20 +4,18 @@ import { computed, ref } from "vue";
 import { usePage } from "@inertiajs/vue3";
 
 // Composables
+import { useDataTable } from "@/Composables/useDataTable";
 import { useCrud } from "@/Composables/useCrud";
 
 // Constants
-// import { STATUS_OPTIONS } from "@/Constants/status";
 
 // Components
 import BaseTable from "@/Components/DataTable/BaseTable.vue";
-import { useDataTable } from "@/Composables/useDataTable";
 import Container from "@/Components/Layout/Container.vue";
 import PageHeader from "@/Components/Page/PageHeader.vue";
 import Filters from "@/Components/Page/Filters.vue";
-
-import FormUser from "./FormUser.vue";
 import ModalForm from "@/Components/Page/ModalForm.vue";
+import FormUser from "./FormUser.vue";
 
 // Props definition
 const props = defineProps({
@@ -26,7 +24,6 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
     statData: Object,
 });
-console.log(props.users);
 
 // Composables initialization
 const page = usePage();
@@ -34,8 +31,16 @@ const page = usePage();
 // Refs
 const formRef = ref(null);
 
-// CRUD Operations
-const { modalForm, selectedRow, tambah, edit, hapus, refresh } = useCrud({
+const {
+    loadingButton,
+    modalForm,
+    selectedRow,
+    tambah,
+    edit,
+    hapus,
+    refresh,
+    submit,
+} = useCrud({
     routePrefix: "users",
     formRef,
 });
@@ -128,7 +133,6 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
 const handleDownload = () => {
     console.log("Download Excel");
 };
-console.log("test", !!selectedRow.value);
 </script>
 
 <template>
@@ -175,19 +179,15 @@ console.log("test", !!selectedRow.value);
                 <!-- terima closeModal dari slot -->
                 <template #form="{ closeModal }">
                     <FormUser
+                        :loading="loadingButton"
                         :departments-options="departments"
                         :data-edit="selectedRow"
                         :close-modal="closeModal"
+                        :submit="submit"
                         @updated="refresh"
                     />
                 </template>
             </ModalForm>
-            <!-- <FormUser
-                v-model:show-modal="modalForm"
-                ref="formRef"
-                :data-edit="selectedRow"
-                @updated="refresh"
-            /> -->
         </template>
     </Container>
 </template>

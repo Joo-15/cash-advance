@@ -1,32 +1,23 @@
 <script setup>
-import { computed, ref, watch } from "vue";
-import { router } from "@inertiajs/vue3";
+import { computed, watch } from "vue";
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/yup";
 
 // Naive UI Components
-import {
-    NButton,
-    NForm,
-    NFormItem,
-    NInput,
-    NSelect,
-    NSpace,
-    useMessage,
-} from "naive-ui";
+import { NButton, NForm, NFormItem, NInput, NSelect, NSpace } from "naive-ui";
 
 // Utilities & Validations
 import { userSchema } from "@/Validations/validationSchemas";
-import { sleep } from "@/utils/helpers";
-import { useFormSubmit } from "@/Composables/useFormSubmit";
 
 /*
 | Props & Emits
 */
 const props = defineProps({
+    loading: Boolean,
     departmentsOptions: Array,
     dataEdit: Object,
     closeModal: Function,
+    submit: Function,
 });
 
 const emit = defineEmits(["updated"]);
@@ -53,20 +44,14 @@ const [email] = defineField("email");
 const [password] = defineField("password");
 const [department_id] = defineField("department_id");
 
-// Form submit handler
-const { loadingButton, submit } = useFormSubmit();
-
 const isEditMode = computed(() => !!props.dataEdit?.id);
 
 const submitForm = handleSubmit(async (values) => {
-    await submit({
+    await props.submit({
         values,
         method: isEditMode.value ? "put" : "post",
         url: isEditMode.value ? "users.update" : "users.store",
         id: isEditMode.value ? values.id : null,
-        customMessage: isEditMode.value
-            ? "User berhasil diperbarui"
-            : "User berhasil ditambahkan",
         onSuccess: () => {
             props.closeModal();
             emit("updated");
@@ -74,69 +59,6 @@ const submitForm = handleSubmit(async (values) => {
         },
     });
 });
-
-/*
-|--------------------------------------------------------------------------
-| Form Submission
-|--------------------------------------------------------------------------
-*/
-// const submitForm = handleSubmit(async (values) => {
-//     const urlParams = new URLSearchParams(window.location.search);
-//     const currentFilters = {
-//         search: urlParams.get("search") || "",
-//         status: urlParams.get("status") || null,
-//         page: urlParams.get("page") || 1,
-//         per_page: urlParams.get("per_page") || 10,
-//         sort: urlParams.get("sort") || null,
-//         order: urlParams.get("order") || null,
-//     };
-
-//     loadingButton.value = true;
-//     await sleep(500);
-
-//     // Gabungkan values dengan currentFilters
-//     const submitData = {
-//         ...values,
-//         ...currentFilters, // ✅ Kirim semua filters
-//     };
-
-//     const options = {
-//         preserveScroll: true,
-//         preserveState: true,
-//         onSuccess: () => {
-//             props.closeModal();
-//             emit("updated");
-//         },
-//         onError: (errors) => {
-//             console.log("Error response:", errors);
-
-//             // Validation errors
-//             if (errors && typeof errors === "object") {
-//                 const firstError = Object.values(errors)[0];
-//                 if (firstError) {
-//                     message.error(firstError);
-//                 } else {
-//                     message.error("Validasi gagal");
-//                 }
-//             } else {
-//                 message.error("Terjadi kesalahan server");
-//             }
-//         },
-//         onFinish: () => {
-//             loadingButton.value = false;
-//         },
-//     };
-
-//     if (isEditMode.value) {
-//         router.put(route("users.update", values.id), submitData, options);
-//     } else {
-//         router.post(route("users.store"), submitData, options);
-//     }
-// });
-
-/*
-| Watchers
-*/
 
 watch(
     () => props.dataEdit,
@@ -206,8 +128,8 @@ watch(
                 <n-button
                     type="primary"
                     attr-type="submit"
-                    :loading="loadingButton"
-                    :disabled="loadingButton"
+                    :loading="loading"
+                    :disabled="loading"
                 >
                     {{ isEditMode ? "Update" : "Simpan" }}
                 </n-button>

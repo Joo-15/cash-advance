@@ -2,8 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\CashAdvance;
-use App\Models\User;
+use App\Models\CashAdvances;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -16,7 +15,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        CashAdvance::factory()->count(300)->create();
+        CashAdvances::factory()->count(300)->create();
 
         // User::factory()->create([
         //     'name' => 'Test User',

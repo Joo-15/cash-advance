@@ -4,8 +4,8 @@ import { computed, ref } from "vue";
 import { usePage } from "@inertiajs/vue3";
 
 // Composables
-import { useCrud } from "@/Composables/useCrud";
 import { useDataTable } from "@/Composables/useDataTable";
+import { useCrud } from "@/Composables/useCrud";
 
 // Constants
 import { STATUS_OPTIONS } from "@/Constants/status";
@@ -13,11 +13,12 @@ import { CASH_ADVANCE_STATS } from "@/Constants/cashAdvanceStats";
 
 // Components
 import BaseTable from "@/Components/DataTable/BaseTable.vue";
-import FormCashAdvance from "./FormCashAdvance.vue";
 import Container from "@/Components/Layout/Container.vue";
 import PageHeader from "@/Components/Page/PageHeader.vue";
 import StatCards from "@/Components/Page/StatCards.vue";
 import Filters from "@/Components/Page/Filters.vue";
+import ModalForm from "@/Components/Page/ModalForm.vue";
+import FormCashAdvance from "./FormCashAdvance.vue";
 
 // Props definition
 const props = defineProps({
@@ -25,11 +26,25 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
     statData: Object,
 });
-console.log(props.cashadvance.current_page);
+
 // Composables initialization
 const page = usePage();
 // Refs
 const formRef = ref(null);
+
+const {
+    loadingButton,
+    modalForm,
+    selectedRow,
+    tambah,
+    edit,
+    hapus,
+    refresh,
+    submit,
+} = useCrud({
+    routePrefix: "pengajuan-pinjaman",
+    formRef,
+});
 
 // DataTable setup
 const {
@@ -69,13 +84,6 @@ const {
 const rows = computed(() =>
     props.cashadvance.data.map((row) => ({ ...row, detail: true })),
 );
-
-// CRUD Operations
-const { modalForm, selectedRow, tambah, edit, hapus, refresh } = useCrud({
-    routePrefix: "pengajuan-pinjaman",
-    formRef,
-    filter: filters,
-});
 
 // Column configuration
 const columnConfig = [
@@ -192,12 +200,23 @@ const handleDownload = () => {
                 @update:sorter="handleSortChange"
                 @clear-filter="handleClear"
             />
-            <FormCashAdvance
+            <ModalForm
                 v-model:show-modal="modalForm"
-                ref="formRef"
+                edit-title="Edit Pinjaman"
+                create-title="Tambah Pinjaman"
                 :data-edit="selectedRow"
-                @updated="refresh"
-            />
+            >
+                <template #form="{ closeModal }">
+                    <FormCashAdvance
+                        v-model:show-modal="modalForm"
+                        :loading="loadingButton"
+                        :data-edit="selectedRow"
+                        :close-modal="closeModal"
+                        :submit="submit"
+                        @updated="refresh"
+                    />
+                </template>
+            </ModalForm>
         </template>
     </Container>
 </template>
