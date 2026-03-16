@@ -18,9 +18,9 @@ class CashAdvanceFactory extends Factory
     {
         return [
             'user_id' => $this->faker->numberBetween(1, 1),
-            'tanggal' => $this->faker->date(),
-            'keperluan' => $this->faker->sentence(),
-            'jumlah' => $this->faker->numberBetween(100000, 2000000),
+            'request_date' => $this->faker->date(),
+            'purpose' => $this->faker->sentence(),
+            'amount' => $this->faker->numberBetween(100000, 2000000),
             'status' => $this->faker->randomElement([
                 'pending',
                 'approved',

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
 use App\Models\Department;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +20,7 @@ class UserController extends Controller
     {
         $perPage = (int) $request->input('per_page', 10);
 
-        $user = User::with('department')
+        $user = User::with('department', 'role')
 
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -38,6 +39,7 @@ class UserController extends Controller
             'pageHeader' => 'Data Pengguna',
             'users' => $user,
             'departments' => Department::getSelectOptions(),
+            'roles' => Role::getSelectOptions(),
             'filters' => $request->only([
                 'search',
                 'status',

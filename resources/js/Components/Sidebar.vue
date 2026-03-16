@@ -76,8 +76,8 @@ const menuOptions = [
                 key: "/data-master/departemen",
             },
             {
-                label: "Data Pengajuan",
-                key: "/pinjaman",
+                label: "Pengaturan Persetujuan",
+                key: "/data-master/approval-steps",
             },
         ],
     },
@@ -87,8 +87,8 @@ const menuOptions = [
         icon: renderIcon(SettingsOutline),
     },
     {
-        label: "Hak Akses",
-        key: "/hak-akses",
+        label: "Pengaturan Persetujuan",
+        key: "/approval-steps",
         icon: renderIcon(SettingsOutline),
     },
 ];

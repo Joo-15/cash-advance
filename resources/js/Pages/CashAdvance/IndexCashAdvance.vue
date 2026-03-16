@@ -88,22 +88,22 @@ const rows = computed(() =>
 // Column configuration
 const columnConfig = [
     {
-        title: "Tanggal",
-        key: "tanggal",
+        title: "Tgl. Pengajuan",
+        key: "request_date",
         type: "date",
         width: 120,
         sorter: true, // Aktifkan sorting
     },
     {
         title: "Keperluan",
-        key: "keperluan",
+        key: "purpose",
         width: 200,
         ellipsis: { tooltip: true },
         sorter: true, // Tambahkan sorter jika perlu
     },
     {
         title: "Jumlah",
-        key: "jumlah",
+        key: "amount",
         type: "currency",
         currency: "IDR",
         align: "right",

@@ -14,6 +14,7 @@ return new class extends Migration
             $table->foreignId('user_id')
                 ->constrained()
                 ->restrictOnDelete();
+            $table->date('request_date');
             $table->decimal('amount', 15);
             $table->text('purpose');
             $table->string('attachment')->nullable();

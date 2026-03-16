@@ -15,6 +15,7 @@ import { userSchema } from "@/Validations/validationSchemas";
 const props = defineProps({
     loading: Boolean,
     departmentsOptions: Array,
+    rolesOptions: Array,
     dataEdit: Object,
     closeModal: Function,
     submit: Function,
@@ -29,20 +30,22 @@ const { handleSubmit, errors, defineField, setValues, resetForm } = useForm({
     validationSchema: toTypedSchema(userSchema),
     initialValues: {
         id: null,
+        department_id: null,
+        role_id: null,
         name: "",
         email: "",
         password: null,
-        department_id: null,
     },
 });
 
 /*
 | Form Fields
 */
+const [department_id] = defineField("department_id");
+const [role_id] = defineField("role_id");
 const [name] = defineField("name");
 const [email] = defineField("email");
 const [password] = defineField("password");
-const [department_id] = defineField("department_id");
 
 const isEditMode = computed(() => !!props.dataEdit?.id);
 
@@ -115,6 +118,19 @@ watch(
                     v-model:value="department_id"
                     :options="departmentsOptions"
                     placeholder="Pilih Department"
+                    clearable
+                />
+            </n-form-item>
+            <n-form-item
+                label="Role"
+                :validation-status="errors.role_id ? 'error' : null"
+                :feedback="errors.role_id"
+                required
+            >
+                <n-select
+                    v-model:value="role_id"
+                    :options="rolesOptions"
+                    placeholder="Pilih Role"
                     clearable
                 />
             </n-form-item>

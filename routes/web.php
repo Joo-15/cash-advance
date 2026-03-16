@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\ApprovalStepController;
 use App\Http\Controllers\Web\Produks\ProdukController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Web\ApprovalStepController as WebApprovalStepController;
 use App\Http\Controllers\Web\CashAdvanceController;
 use App\Http\Controllers\Web\UserController;
 use Illuminate\Foundation\Application;
@@ -34,6 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Route::resource('produk', ProdukController::class);
     Route::resource('pengajuan-pinjaman', CashAdvanceController::class);
     Route::resource('users', UserController::class);
+    Route::resource('approval-steps', WebApprovalStepController::class);
 
 
 

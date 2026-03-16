@@ -19,55 +19,46 @@ class CashAdvanceRequest extends FormRequest
         if ($this->isMethod('post')) {
             // Store - required
             $rules = [
-                'tanggal' => [
+                'request_date' => [
                     'required',
                     'date',
                     'before_or_equal:today'
                 ],
-                'keperluan' => [
+                'purpose' => [
                     'required',
                     'string',
                     'min:3',
                     'max:255'
                 ],
-                'jumlah' => [
+                'amount' => [
                     'required',
                     'numeric',
                     'min:0',
                     'max:999999999'
-                ],
-                'keterangan' => [
-                    'nullable',
-                    'string',
                 ]
             ];
         } else {
             // Update 
             $rules = [
-                'tanggal' => [
+                'request_date' => [
                     'sometimes',
                     'required',
                     'date',
                     'before_or_equal:today'
                 ],
-                'keperluan' => [
+                'purpose' => [
                     'sometimes',
                     'required',
                     'string',
                     'min:3',
                     'max:255'
                 ],
-                'jumlah' => [
+                'amount' => [
                     'sometimes',
                     'required',
                     'numeric',
                     'min:0',
                     'max:999999999'
-                ],
-                'keterangan' => [
-                    'sometimes',
-                    'nullable',
-                    'string',
                 ]
             ];
         }
@@ -78,36 +69,36 @@ class CashAdvanceRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'tanggal.required' => 'Tanggal harus diisi',
-            'tanggal.date' => 'Format tanggal tidak valid',
-            'tanggal.before_or_equal' => 'Tanggal tidak boleh melebihi hari ini',
+            'request_date.required' => 'Tanggal harus diisi',
+            'request_date.date' => 'Format tanggal tidak valid',
+            'request_date.before_or_equal' => 'Tanggal tidak boleh melebihi hari ini',
 
-            'keperluan.required' => 'Keperluan harus diisi',
-            'keperluan.min' => 'Keperluan minimal 3 karakter',
-            'keperluan.max' => 'Keperluan maksimal 255 karakter',
+            'purpose.required' => 'Keperluan harus diisi',
+            'purpose.min' => 'Keperluan minimal 3 karakter',
+            'purpose.max' => 'Keperluan maksimal 255 karakter',
 
-            'jumlah.required' => 'Jumlah harus diisi',
-            'jumlah.numeric' => 'Jumlah harus berupa angka',
-            'jumlah.min' => 'Jumlah minimal 0',
-            'jumlah.max' => 'Jumlah terlalu besar',
+            'amount.required' => 'Jumlah harus diisi',
+            'amount.numeric' => 'Jumlah harus berupa angka',
+            'amount.min' => 'Jumlah minimal 0',
+            'amount.max' => 'Jumlah terlalu besar',
         ];
     }
 
     protected function prepareForValidation(): void
     {
         // Konversi tanggal jika dari frontend (timestamp milidetik)
-        if (!empty($this->tanggal) && is_numeric($this->tanggal)) {
-            $converted = Carbon::createFromTimestampMs($this->tanggal)
+        if (!empty($this->request_date) && is_numeric($this->request_date)) {
+            $converted = Carbon::createFromTimestampMs($this->request_date)
                 ->setTimezone('Asia/Jakarta')
                 ->format('Y-m-d');
 
-            $this->merge(['tanggal' => $converted]);
+            $this->merge(['request_date' => $converted]);
         }
 
         // Bersihkan input
         $this->merge([
-            'keperluan' => trim($this->keperluan),
-            'jumlah' => str_replace(['.', ','], '', $this->jumlah) // Hapus pemisah ribuan
+            'keperluan' => trim($this->purpose),
+            'jumlah' => str_replace(['.', ','], '', $this->amount) // Hapus pemisah ribuan
         ]);
     }
 }

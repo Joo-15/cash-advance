@@ -11,13 +11,12 @@ import {
     NFormItem,
     NInput,
     NInputNumber,
-    NModal,
+    NSelect,
     NSpace,
 } from "naive-ui";
 
 // Utilities & Validations
-import { cashAdvanceSchema } from "@/Validations/validationSchemas";
-import { formatNumber, parseNumber } from "@/utils/helpers";
+import { approvalStepSchema } from "@/Validations/validationSchemas";
 
 /*
 | Props & Emits
@@ -26,31 +25,30 @@ const props = defineProps({
     loading: Boolean,
     showModal: Boolean,
     dataEdit: Object,
+    rolesOptions: Array,
     closeModal: Function,
     submit: Function,
 });
-// console.log(props.submit);
+console.log(props.rolesOptions);
 const emit = defineEmits(["update:showModal", "updated"]);
 
 /*
 | Form Setup (VeeValidate)
 */
 const { handleSubmit, errors, defineField, setValues, resetForm } = useForm({
-    validationSchema: toTypedSchema(cashAdvanceSchema),
+    validationSchema: toTypedSchema(approvalStepSchema),
     initialValues: {
         id: null,
-        request_date: new Date().getTime(),
-        purpose: "",
-        amount: null,
+        role_id: null,
+        step_order: null,
     },
 });
 
 /*
 | Form Fields
 */
-const [request_date] = defineField("request_date");
-const [purpose] = defineField("purpose");
-const [amount] = defineField("amount");
+const [role_id] = defineField("role_id");
+const [step_order] = defineField("step_order");
 
 const isEditMode = computed(() => !!props.dataEdit?.id);
 
@@ -59,8 +57,8 @@ const submitForm = handleSubmit(async (values) => {
         values,
         method: isEditMode.value ? "put" : "post",
         url: isEditMode.value
-            ? "pengajuan-pinjaman.update"
-            : "pengajuan-pinjaman.store",
+            ? "approval-steps.update"
+            : "approval-steps.store",
         id: isEditMode.value ? values.id : null,
         onSuccess: () => {
             props.closeModal();
@@ -99,58 +97,31 @@ watch(
 <template>
     <n-form @submit.prevent="submitForm">
         <div>
-            <!-- Tanggal Field -->
             <n-form-item
-                label="Tanggal"
-                :validation-status="errors.request_date ? 'error' : null"
-                :feedback="errors.request_date"
+                label="Peran"
+                :validation-status="errors.role_id ? 'error' : null"
+                :feedback="errors.role_id"
                 required
             >
-                <n-date-picker
-                    v-model:value="request_date"
-                    value-format="timestamp"
-                    type="date"
+                <n-select
+                    v-model:value="role_id"
+                    :options="rolesOptions"
+                    placeholder="Pilih Peran"
                     clearable
-                    class="w-full"
-                    placeholder="Pilih tanggal"
                 />
             </n-form-item>
-
-            <!-- Keperluan Field -->
             <n-form-item
-                label="Keperluan"
-                :validation-status="errors.purpose ? 'error' : null"
-                :feedback="errors.purpose"
-                required
-            >
-                <n-input
-                    v-model:value="purpose"
-                    placeholder="Masukkan keperluan"
-                    type="textarea"
-                    :rows="3"
-                />
-            </n-form-item>
-
-            <!-- Jumlah Field -->
-            <n-form-item
-                label="Jumlah"
-                :validation-status="errors.amount ? 'error' : null"
-                :feedback="errors.amount"
+                label="Peran"
+                :validation-status="errors.step_order ? 'error' : null"
+                :feedback="errors.step_order"
                 required
             >
                 <n-input-number
-                    v-model:value="amount"
-                    placeholder="Masukkan jumlah"
-                    :show-button="false"
-                    :format="formatNumber"
-                    :parse="parseNumber"
-                    :min="1"
-                    class="w-full jumlah-input"
-                >
-                    <template #prefix>
-                        <span class="text-gray-500">Rp</span>
-                    </template>
-                </n-input-number>
+                    v-model:value="step_order"
+                    min="1"
+                    placeholder="Pilih Urutan Persetujuan"
+                    clearable
+                />
             </n-form-item>
         </div>
 

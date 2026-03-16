@@ -1,14 +1,14 @@
 import * as yup from "yup";
 
 export const cashAdvanceSchema = yup.object({
-    tanggal: yup.number().required("Tanggal wajib diisi"),
+    request_date: yup.number().required("Tanggal wajib diisi"),
 
-    keperluan: yup
+    purpose: yup
         .string()
         .required("Keperluan wajib diisi")
         .min(3, "Minimal 3 karakter"),
 
-    jumlah: yup
+    amount: yup
         .number()
         .typeError("Jumlah harus berupa angka")
         .required("Jumlah wajib diisi")
@@ -28,5 +28,11 @@ export const userSchema = yup.object({
         })
         .min(6, "Password minimal 6 karakter"),
     department_id: yup.number().required("Department harus dipilih"),
+    role_id: yup.number().required("Role harus dipilih"),
 
+});
+
+export const approvalStepSchema = yup.object({
+    role_id: yup.number().required("Peran harus dipilih"),
+    step_order: yup.string().required("Urutan harus dipilih"),
 });

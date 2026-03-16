@@ -29,8 +29,14 @@ class UserRequest extends FormRequest
                 'department_id' => [
                     'required',
                     'integer',
-                    'exists:departments,id'
+                    'exists:departments,id' // mengecek id referensi department
+                ],
+                'role_id' => [
+                    'required',
+                    'integer',
+                    'exists:roles,id'
                 ]
+
             ];
         } else {
             // Update 
@@ -49,6 +55,12 @@ class UserRequest extends FormRequest
                     'required',
                     'integer',
                     'exists:departments,id'
+                ],
+                'role_id' => [
+                    'sometimes',
+                    'required',
+                    'integer',
+                    'exists:roles,id'
                 ],
             ];
         }
@@ -74,6 +86,9 @@ class UserRequest extends FormRequest
 
             'department_id.required' => 'Department harus dipilih',
             'department_id.exists' => 'Department tidak valid',
+
+            'role_id.required' => 'Department harus dipilih',
+            'role_id.exists' => 'Department tidak valid',
         ];
     }
 

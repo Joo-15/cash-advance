@@ -1,4 +1,3 @@
-<!-- Pages/CashAdvance/IndexCashAdvance.vue -->
 <script setup>
 import { computed, ref } from "vue";
 import { usePage } from "@inertiajs/vue3";
@@ -15,23 +14,17 @@ import Container from "@/Components/Layout/Container.vue";
 import PageHeader from "@/Components/Page/PageHeader.vue";
 import Filters from "@/Components/Page/Filters.vue";
 import ModalForm from "@/Components/Page/ModalForm.vue";
-import FormUser from "./FormUser.vue";
+import FormApprovalStep from "./FormApprovalStep.vue";
 
 // Props definition
 const props = defineProps({
-    users: { type: Object, required: true },
-    departments: Array,
-    roles: Array,
+    approvalStep: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
-    statData: Object,
+    roles: Array,
 });
-
-// console.log(props.departments);
-console.log(props.roles);
 
 // Composables initialization
 const page = usePage();
-
 // Refs
 const formRef = ref(null);
 
@@ -45,7 +38,7 @@ const {
     refresh,
     submit,
 } = useCrud({
-    routePrefix: "users",
+    routePrefix: "approval-steps",
     formRef,
 });
 
@@ -64,15 +57,16 @@ const {
     createColumns,
     hasActiveSort,
 } = useDataTable({
-    route: route("users.index"),
+    route: route("approval-steps.index"),
     filters: {
         search: props.filters.search || "",
         status: props.filters.status || null,
-        pageSize: Number(props.users.per_page ?? 10),
+        pageSize: Number(props.approvalStep.per_page ?? 10),
+        page: Number(props.approvalStep.current_page ?? 1),
         sort: props.filters.sort || null,
         order: props.filters.order || null,
     },
-    only: ["users"],
+    only: ["approvalStep"],
     debounceTime: 300, // Tambahkan debounce time
     tableConfig: {
         currency: "IDR",
@@ -84,38 +78,22 @@ const {
 
 // Table data transformation
 const rows = computed(() =>
-    props.users.data.map((row) => ({ ...row, detail: true })),
+    props.approvalStep.data.map((row) => ({ ...row, detail: true })),
 );
 
 // Column configuration
 const columnConfig = [
     {
-        title: "Username",
-        key: "name",
-        width: 120,
-        align: "center",
-        sorter: false,
-    },
-    {
-        title: "Email",
-        key: "email",
-        width: 120,
-        align: "center",
-        sorter: false,
-    },
-    {
-        title: "Department",
-        key: "department.name",
-        width: 120,
-        align: "center",
-        sorter: false, // Aktifkan sorting
-    },
-    {
-        title: "Role",
+        title: "Peran",
         key: "role.name",
         width: 120,
-        align: "center",
-        sorter: false, // Aktifkan sorting
+        sorter: false,
+    },
+    {
+        title: "Urutan Persetujuan",
+        key: "step_order",
+        width: 120,
+        sorter: false,
     },
     {
         title: "Aksi",
@@ -130,7 +108,7 @@ const columnConfig = [
             showView: true,
             size: "small",
         },
-        sorter: false, // Aksi tidak perlu sorting
+        sorter: false,
     },
 ];
 
@@ -152,17 +130,20 @@ const handleDownload = () => {
     <Container>
         <template #header>
             <PageHeader
-                add-button-text="Tambah Pengguna"
-                :title="page.props.pageHeader ?? 'Pengguna'"
+                add-button-text="Ajukan Pinjaman"
+                :title="page.props.pageHeader ?? 'Cash Advance'"
                 :show-add="true"
-                :show-download="false"
+                :show-download="true"
                 @add="tambah"
+                @download="handleDownload"
             ></PageHeader>
         </template>
         <template #filters>
             <Filters
                 :filters="filters"
                 :show-search="true"
+                :show-select="false"
+                :select-options="null"
                 :loading-search="loadingSearch"
                 @update:search="filters.search = $event"
                 @update:status="filters.status = $event"
@@ -172,7 +153,7 @@ const handleDownload = () => {
             <BaseTable
                 :columns="tableColumns"
                 :data-ref="rows"
-                :meta="users"
+                :meta="approvalStep"
                 :filters="filters"
                 :page-size="filters.pageSize"
                 :loading-ref="loadingSearch || loadingTable"
@@ -185,17 +166,16 @@ const handleDownload = () => {
             />
             <ModalForm
                 v-model:show-modal="modalForm"
-                edit-title="Edit Pengguna"
-                create-title="Tambah Pengguna"
+                edit-title="Edit Pinjaman"
+                create-title="Tambah Pinjaman"
                 :data-edit="selectedRow"
             >
-                <!-- terima closeModal dari slot -->
                 <template #form="{ closeModal }">
-                    <FormUser
+                    <FormApprovalStep
+                        v-model:show-modal="modalForm"
                         :loading="loadingButton"
-                        :departments-options="departments"
-                        :roles-options="roles"
                         :data-edit="selectedRow"
+                        :roles-options="roles"
                         :close-modal="closeModal"
                         :submit="submit"
                         @updated="refresh"

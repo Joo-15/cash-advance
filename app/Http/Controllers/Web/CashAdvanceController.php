@@ -21,14 +21,14 @@ class CashAdvanceController extends Controller
 
         $cashadvance = CashAdvance::query()
             ->when($request->search, function ($query, $search) {
-                $query->where('keperluan', 'like', "%{$search}%");
+                $query->where('purpose', 'like', "%{$search}%");
             })
             ->when($request->status, function ($query, $status) {
                 $query->where('status', $status);
             })
             ->when($request->sort && $request->order, function ($query) use ($request) {
                 // Whitelist field yang boleh di-sort
-                $allowedSorts = ['tanggal', 'keperluan', 'jumlah', 'status'];
+                $allowedSorts = ['request_date', 'purpose', 'amount', 'status'];
 
                 if (in_array($request->sort, $allowedSorts)) {
                     $query->orderBy($request->sort, $request->order);
@@ -53,6 +53,7 @@ class CashAdvanceController extends Controller
                 'pengajuan_disetujui' => CashAdvance::where('status', 'approved')->count(),
                 'pengajuan_pending' => CashAdvance::where('status', 'pending')->count(),
                 'pengajuan_ditolak' => CashAdvance::where('status', 'rejected')->count(),
+                'pengajuan_ditolak' => CashAdvance::where('status', 'disbursed')->count(),
             ]
         ]);
     }
@@ -69,14 +70,7 @@ class CashAdvanceController extends Controller
             $validated['updated_at'] = now();
 
             // Simpan cash advance
-            $cashAdvance = CashAdvance::create($validated);
-
-            // Log success (opsional - jika perlu tracking)
-            Log::info('Cash advance created', [
-                'id' => $cashAdvance->id,
-                'jumlah' => $cashAdvance->jumlah,
-                'created_by' => Auth::id()
-            ]);
+            CashAdvance::create($validated);
 
             return redirect()
                 ->back()
