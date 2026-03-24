@@ -33,6 +33,7 @@ const { handleSubmit, errors, defineField, setValues, resetForm } = useForm({
         department_id: null,
         role_id: null,
         name: "",
+        username: "",
         email: "",
         password: null,
     },
@@ -44,6 +45,7 @@ const { handleSubmit, errors, defineField, setValues, resetForm } = useForm({
 const [department_id] = defineField("department_id");
 const [role_id] = defineField("role_id");
 const [name] = defineField("name");
+const [username] = defineField("username");
 const [email] = defineField("email");
 const [password] = defineField("password");
 
@@ -82,12 +84,23 @@ watch(
         <div>
             <!-- Keperluan Field -->
             <n-form-item
-                label="Username"
+                label="Nama Lengkap"
                 :validation-status="errors.name ? 'error' : null"
                 :feedback="errors.name"
                 required
             >
-                <n-input v-model:value="name" placeholder="Masukkan user" />
+                <n-input
+                    v-model:value="name"
+                    placeholder="Masukkan nama lengkap"
+                />
+            </n-form-item>
+            <n-form-item
+                label="Username"
+                :validation-status="errors.username ? 'error' : null"
+                :feedback="errors.username"
+                required
+            >
+                <n-input v-model:value="username" placeholder="Masukkan user" />
             </n-form-item>
             <n-form-item
                 label="Email"

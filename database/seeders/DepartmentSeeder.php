@@ -17,6 +17,11 @@ class DepartmentSeeder extends Seeder
         // Data departments yang akan diinsert
         $departments = [
             [
+                'name' => 'Top Management',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
                 'name' => 'Human Resources (HR)',
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),

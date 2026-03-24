@@ -17,6 +17,7 @@ export const cashAdvanceSchema = yup.object({
 
 export const userSchema = yup.object({
     name: yup.string().required("Nama harus diisi"),
+    username: yup.string().required("Username harus diisi"),
     email: yup.string().email("Email tidak valid").required("Email harus diisi"),
     password: yup
         .string()
@@ -33,6 +34,15 @@ export const userSchema = yup.object({
 });
 
 export const approvalStepSchema = yup.object({
-    role_id: yup.number().required("Peran harus dipilih"),
     step_order: yup.string().required("Urutan harus dipilih"),
+    name: yup.string().required("Persetujuan harus diisi"),
+});
+
+export const disbursement = yup.object({
+    amount: yup
+        .number()
+        .typeError("Jumlah harus berupa angka")
+        .required("Jumlah wajib diisi")
+        .min(1, "Jumlah minimal 1"),
+    disbursed_at: yup.number().required("Tanggal wajib diisi"),
 });

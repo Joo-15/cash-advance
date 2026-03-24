@@ -11,18 +11,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('approval_steps', function (Blueprint $table) {
+        Schema::create('approval_step_roles', function (Blueprint $table) {
             $table->id();
-            $table->integer('step_order');
+            $table->foreignId('approval_step_id')
+                ->constrained()
+                ->restrictOnDelete();
             $table->foreignId('role_id')
                 ->constrained()
-                ->cascadeOnDelete();
+                ->restrictOnDelete();
             $table->timestamps();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
-        Schema::dropIfExists('approval_steps');
+        Schema::dropIfExists('approval_step_roles');
     }
 };

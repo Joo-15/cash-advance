@@ -40,8 +40,8 @@ export function useFormSubmit(options = {}) {
         onFinish,
         customFilters = {},
     }) => {
-        loadingButton.value = true;
 
+        loadingButton.value = true;
         try {
             if (sleepTime > 0) {
                 await sleep(sleepTime);

@@ -22,4 +22,14 @@ class CashAdvance extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function approvals()
+    {
+        return $this->hasMany(Approval::class);
+    }
+
+    public function disbursement()
+    {
+        return $this->hasOne(Disbursement::class);
+    }
 }

@@ -3,7 +3,7 @@ import { ref, reactive, watch, onBeforeUnmount, h, computed } from "vue";
 import { router } from "@inertiajs/vue3";
 import { debounce } from "lodash";
 import { NButton, NIcon, NSpace, NTag, NTooltip } from "naive-ui";
-import { PencilOutline, TrashOutline, EyeOutline } from "@vicons/ionicons5";
+import { PencilOutline, TrashOutline, EyeOutline, CheckmarkOutline, SendSharp } from "@vicons/ionicons5";
 
 /**
  ===================================================
@@ -84,6 +84,7 @@ export function useDataTable({
      */
 
     const renderCurrency = (value, currency = config.currency) => {
+
         if (!value && value !== 0)
             return h("span", { class: "text-gray-400" }, "-");
 
@@ -166,12 +167,45 @@ export function useDataTable({
     const createActionButton = ({
         type,
         icon,
+        label,        // Tambahkan label
         onClick,
         props = {},
         size,
         tooltip,
         style,
     }) => {
+        // Jika ada label, buat button dengan teks
+        if (label) {
+            const button = h(
+                NButton,
+                {
+                    strong: true,
+                    type,
+                    size,
+                    onClick,
+                    style,
+                    ...props,
+                },
+                {
+                    default: () => label,  // Teks tombol
+                    ...(icon ? { icon: () => h(NIcon, null, { default: () => h(icon) }) } : {})
+                },
+            );
+
+            if (tooltip) {
+                return h(
+                    NTooltip,
+                    { trigger: "hover", placement: "top" },
+                    {
+                        trigger: () => button,
+                        default: () => tooltip,
+                    },
+                );
+            }
+            return button;
+        }
+
+        // Jika tidak ada label, buat button circle dengan icon saja
         const button = h(
             NButton,
             {
@@ -204,10 +238,48 @@ export function useDataTable({
     };
 
     const renderActions = (row, actionConfig = {}, actions = {}) => {
+        // Ambil status dari row
+        const status = row?.status?.toLowerCase?.() || '';
+        const isDisbursed = status === 'disbursed';
+
+        // Gabungkan actionConfig dengan kondisi status
+        const mergedActionConfig = {
+            ...actionConfig,
+            // Jika status disbursed, nonaktifkan edit, delete, proses
+            showEdit: actionConfig.showEdit !== undefined
+                ? (typeof actionConfig.showEdit === 'function'
+                    ? actionConfig.showEdit(row)
+                    : !isDisbursed && actionConfig.showEdit)
+                : !isDisbursed,
+            showDelete: actionConfig.showDelete !== undefined
+                ? (typeof actionConfig.showDelete === 'function'
+                    ? actionConfig.showDelete(row)
+                    : !isDisbursed && actionConfig.showDelete)
+                : !isDisbursed,
+            showProses: actionConfig.showProses !== undefined
+                ? (typeof actionConfig.showProses === 'function'
+                    ? actionConfig.showProses(row)
+                    : actionConfig.showProses)
+                : true,
+            // Detail dan View tetap tampil (bisa diatur sendiri)
+            showDetail: actionConfig.showDetail !== undefined
+                ? (typeof actionConfig.showDetail === 'function'
+                    ? actionConfig.showDetail(row)
+                    : actionConfig.showDetail)
+                : true,
+            showView: actionConfig.showView !== undefined
+                ? (typeof actionConfig.showView === 'function'
+                    ? actionConfig.showView(row)
+                    : actionConfig.showView)
+                : true,
+        };
+
         const {
             showEdit = true,
             showDelete = true,
             showView = false,
+            showDetail = false,
+            showProses = false,
             showCustom = false,
             customButtons = [],
             size = config.actionSize,
@@ -215,7 +287,7 @@ export function useDataTable({
             editProps = {},
             deleteProps = {},
             viewProps = {},
-        } = actionConfig;
+        } = mergedActionConfig;
 
         const buttons = [];
 
@@ -226,6 +298,44 @@ export function useDataTable({
                     icon: EyeOutline,
                     onClick: () => actions.onView(row),
                     props: viewProps,
+                    size,
+                    tooltip: "Lihat Detail",
+                }),
+            );
+        }
+
+        if (showProses && actions.onProses) {
+            buttons.push(
+                createActionButton({
+                    label: "Proses", // Tambahkan label
+                    icon: SendSharp, // Atau bisa pakai icon
+                    onClick: () => actions.onProses(row.id),
+                    props: {
+                        size: 'small',
+                        variant: "solid",
+                        circle: false,
+                        type: "secondary",
+
+                        // color: "#8a2be2"
+                    },
+                    tooltip: "Proses pencairan dana cash advance",
+                }),
+            );
+        }
+
+        if (showDetail && actions.onDetail) {
+
+            buttons.push(
+                createActionButton({
+                    type: "success",
+                    icon: EyeOutline,
+                    onClick: () => actions.onDetail(row.cash_advance_id || row.id), // mengambil id cash_advance
+                    props: {
+                        size,
+                        variant: "light",
+                        // Optional: Tambahkan loading state
+                        loading: row._loading_detail === true
+                    },
                     size,
                     tooltip: "Lihat Detail",
                 }),
@@ -254,10 +364,10 @@ export function useDataTable({
                     props: deleteProps,
                     size,
                     tooltip: "Hapus",
-                    style: buttons.length > 0 ? "margin-left: 6px" : "",
                 }),
             );
         }
+
 
         if (showCustom && customButtons.length) {
             customButtons.forEach((btn, index) => {
@@ -274,6 +384,8 @@ export function useDataTable({
                 );
             });
         }
+
+
 
         return buttons.length
             ? h(
@@ -364,13 +476,54 @@ export function useDataTable({
         switch (column.type) {
             case "currency":
                 baseColumn.align = column.align || "right";
-                baseColumn.render = (row) =>
-                    renderCurrency(row[column.key], column.currency);
+                baseColumn.render = (row) => {
+                    // Cara mengakses nested key (cash_advance.amount)
+                    const value = getNestedValue(row, column.key);
+                    return renderCurrency(value, column.currency);
+                };
                 break;
 
+                // Helper function untuk mengakses nested object
+                function getNestedValue(obj, path) {
+                    if (!obj || !path) return null;
+
+                    // Pisahkan path dengan titik: "cash_advance.amount" -> ["cash_advance", "amount"]
+                    const keys = path.split('.');
+
+                    // Akses nested value
+                    return keys.reduce((current, key) => {
+                        return current && current[key] !== undefined ? current[key] : null;
+                    }, obj);
+                }
+
+                // Function untuk render currency
+                function renderCurrency(value, currency = 'IDR') {
+                    if (value === null || value === undefined || value === '') {
+                        return 'Rp 0';
+                    }
+
+                    // Konversi ke number jika string
+                    const numValue = typeof value === 'string'
+                        ? parseFloat(value.replace(/[^\d.-]/g, ''))
+                        : value;
+
+                    if (isNaN(numValue)) return 'Rp 0';
+
+                    // Format dengan Intl.NumberFormat
+                    return new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: currency,
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(numValue);
+                }
+
             case "date":
-                baseColumn.render = (row) =>
-                    renderDate(row[column.key], column.dateFormat);
+                baseColumn.render = (row) => {
+                    // Mengambil nilai dari nested object
+                    const value = getNestedValue(row, column.key);
+                    return renderDate(value, column.dateFormat);
+                };
                 break;
 
             case "status":

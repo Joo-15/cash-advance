@@ -1,11 +1,12 @@
 export const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const formatRupiah = (value) => {
-    return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
-    }).format(value);
-};
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(value || 0)
+}
 
 // utils/formatters.js
 
@@ -66,4 +67,51 @@ export const parseRupiah = (value) => {
 export const formatPercent = (value) => {
     if (value === null || value === undefined) return "";
     return `${value}%`;
+};
+
+export const formatDate = (dateString) => {
+    if (!dateString) return "";
+    try {
+        const date = new Date(dateString);
+        // Cek apakah date valid
+        if (isNaN(date.getTime())) return "";
+
+        return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return "";
+    }
+};
+
+// Definisikan juga formatDateTime jika diperlukan
+export const formatDateTime = (dateString) => {
+    if (!dateString) return "";
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "";
+
+        return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        console.error('Error formatting datetime:', error);
+        return "";
+    }
+};
+
+export const getStatusType = (status) => {
+    const types = {
+        pending: 'warning',
+        approved: 'success',
+        rejected: 'error'
+    };
+    return types[status] || 'default';
 };

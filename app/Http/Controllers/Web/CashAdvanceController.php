@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CashAdvanceRequest;
+use App\Models\Approval;
 use App\Models\CashAdvance;
 use App\Traits\HasFilters;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
@@ -17,14 +19,25 @@ class CashAdvanceController extends Controller
 
     public function index(Request $request)
     {
+        $departmentName = Auth::user()->department->name;
+
         $perPage = (int) $request->input('per_page', 10);
 
-        $cashadvance = CashAdvance::query()
-            ->when($request->search, function ($query, $search) {
-                $query->where('purpose', 'like', "%{$search}%");
+        $cashadvance = CashAdvance::with([
+            'approvals.approvalStep.approvalStepRoles.role',
+            'user.department'
+        ])
+            ->when($request->search, function ($query) use ($request) {
+                $searchTerm = '%' . $request->search . '%';
+
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('purpose', 'like', $searchTerm)
+                        ->orWhere('request_date', 'like', $searchTerm)
+                        ->orWhereRaw("CAST(amount AS CHAR) like ?", [$searchTerm]);
+                });
             })
-            ->when($request->status, function ($query, $status) {
-                $query->where('status', $status);
+            ->when($request->status, function ($query) use ($request) {
+                $query->where('status', $request->status);
             })
             ->when($request->sort && $request->order, function ($query) use ($request) {
                 // Whitelist field yang boleh di-sort
@@ -34,12 +47,14 @@ class CashAdvanceController extends Controller
                     $query->orderBy($request->sort, $request->order);
                 }
             })
+            ->whereHas('user.department', function ($query) use ($departmentName) {
+                $query->where('name', $departmentName);
+            })
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
 
         return Inertia::render('CashAdvance/IndexCashAdvance', [
-            'pageHeader' => 'Pengajuan Pinjaman',
             'cashadvance' => $cashadvance,
             'filters' => $request->only([
                 'search',
@@ -53,30 +68,46 @@ class CashAdvanceController extends Controller
                 'pengajuan_disetujui' => CashAdvance::where('status', 'approved')->count(),
                 'pengajuan_pending' => CashAdvance::where('status', 'pending')->count(),
                 'pengajuan_ditolak' => CashAdvance::where('status', 'rejected')->count(),
-                'pengajuan_ditolak' => CashAdvance::where('status', 'disbursed')->count(),
-            ]
+                'pengajuan_dicairkan' => CashAdvance::where('status', 'disbursed')->count(),
+            ],
+
         ]);
     }
 
     public function store(CashAdvanceRequest $request)
     {
+
         try {
+            DB::beginTransaction();
             // Ambil data yang sudah divalidasi
             $validated = $request->validated();
+            $validated['user_id'] = Auth::id();
 
             // Tambahkan metadata
-            $validated['created_by'] = Auth::id();
-            $validated['created_at'] = now();
-            $validated['updated_at'] = now();
+            // $validated['created_by'] = Auth::id();
+            // $validated['created_at'] = now();
+            // $validated['updated_at'] = now();
 
             // Simpan cash advance
-            CashAdvance::create($validated);
+            $cashAdvance = CashAdvance::create($validated);
+            // dd($cashAdvance->user_id);
 
+            // 2. Buat 3 approval sekaligus
+            $approvalStepRoles = [1, 2, 3, 4];
+            foreach ($approvalStepRoles as $step) {
+                Approval::create([
+                    'cash_advance_id' => $cashAdvance->id,
+                    'approval_step_id' => $step,
+                ]);
+            }
+
+            DB::commit();
             return redirect()
                 ->back()
                 ->with('success', 'Pengajuan pinjaman berhasil disimpan');
         } catch (\Exception $e) {
-            // Log error
+            DB::rollBack();
+
             Log::error('Failed to create cash advance', [
                 'error' => $e->getMessage(),
                 'user_id' => Auth::id(),

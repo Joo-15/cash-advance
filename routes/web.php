@@ -1,10 +1,11 @@
 <?php
 
-use App\Http\Controllers\ApprovalStepController;
-use App\Http\Controllers\Web\Produks\ProdukController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Web\ApprovalStepController as WebApprovalStepController;
+use App\Http\Controllers\Web\ApprovalController;
+use App\Http\Controllers\Web\ApprovalStepController;
+use App\Http\Controllers\Web\ApprovalStepRoleController;
 use App\Http\Controllers\Web\CashAdvanceController;
+use App\Http\Controllers\Web\DisbursementController;
 use App\Http\Controllers\Web\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -35,8 +36,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Resource Routes
     // Route::resource('produk', ProdukController::class);
     Route::resource('pengajuan-pinjaman', CashAdvanceController::class);
+    Route::resource('approvals', ApprovalController::class);
+    Route::get('/approvals/{id}/detail', [ApprovalController::class, 'getDetail'])->name('approvals.detail');
+    Route::put('/approvals/{approval}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
+    Route::put('/approvals/{approval}/reject', [ApprovalController::class, 'reject'])->name('approvals.reject');
     Route::resource('users', UserController::class);
-    Route::resource('approval-steps', WebApprovalStepController::class);
+    Route::resource('approval/approval-steps', ApprovalStepController::class);
+    Route::resource('approval/approval-step-roles', ApprovalStepRoleController::class);
+
+    // DISBURSEMENT
+    Route::resource('/pencairan-dana', DisbursementController::class);
+    Route::resource('/penggunaan-dana', DisbursementController::class);
+    // Route::get('/disbursement/{disbursement}/show', [DisbursementController::class, 'show'])->name('disbursement.show');
+    // Route::get('/disbursement', [DisbursementController::class, 'store'])->name('disbursement.store');
+
+
 
 
 

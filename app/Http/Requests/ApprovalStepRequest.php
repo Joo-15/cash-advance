@@ -25,28 +25,19 @@ class ApprovalStepRequest extends FormRequest
         if ($this->isMethod('post')) {
             // Store - required
             $rules = [
-                'role_id' => [
-                    'required',
-                    'integer',
-                    'exists:roles,id'
-                ],
                 'step_order' => [
                     'required',
                     'numeric',
                     'min:0',
                     'max:100'
                 ],
+                'name' => ['required', 'string', 'min:3', 'max:255'],
+
 
             ];
         } else {
             // Update 
             $rules = [
-                'role_id' => [
-                    'sometimes',
-                    'required',
-                    'integer',
-                    'exists:roles,id'
-                ],
                 'step_order' => [
                     'sometimes',
                     'required',
@@ -54,6 +45,8 @@ class ApprovalStepRequest extends FormRequest
                     'min:0',
                     'max:100'
                 ],
+                'name' => ['sometimes', 'required', 'string', 'min:3'],
+
 
             ];
         }
@@ -64,15 +57,13 @@ class ApprovalStepRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'role_id.required' => 'Role harus dipilih.',
-            'role_id.integer' => 'Role harus berupa angka yang valid.',
-            'role_id.exists' => 'Role yang dipilih tidak tersedia dalam sistem.',
-
-            // Messages untuk step_order
             'step_order.required' => 'Urutan langkah harus diisi.',
             'step_order.numeric' => 'Urutan langkah harus berupa angka.',
             'step_order.min' => 'Urutan langkah minimal :min.',
             'step_order.max' => 'Urutan langkah maksimal :max.',
+
+            'name.required' => 'Username harus diisi',
+            'name.min' => 'Username minimal 3 karakter',
         ];
     }
 

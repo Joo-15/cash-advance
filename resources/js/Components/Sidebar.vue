@@ -9,6 +9,8 @@ import {
     PeopleOutline,
     SettingsOutline,
     BookOutline,
+    CashOutline,
+    DocumentTextOutline,
 } from "@vicons/ionicons5";
 
 /* =====================
@@ -30,6 +32,13 @@ const isMobile = ref(false);
 ===================== */
 const activeKey = computed(() => page.url.split("?")[0]);
 const user = computed(() => page.props.auth?.user);
+const userRole = computed(
+    () => user.value?.role?.name || user.value?.role || "employee",
+);
+const department = computed(() => page.props.auth?.user?.department?.name);
+console.log("page", department.value);
+
+// const department = computed(() => page.)
 
 /* =====================
    HELPERS
@@ -38,34 +47,154 @@ const renderIcon = (icon) => () =>
     h(NIcon, { size: 20, class: "flex-shrink-0" }, () => h(icon));
 
 /* =====================
+   ROLE-BASED MENU ACCESS
+===================== */
+
+// Definisi role dan menu apa saja yang bisa diakses
+const rolePermissions = {
+    // Super Admin - akses semua menu
+    "Super Admin": {
+        canAccess: () => true,
+        menus: [
+            "dashboard",
+            "pengajuan",
+            "approvals",
+            "disbursement",
+            "penggunaan",
+            "master",
+            "users",
+            "settings",
+        ],
+    },
+    // Admin - akses hampir semua kecuali manajemen user
+    Admin: {
+        canAccess: (menuKey) => {
+            const restrictedMenus = ["users"]; // Menu yang tidak bisa diakses Admin
+            return !restrictedMenus.includes(menuKey);
+        },
+        menus: [
+            "dashboard",
+            "pengajuan",
+            "approvals",
+            "disbursement",
+            "penggunaan",
+            "master",
+            "settings",
+        ],
+    },
+    // Finance - akses pencairan dan penggunaan dana
+    Finance: {
+        canAccess: (menuKey) => {
+            const allowedMenus = ["dashboard", "disbursement", "penggunaan"];
+            return allowedMenus.includes(menuKey);
+        },
+        menus: ["dashboard", "disbursement", "penggunaan"],
+    },
+    // Approver / Manager - akses persetujuan
+    Approver: {
+        canAccess: (menuKey) => {
+            const allowedMenus = ["dashboard", "approvals"];
+            return allowedMenus.includes(menuKey);
+        },
+        menus: ["dashboard", "approvals"],
+    },
+    // Employee / Staff - akses pengajuan saja
+    Employee: {
+        canAccess: (menuKey) => {
+            const allowedMenus = ["dashboard", "pengajuan"];
+            return allowedMenus.includes(menuKey);
+        },
+        menus: ["dashboard", "pengajuan"],
+    },
+    // Default role
+    default: {
+        canAccess: (menuKey) => {
+            const allowedMenus = ["dashboard", "pengajuan"];
+            return allowedMenus.includes(menuKey);
+        },
+        menus: ["dashboard", "pengajuan"],
+    },
+};
+
+// Cek apakah user memiliki akses ke menu tertentu
+const hasMenuAccess = (menuKey) => {
+    const role = userRole.value;
+    const permission = rolePermissions[role] || rolePermissions["default"];
+    return permission.canAccess(menuKey);
+};
+
+// Filter menu berdasarkan role
+const filterMenuByRole = (menuOptions) => {
+    return menuOptions.filter((menu) => {
+        // Jika menu memiliki children, filter children-nya juga
+        if (menu.children) {
+            const filteredChildren = menu.children.filter((child) => {
+                // Skip divider
+                if (child.type === "divider") return true;
+                // Cek akses untuk child menu
+                const childKey =
+                    child.key.replace("/", "").split("/")[0] ||
+                    child.key.replace("/", "");
+                return hasMenuAccess(childKey);
+            });
+
+            // Jika setelah filter masih ada children (bukan hanya divider), tampilkan menu parent
+            const hasNonDividerChildren = filteredChildren.some(
+                (child) => child.type !== "divider",
+            );
+            if (hasNonDividerChildren) {
+                return { ...menu, children: filteredChildren };
+            }
+            return false;
+        }
+
+        // Untuk menu tanpa children
+        const menuKey =
+            menu.key.replace("/", "").split("/")[0] ||
+            menu.key.replace("/", "");
+        return hasMenuAccess(menuKey);
+    });
+};
+
+/* =====================
    MENU CONFIG
 ===================== */
-const menuOptions = [
+const allMenuOptions = [
     {
         label: "Dashboard",
         key: "/dashboard",
         icon: renderIcon(HomeOutline),
+        roleAccess: ["Super Admin", "Admin", "Finance", "Approver", "Employee"],
     },
     {
         label: "Pengajuan Baru",
         key: "/pengajuan-pinjaman",
         icon: renderIcon(CubeOutline),
+        roleAccess: ["Super Admin", "Admin", "Employee"],
     },
-
     {
-        label: "Approval",
-        key: "/approval",
+        label: "Persetujuan",
+        key: "/approvals",
         icon: renderIcon(PeopleOutline),
+        roleAccess: ["Super Admin", "Admin", "Supervisor", "Chief", "Manager"],
     },
     {
-        label: "Pelaporan",
-        key: "/pelaporan",
-        icon: renderIcon(SettingsOutline),
+        label: "Pencairan Dana",
+        key: "/pencairan-dana",
+        icon: renderIcon(CashOutline),
+        roleAccess: ["Super Admin", "Admin", "Finance"],
+    },
+    {
+        label: "Penggunaan Dana",
+        key: "/penggunaan-dana",
+        icon: renderIcon(DocumentTextOutline),
+        roleAccess: ["Super Admin", "Admin", "Employee"],
     },
     {
         label: "Data Master",
-        key: "/data-master", // ✅ HARUS ADA SLASH
+        key: "/data-master",
         icon: renderIcon(CubeOutline),
+        roleAccess: ["Super Admin", "Admin"],
         children: [
             {
                 type: "divider",
@@ -74,10 +203,12 @@ const menuOptions = [
             {
                 label: "Data Departemen",
                 key: "/data-master/departemen",
+                roleAccess: ["Super Admin", "Admin"],
             },
             {
                 label: "Pengaturan Persetujuan",
                 key: "/data-master/approval-steps",
+                roleAccess: ["Super Admin", "Admin"],
             },
         ],
     },
@@ -85,19 +216,76 @@ const menuOptions = [
         label: "Manajemen User",
         key: "/users",
         icon: renderIcon(SettingsOutline),
+        roleAccess: ["Super Admin"], // Hanya Super Admin
     },
     {
-        label: "Pengaturan Persetujuan",
-        key: "/approval-steps",
+        label: "Pengaturan",
+        key: "/settings",
         icon: renderIcon(SettingsOutline),
+        roleAccess: ["Super Admin", "Admin"],
+        children: [
+            {
+                type: "divider",
+                key: "divider-1",
+            },
+            {
+                label: "Level Persetujuan",
+                key: "/approval/approval-step-roles",
+                roleAccess: ["Super Admin", "Admin"],
+            },
+            {
+                label: "Pengaturan Level",
+                key: "/approval/approval-steps",
+                roleAccess: ["Super Admin", "Admin"],
+            },
+        ],
     },
 ];
+
+// Computed menu options berdasarkan role
+const menuOptions = computed(() => {
+    const role = userRole.value;
+
+    // Filter menu berdasarkan role
+    return allMenuOptions.filter((menu) => {
+        // Cek apakah role memiliki akses ke menu ini
+        const hasRoleAccess =
+            menu.roleAccess?.includes(role) ||
+            menu.roleAccess?.includes("all") ||
+            role === "Super Admin"; // Super Admin akses semua
+
+        if (!hasRoleAccess) return false;
+
+        // Jika menu memiliki children, filter children berdasarkan role
+        if (menu.children) {
+            const filteredChildren = menu.children.filter((child) => {
+                if (child.type === "divider") return true;
+                return (
+                    child.roleAccess?.includes(role) ||
+                    child.roleAccess?.includes("all") ||
+                    role === "Super Admin"
+                );
+            });
+
+            // Jika setelah filter masih ada children (bukan hanya divider), tampilkan menu
+            const hasNonDividerChildren = filteredChildren.some(
+                (child) => child.type !== "divider",
+            );
+            if (hasNonDividerChildren) {
+                return { ...menu, children: filteredChildren };
+            }
+            return false;
+        }
+
+        return true;
+    });
+});
 
 /* =====================
    HANDLERS
 ===================== */
 const handleMenuSelect = (key) => {
-    if (!key.startsWith("/")) return;
+    if (!key || !key.startsWith("/")) return;
 
     const parentKey = "/" + key.split("/")[1];
     expandedKeys.value = [parentKey];
@@ -119,11 +307,11 @@ const checkMobile = () => {
 };
 
 const getFirstSegment = () => {
-    const cleanUrl = page.url.split("?")[0]; // buang query
+    const cleanUrl = page.url.split("?")[0];
     const segments = cleanUrl.split("/").filter(Boolean);
-
     return segments.length ? "/" + segments[0] : "/";
 };
+
 /* =====================
    INIT (ANTI FLICKER)
 ===================== */
@@ -132,16 +320,12 @@ onMounted(() => {
     window.addEventListener("resize", checkMobile);
 
     if (isMobile.value) {
-        // ✅ MOBILE: paksa collapsed
         collapsed.value = true;
     } else {
-        // ✅ DESKTOP: ambil dari localStorage
         collapsed.value = localStorage.getItem(STORAGE_KEY) === "true";
     }
 
-    // ✅ Ambil segment pertama dari URL (AMAN)
     expandedKeys.value = [getFirstSegment()];
-
     isInitialized.value = true;
 });
 
@@ -153,14 +337,11 @@ onUnmounted(() => {
    PERSIST STATE
 ===================== */
 watch(collapsed, (val) => {
-    // ⬅️ simpan state (hanya desktop & setelah init)
     if (!isInitialized.value) return;
     if (isMobile.value) return;
-
     localStorage.setItem(STORAGE_KEY, String(val));
 });
 
-// sidebar logic
 watch(
     () => page.url,
     () => {
@@ -169,8 +350,8 @@ watch(
     { immediate: true },
 );
 </script>
+
 <template>
-    <!-- v-if adalah KUNCI agar tidak ada animasi nutup saat refresh -->
     <NLayoutSider
         v-if="isInitialized"
         v-model:collapsed="collapsed"
@@ -182,56 +363,36 @@ watch(
         :native-scrollbar="false"
         class="bg-slate-100 dark:bg-gray-900 fixed left-0 z-40 min-h-screen"
     >
-        <!-- LOGO -->
-        <div
-            class="flex items-left justify-center dark:border-gray-800 bg-primary-50 dark:bg-primary-900/20"
-        >
-            <!-- <div class="flex items-center justify-center w-full px-2">
-                <div class="flex items-center justify-center">
-                    <div
-                        :class="[
-                            'rounded-lg flex items-center justify-center transition-all duration-300',
-                            collapsed ? 'w-10 h-10' : 'w-9 h-9',
-                        ]"
-                        :style="{
-                            backgroundColor: collapsed
-                                ? 'transparent'
-                                : '#4f46e5',
-                        }"
-                    >
-                        <Transition name="logo-fade" mode="out-in">
-                            <NIcon
-                                v-if="collapsed"
-                                :size="24"
-                                :component="StorefrontOutline"
-                                class="text-primary-600 dark:text-primary-300"
-                            />
-                            <span v-else class="text-white font-bold text-sm">
-                                P
-                            </span>
-                        </Transition>
-                    </div>
+        <!-- LOGO AREA -->
+        <div class="py-4 px-3 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-center">
+                <div
+                    :class="[
+                        'rounded-lg bg-primary-600 flex items-center justify-center transition-all duration-300',
+                        collapsed ? 'w-10 h-10' : 'w-10 h-10',
+                    ]"
+                >
+                    <span class="text-indigo-700 font-bold text-4xl">CA</span>
                 </div>
-
-                <Transition name="fade" mode="out-in">
+                <Transition name="fade">
                     <div v-if="!collapsed" class="ml-3">
                         <h1
-                            class="font-bold text-lg text-primary-600 dark:text-primary-300 whitespace-nowrap"
+                            class="font-bold text-lg text-gray-800 dark:text-white whitespace-nowrap"
                         >
-                            Logo
+                            {{ department }}
                         </h1>
                         <p
                             class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap"
                         >
-                            Admin Panel
+                            {{ userRole }}
                         </p>
                     </div>
                 </Transition>
-            </div> -->
+            </div>
         </div>
 
         <!-- MENU -->
-        <div class="flex flex-col h-[calc(100vh-4rem)]">
+        <div class="flex flex-col h-[calc(100vh-5rem)]">
             <div class="flex-1 overflow-y-auto py-3">
                 <NMenu
                     :options="menuOptions"
@@ -255,3 +416,14 @@ watch(
         </div>
     </NLayoutSider>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+</style>

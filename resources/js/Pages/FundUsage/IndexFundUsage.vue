@@ -1,44 +1,65 @@
 <script setup>
 import { computed, ref } from "vue";
-import { usePage } from "@inertiajs/vue3";
 
 // Composables
 import { useDataTable } from "@/Composables/useDataTable";
 import { useCrud } from "@/Composables/useCrud";
 
 // Constants
+import { STATUS_OPTIONS, STATUS_OPTIONS_PENCAIRAN } from "@/Constants/status";
+import { CASH_ADVANCE_STATS } from "@/Constants/cashAdvanceStats";
 
 // Components
 import BaseTable from "@/Components/DataTable/BaseTable.vue";
 import Container from "@/Components/Layout/Container.vue";
 import PageHeader from "@/Components/Page/PageHeader.vue";
+import StatCards from "@/Components/Page/StatCards.vue";
 import Filters from "@/Components/Page/Filters.vue";
 import ModalForm from "@/Components/Page/ModalForm.vue";
-import FormApprovalStep from "./FormApprovalStep.vue";
+import FormCashAdvance from "./FormFundUsage.vue";
+import FormApproval from "../Approval/FormApproval.vue";
+import { useAuth } from "@/Composables/useAuth";
+import FormDisbursement from "./FormFundUsage.vue";
+import FormFundUsage from "./FormFundUsage.vue";
 
 // Props definition
 const props = defineProps({
-    approvalStep: { type: Object, required: true },
+    fundUsage: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
-    roles: Array,
 });
 
-// Composables initialization
-const page = usePage();
+console.log("disbursement", props.disbursement);
 // Refs
 const formRef = ref(null);
 
 const {
+    userName,
+    userAvatar,
+    greeting,
+    fullNameWithTitle,
+    departmentName,
+    roleName,
+    isAdmin,
+    isSupervisor,
+    isEmployee,
+    hasRole,
+    inDepartmentName,
+} = useAuth();
+
+const {
     loadingButton,
     modalForm,
+    currentFormType,
+    modalMode,
     selectedRow,
     tambah,
     edit,
     hapus,
+    proses,
     refresh,
     submit,
 } = useCrud({
-    routePrefix: "approval-steps",
+    routePrefix: "penggunaan-dana",
     formRef,
 });
 
@@ -57,16 +78,16 @@ const {
     createColumns,
     hasActiveSort,
 } = useDataTable({
-    route: route("approval-steps.index"),
+    route: route("penggunaan-dana.index"),
     filters: {
         search: props.filters.search || "",
         status: props.filters.status || null,
-        pageSize: Number(props.approvalStep.per_page ?? 10),
-        page: Number(props.approvalStep.current_page ?? 1),
+        pageSize: Number(props.disbursement.per_page ?? 10),
+        page: Number(props.disbursement.current_page ?? 1),
         sort: props.filters.sort || null,
         order: props.filters.order || null,
     },
-    only: ["approvalStep"],
+    only: ["penggunaan-dana"],
     debounceTime: 300, // Tambahkan debounce time
     tableConfig: {
         currency: "IDR",
@@ -78,16 +99,63 @@ const {
 
 // Table data transformation
 const rows = computed(() =>
-    props.approvalStep.data.map((row) => ({ ...row, detail: true })),
+    props.disbursement.data.map((row) => ({ ...row, detail: true })),
 );
 
 // Column configuration
 const columnConfig = [
     {
-        title: "Level",
-        key: "step_order",
+        title: "Pemohon",
+        key: "user.name",
         width: 120,
+        // sorter: true,
+    },
+    {
+        title: "Departement",
+        key: "user.department.name",
+        width: 200,
+        ellipsis: { tooltip: true },
         sorter: false,
+    },
+    {
+        title: "Tujuan",
+        key: "purpose",
+        width: 200,
+        ellipsis: { tooltip: true },
+        sorter: true, // Tambahkan sorter jika perlu
+    },
+
+    {
+        title: "Jumlah Diminta",
+        key: "amount",
+        type: "currency",
+        currency: "IDR",
+        align: "right",
+        sorter: true, // Aktifkan sorting
+        width: 150,
+    },
+    {
+        title: "Jumlah Dicairkan",
+        key: "disbursement.amount",
+        type: "currency",
+        currency: "IDR",
+        align: "right",
+        width: 150,
+    },
+    {
+        title: "Status",
+        key: "status",
+        type: "status",
+        width: 80,
+        align: "center",
+        sorter: true, // Aktifkan sorting
+        statusMap: {
+            pending: { type: "warning", label: "Pending" },
+            approved: { type: "success", label: "Approved" },
+            disbursed: { type: "info", label: "Disbursed" },
+            rejected: { type: "error", label: "Rejected" },
+            default: { type: "default", label: "Unknown" },
+        },
     },
     {
         title: "Aksi",
@@ -97,19 +165,19 @@ const columnConfig = [
         fixed: "right",
         align: "center",
         actionConfig: {
-            showEdit: true,
-            showDelete: true,
-            showView: true,
+            showEdit: false,
+            showDelete: false,
+            showDetail: false,
+            showProses: true,
             size: "small",
         },
-        sorter: false,
+        sorter: false, // Aksi tidak perlu sorting
     },
 ];
 
 // Actions configuration
 const actions = {
-    onEdit: edit,
-    onDelete: hapus,
+    onProses: (row) => proses("disbursement", "proses", row),
 };
 
 // Table columns
@@ -124,11 +192,11 @@ const handleDownload = () => {
     <Container>
         <template #header>
             <PageHeader
-                add-button-text="Tambah"
-                :title="page.props.pageHeader ?? 'Cash Advance'"
-                :show-add="true"
+                add-button-text="Ajukan Pinjaman"
+                title="Pencairan Dana"
+                :show-add="false"
                 :show-download="true"
-                @add="tambah"
+                @add="tambah('cash-advance', 'create')"
                 @download="handleDownload"
             ></PageHeader>
         </template>
@@ -136,8 +204,8 @@ const handleDownload = () => {
             <Filters
                 :filters="filters"
                 :show-search="true"
-                :show-select="false"
-                :select-options="null"
+                :show-select="true"
+                :select-options="STATUS_OPTIONS_PENCAIRAN"
                 :loading-search="loadingSearch"
                 @update:search="filters.search = $event"
                 @update:status="filters.status = $event"
@@ -147,8 +215,9 @@ const handleDownload = () => {
             <BaseTable
                 :columns="tableColumns"
                 :data-ref="rows"
-                :meta="approvalStep"
+                :meta="disbursement"
                 :filters="filters"
+                :select-options="STATUS_OPTIONS_PENCAIRAN"
                 :page-size="filters.pageSize"
                 :loading-ref="loadingSearch || loadingTable"
                 :has-active-sort-fn="hasActiveSort"
@@ -160,16 +229,17 @@ const handleDownload = () => {
             />
             <ModalForm
                 v-model:show-modal="modalForm"
-                edit-title="Edit Urutan Persetujuan"
-                create-title="Tambah Urutan Persetujuan"
+                create-title="Pencairan Dana"
+                :is-detail-mode="false"
                 :data-edit="selectedRow"
+                :auto-focus="false"
             >
                 <template #form="{ closeModal }">
-                    <FormApprovalStep
-                        v-model:show-modal="modalForm"
+                    <FormFundUsage
+                        v-if="currentFormType === 'disbursement'"
+                        :modal-mode="modalMode"
                         :loading="loadingButton"
-                        :data-edit="selectedRow"
-                        :roles-options="roles"
+                        :data-selected="selectedRow"
                         :close-modal="closeModal"
                         :submit="submit"
                         @updated="refresh"

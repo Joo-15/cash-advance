@@ -21,13 +21,7 @@ class ApprovalStepController extends Controller
     {
         $perPage = (int) $request->input('per_page', 10);
 
-        $approvalStep = ApprovalStep::with('role')
-
-            ->when($request->search, function ($query, $search) {
-                $query->WhereHas('role', function ($dept) use ($search) {
-                    $dept->where('name', 'like', "%{$search}%");
-                });
-            })
+        $approvalStep = ApprovalStep::query()
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
@@ -35,7 +29,6 @@ class ApprovalStepController extends Controller
         return Inertia::render('ApprovalStep/IndexApprovalStep', [
             'pageHeader' => 'Pengaturan Persetujuan',
             'approvalStep' => $approvalStep,
-            'roles' => Role::getSelectOptions(),
             'filters' => $request->only([
                 'search',
                 'status',
@@ -112,8 +105,8 @@ class ApprovalStepController extends Controller
         try {
             $userData = [
                 'id' => $approvalStep->id,
-                'role_id' => $approvalStep->role_id,
                 'step_order' => $approvalStep->step_order,
+                'name' => $approvalStep->name,
             ];
 
             Log::info('Approval Step deleted', [
@@ -125,7 +118,7 @@ class ApprovalStepController extends Controller
 
             return redirect()
                 ->back()
-                ->with('success', "{$approvalStep->role->name} berhasil dihapus");
+                ->with('success', "{$approvalStep->name} berhasil dihapus");
         } catch (\Exception $e) {
             Log::error('Delete failed', [
                 'user_id' => $approvalStep->id,

@@ -38,6 +38,8 @@ const formRef = ref(null);
 const {
     loadingButton,
     modalForm,
+    currentFormType,
+    modalMode,
     selectedRow,
     tambah,
     edit,
@@ -90,8 +92,15 @@ const rows = computed(() =>
 // Column configuration
 const columnConfig = [
     {
-        title: "Username",
+        title: "Nama Lengkap",
         key: "name",
+        width: 120,
+        align: "left",
+        sorter: false,
+    },
+    {
+        title: "Username",
+        key: "username",
         width: 120,
         align: "center",
         sorter: false,
@@ -100,7 +109,7 @@ const columnConfig = [
         title: "Email",
         key: "email",
         width: 120,
-        align: "center",
+        align: "left",
         sorter: false,
     },
     {
@@ -136,7 +145,7 @@ const columnConfig = [
 
 // Actions configuration
 const actions = {
-    onEdit: edit,
+    onEdit: (row) => edit("user", "edit", row),
     onDelete: hapus,
 };
 
@@ -192,6 +201,8 @@ const handleDownload = () => {
                 <!-- terima closeModal dari slot -->
                 <template #form="{ closeModal }">
                     <FormUser
+                        v-if="currentFormType === 'user'"
+                        :modal-mode="modalMode"
                         :loading="loadingButton"
                         :departments-options="departments"
                         :roles-options="roles"

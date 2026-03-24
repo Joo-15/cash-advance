@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class CashAdvanceRequest extends FormRequest
 {
@@ -86,11 +87,31 @@ class CashAdvanceRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        // Konversi tanggal jika dari frontend (timestamp milidetik)
+        // dd($this->request_date);
+
         if (!empty($this->request_date) && is_numeric($this->request_date)) {
-            $converted = Carbon::createFromTimestampMs($this->request_date)
-                ->setTimezone('Asia/Jakarta')
-                ->format('Y-m-d');
+            // Debug: lihat nilai asli
+            Log::info('Original timestamp', [
+                'timestamp' => $this->request_date,
+                'length' => strlen((string)$this->request_date)
+            ]);
+
+            // Jika timestamp sudah dalam detik (10 digit)
+            if (strlen((string)$this->request_date) === 10) {
+                $converted = Carbon::createFromTimestamp($this->request_date)
+                    ->setTimezone('Asia/Jakarta')
+                    ->format('Y-m-d');
+            }
+            // Jika timestamp dalam milidetik (13 digit)
+            elseif (strlen((string)$this->request_date) === 13) {
+                $converted = Carbon::createFromTimestamp($this->request_date / 1000)
+                    ->setTimezone('Asia/Jakarta')
+                    ->format('Y-m-d');
+            }
+            // Jika timestamp dalam format lain
+            else {
+                $converted = null;
+            }
 
             $this->merge(['request_date' => $converted]);
         }

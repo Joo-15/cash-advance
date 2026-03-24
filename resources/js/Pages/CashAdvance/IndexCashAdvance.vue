@@ -19,6 +19,8 @@ import StatCards from "@/Components/Page/StatCards.vue";
 import Filters from "@/Components/Page/Filters.vue";
 import ModalForm from "@/Components/Page/ModalForm.vue";
 import FormCashAdvance from "./FormCashAdvance.vue";
+import FormApproval from "../Approval/FormApproval.vue";
+import { useAuth } from "@/Composables/useAuth";
 
 // Props definition
 const props = defineProps({
@@ -27,22 +29,40 @@ const props = defineProps({
     statData: Object,
 });
 
-// Composables initialization
-const page = usePage();
 // Refs
 const formRef = ref(null);
 
 const {
+    userName,
+    userAvatar,
+    greeting,
+    fullNameWithTitle,
+    departmentName,
+    roleName,
+    isAdmin,
+    isSupervisor,
+    isEmployee,
+    hasRole,
+    inDepartmentName,
+} = useAuth();
+
+const {
     loadingButton,
     modalForm,
+    currentFormType,
+    modalMode,
     selectedRow,
+    selectedApproval,
+    approvalStep,
     tambah,
     edit,
     hapus,
+    fetchDetail,
     refresh,
     submit,
 } = useCrud({
     routePrefix: "pengajuan-pinjaman",
+    routeDetail: "approvals",
     formRef,
 });
 
@@ -120,6 +140,7 @@ const columnConfig = [
         statusMap: {
             pending: { type: "warning", label: "Pending" },
             approved: { type: "success", label: "Approved" },
+            disbursed: { type: "info", label: "Disbursed" },
             rejected: { type: "error", label: "Rejected" },
             default: { type: "default", label: "Unknown" },
         },
@@ -132,9 +153,11 @@ const columnConfig = [
         fixed: "right",
         align: "center",
         actionConfig: {
-            showEdit: true,
-            showDelete: true,
-            showView: true,
+            showEdit: (row) => row?.status !== "disbursed",
+            showDelete: (row) => row?.status !== "disbursed",
+            showDetail: true, // Detail selalu tampil
+            showView: false,
+            // showProses: (row) => row?.status === "pending",
             size: "small",
         },
         sorter: false, // Aksi tidak perlu sorting
@@ -143,8 +166,9 @@ const columnConfig = [
 
 // Actions configuration
 const actions = {
-    onEdit: edit,
+    onEdit: (row) => edit("cash-advance", "edit", row),
     onDelete: hapus,
+    onDetail: (row) => fetchDetail("approval", "detail", row),
 };
 
 // Table columns
@@ -160,10 +184,10 @@ const handleDownload = () => {
         <template #header>
             <PageHeader
                 add-button-text="Ajukan Pinjaman"
-                :title="page.props.pageHeader ?? 'Cash Advance'"
+                title="Pengajuan Pinjaman"
                 :show-add="true"
                 :show-download="true"
-                @add="tambah"
+                @add="tambah('cash-advance', 'create')"
                 @download="handleDownload"
             ></PageHeader>
         </template>
@@ -204,13 +228,28 @@ const handleDownload = () => {
                 v-model:show-modal="modalForm"
                 edit-title="Edit Pinjaman"
                 create-title="Tambah Pinjaman"
+                :is-detail-mode="false"
                 :data-edit="selectedRow"
+                :auto-focus="false"
             >
                 <template #form="{ closeModal }">
                     <FormCashAdvance
-                        v-model:show-modal="modalForm"
+                        v-if="currentFormType === 'cash-advance'"
+                        :modal-mode="modalMode"
                         :loading="loadingButton"
                         :data-edit="selectedRow"
+                        :close-modal="closeModal"
+                        :submit="submit"
+                        @updated="refresh"
+                    />
+                    <FormApproval
+                        v-else-if="currentFormType === 'approval'"
+                        :data-detail="selectedApproval"
+                        :approval-step="approvalStep"
+                        :loading="loadingButton"
+                        :role-name="roleName"
+                        :user-name="userName"
+                        :department-name="departmentName"
                         :close-modal="closeModal"
                         :submit="submit"
                         @updated="refresh"

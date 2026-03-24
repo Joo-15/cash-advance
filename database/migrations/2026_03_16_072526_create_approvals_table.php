@@ -23,7 +23,12 @@ return new class extends Migration
                 ->constrained('users')
                 ->nullOnDelete();
 
-            $table->string('status')->default('pending');
+            $table->enum('status', [
+                'pending',
+                'approved',
+                'rejected',
+                'disbursed'
+            ])->default('pending');
             $table->text('notes')->nullable();
             $table->timestamp('approved_at')->nullable();
             $table->timestamps();

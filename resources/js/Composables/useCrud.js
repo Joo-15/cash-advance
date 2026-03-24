@@ -6,6 +6,7 @@ import { useDialog, useMessage } from "naive-ui";
 export function useCrud(options = {}) {
     const {
         routePrefix = "",
+        routeDetail = "",
         messages = {
             confirmTitle: "Konfirmasi",
             confirmContent: "Apakah Anda yakin ingin menghapus data ini?",
@@ -28,6 +29,10 @@ export function useCrud(options = {}) {
     // State
     const modalForm = ref(false);
     const selectedRow = ref(null);
+    const currentFormType = ref(null);
+    const modalMode = ref(null);
+    const selectedApproval = ref(null);
+    const approvalStep = ref(null);
     const loadingButton = ref(false);
     const loadingFetch = ref(false);
 
@@ -36,7 +41,7 @@ export function useCrud(options = {}) {
         const urlParams = new URLSearchParams(window.location.search);
         return {
             search: urlParams.get("search") || "",
-            status: urlParams.get("status") || null,
+            // status: urlParams.get("status") || null,
             page: urlParams.get("page") || 1,
             per_page: urlParams.get("per_page") || 10,
             sort: urlParams.get("sort") || null,
@@ -48,19 +53,26 @@ export function useCrud(options = {}) {
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     // Method CRUD
-    const tambah = () => {
+    const tambah = (formType, mode = 'create') => {
+        console.log('Tambah dipanggil:', { formType, mode });
+
+        currentFormType.value = formType;
+        modalMode.value = mode;
         selectedRow.value = null;
         modalForm.value = true;
         formRef.value?.resetForm();
     };
 
-    const edit = async (row, fetchDetail = true) => {
+    const edit = async (formType, mode = 'edit', row, fetchDetail = true) => {
+        currentFormType.value = formType;
+        modalMode.value = mode;
+
         try {
             loadingFetch.value = true;
             const data =
                 fetchDetail && !row.detail
                     ? (await axios.get(route(`${routePrefix}.show`, row.id)))
-                          .data
+                        .data
                     : row;
 
             selectedRow.value = { ...data };
@@ -108,6 +120,88 @@ export function useCrud(options = {}) {
         });
     };
 
+    const proses = async (formType, mode = 'bayar', id) => {
+        console.log('Tambah dipanggil:', { formType, mode });
+
+        currentFormType.value = formType;
+        modalMode.value = mode;
+
+        try {
+            // loadingDetail.value = true
+
+            // Panggil endpoint getDetail
+            const response = await axios.get(route(`${routePrefix}.show`, id))
+
+            // Cek response
+            if (response.data.success) {
+                selectedRow.value = response.data.data
+                console.log('selectedrow', selectedRow)
+                modalForm.value = true // Buka modal setelah data didapat
+
+            } else {
+                message.error('Gagal mengambil data detail')
+            }
+        } catch (error) {
+            console.error('Error fetching detail:', error)
+
+            // Tampilkan pesan error
+            if (error.response) {
+                // Server merespons dengan status code error
+                message.error(`Error: ${error.response.status} - ${error.response.data.message || 'Gagal mengambil data'}`)
+            } else if (error.request) {
+                // Request dibuat tapi tidak ada respons
+                message.error('Tidak ada respons dari server')
+            } else {
+                // Error lainnya
+                message.error('Terjadi kesalahan: ' + error.message)
+            }
+        } finally {
+            // loadingDetail.value = false
+        }
+    }
+
+    // FUNGSI DETAIL MENGGUNAKAN AXIOS
+    const fetchDetail = async (formType, mode = 'create', id) => {
+        console.log('Tambah dipanggil:', { formType, mode });
+
+        currentFormType.value = formType;
+        modalMode.value = mode;
+
+        try {
+            // loadingDetail.value = true
+
+            // Panggil endpoint getDetail
+            const response = await axios.get(route(`${routeDetail}.detail`, id))
+
+            // Cek response
+            if (response.data.success) {
+                selectedApproval.value = response.data.data
+                approvalStep.value = response.data.approvalStep
+
+                modalForm.value = true // Buka modal setelah data didapat
+                console.log('test', selectedApproval.value);
+            } else {
+                message.error('Gagal mengambil data detail')
+            }
+        } catch (error) {
+            console.error('Error fetching detail:', error)
+
+            // Tampilkan pesan error
+            if (error.response) {
+                // Server merespons dengan status code error
+                message.error(`Error: ${error.response.status} - ${error.response.data.message || 'Gagal mengambil data'}`)
+            } else if (error.request) {
+                // Request dibuat tapi tidak ada respons
+                message.error('Tidak ada respons dari server')
+            } else {
+                // Error lainnya
+                message.error('Terjadi kesalahan: ' + error.message)
+            }
+        } finally {
+            // loadingDetail.value = false
+        }
+    }
+
     // Method Form Submit
     const submit = async ({
         values,
@@ -118,7 +212,6 @@ export function useCrud(options = {}) {
         onError,
         onFinish,
         customFilters = {},
-        successMessage = "Data berhasil disimpan",
     }) => {
         loadingButton.value = true;
 
@@ -129,6 +222,10 @@ export function useCrud(options = {}) {
 
             // Ambil filters dari URL
             const currentFilters = getCurrentFilters();
+
+            console.log("📦 values:", values);
+            console.log("📦 currentFilters:", currentFilters);
+            console.log("📦 customFilters:", customFilters);
 
             // Gabungkan data
             const submitData = {
@@ -206,7 +303,11 @@ export function useCrud(options = {}) {
     return {
         // State
         modalForm,
+        currentFormType,
+        modalMode,
         selectedRow,
+        selectedApproval,
+        approvalStep,
         loadingButton,
         loadingFetch,
 
@@ -214,6 +315,8 @@ export function useCrud(options = {}) {
         tambah,
         edit,
         hapus,
+        fetchDetail,
+        proses,
 
         // Methods Form Submit
         submit,

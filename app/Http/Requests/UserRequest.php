@@ -24,6 +24,7 @@ class UserRequest extends FormRequest
             // Store - required
             $rules = [
                 'name' => ['required', 'string', 'min:3', 'max:255'],
+                'username' => ['required', 'string', 'min:3', 'max:255'],
                 'email' => ['required', 'email', Rule::unique('users'), 'max:255'],
                 'password' => ['required', 'string', 'min:6', 'max:255'],
                 'department_id' => [
@@ -42,6 +43,7 @@ class UserRequest extends FormRequest
             // Update 
             $rules = [
                 'name' => ['sometimes', 'required', 'string', 'max:255', 'min:3'],
+                'username' => ['sometimes', 'required', 'string', 'min:3'],
                 'email' => [
                     'sometimes',
                     'required',
@@ -75,6 +77,9 @@ class UserRequest extends FormRequest
             'name.min' => 'Nama minimal 3 karakter',
             'name.max' => 'Nama maksimal 255 karakter',
 
+            'username.required' => 'Username harus diisi',
+            'username.min' => 'Username minimal 3 karakter',
+
             'email.required' => 'Email harus diisi',
             'email.email' => 'Format email tidak valid',
             'email.unique' => 'Email sudah digunakan',
@@ -103,6 +108,12 @@ class UserRequest extends FormRequest
         if ($this->has('name')) {
             $this->merge([
                 'name' => trim($this->name)
+            ]);
+        }
+
+        if ($this->has('username')) {
+            $this->merge([
+                'username' => trim($this->username)
             ]);
         }
     }

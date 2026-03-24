@@ -15,11 +15,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        CashAdvance::factory()->count(300)->create();
+        // 
 
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        $this->call([
+            RoleSeeder::class,
+            DepartmentSeeder::class,
+            UserSeeder::class,
+            ApprovalStepSeeder::class,
+            ApprovalStepRoleSeeder::class,
+        ]);
+        CashAdvance::factory()
+            ->count(300)
+            ->create();
     }
 }

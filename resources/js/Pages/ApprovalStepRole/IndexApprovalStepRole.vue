@@ -14,11 +14,11 @@ import Container from "@/Components/Layout/Container.vue";
 import PageHeader from "@/Components/Page/PageHeader.vue";
 import Filters from "@/Components/Page/Filters.vue";
 import ModalForm from "@/Components/Page/ModalForm.vue";
-import FormApprovalStep from "./FormApprovalStep.vue";
+import FormApprovalStep from "./FormApprovalStepRole.vue";
 
 // Props definition
 const props = defineProps({
-    approvalStep: { type: Object, required: true },
+    approvalStepRole: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
     roles: Array,
 });
@@ -38,7 +38,7 @@ const {
     refresh,
     submit,
 } = useCrud({
-    routePrefix: "approval-steps",
+    routePrefix: "approval-step-roles",
     formRef,
 });
 
@@ -57,16 +57,16 @@ const {
     createColumns,
     hasActiveSort,
 } = useDataTable({
-    route: route("approval-steps.index"),
+    route: route("approval-step-roles.index"),
     filters: {
         search: props.filters.search || "",
         status: props.filters.status || null,
-        pageSize: Number(props.approvalStep.per_page ?? 10),
-        page: Number(props.approvalStep.current_page ?? 1),
+        pageSize: Number(props.approvalStepRole.per_page ?? 10),
+        page: Number(props.approvalStepRole.current_page ?? 1),
         sort: props.filters.sort || null,
         order: props.filters.order || null,
     },
-    only: ["approvalStep"],
+    only: ["approvalStepRole"],
     debounceTime: 300, // Tambahkan debounce time
     tableConfig: {
         currency: "IDR",
@@ -78,14 +78,20 @@ const {
 
 // Table data transformation
 const rows = computed(() =>
-    props.approvalStep.data.map((row) => ({ ...row, detail: true })),
+    props.approvalStepRole.data.map((row) => ({ ...row, detail: true })),
 );
 
 // Column configuration
 const columnConfig = [
     {
-        title: "Level",
-        key: "step_order",
+        title: "Role",
+        key: "role.name",
+        width: 120,
+        sorter: false,
+    },
+    {
+        title: "Persetujuan",
+        key: "approval_step_id",
         width: 120,
         sorter: false,
     },
@@ -147,7 +153,7 @@ const handleDownload = () => {
             <BaseTable
                 :columns="tableColumns"
                 :data-ref="rows"
-                :meta="approvalStep"
+                :meta="approvalStepRole"
                 :filters="filters"
                 :page-size="filters.pageSize"
                 :loading-ref="loadingSearch || loadingTable"

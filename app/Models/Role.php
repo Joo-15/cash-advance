@@ -20,6 +20,11 @@ class Role extends Model
         return $this->hasMany(ApprovalStep::class);
     }
 
+    public function approvalStepRoles()
+    {
+        return $this->hasMany(ApprovalStepRole::class);
+    }
+
     public static function getSelectOptions()
     {
         return self::orderBy('name')

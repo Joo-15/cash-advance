@@ -17,12 +17,17 @@ class RoleSeeder extends Seeder
         // Data roles yang akan diinsert
         $roles = [
             [
-                'name' => 'Employee',
+                'name' => 'Super Admin',
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ],
             [
-                'name' => 'Supervisor (SPV)',
+                'name' => 'Admin',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'name' => 'Supervisor',
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ],

@@ -15,12 +15,25 @@ class ApprovalStepSeeder extends Seeder
     public function run(): void
     {
         $approvalSteps = [
-
             [
-                'role_id' => 1,
                 'step_order' => 1,
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'step_order' => 2,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'step_order' => 3,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'step_order' => 4,
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
         ];
 

@@ -7,17 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class ApprovalStep extends Model
 {
     protected $fillable = [
-        'role_id',
         'step_order',
+        'name',
     ];
-
-    public function role()
-    {
-        return $this->belongsTo(Role::class);
-    }
 
     public function approvals()
     {
-        return $this->hasMany(Approval::class);
+        return $this->hasMany(Approval::class, 'approval_step_id');
+    }
+
+    public function approvalStepRoles()
+    {
+        return $this->hasMany(ApprovalStepRole::class);
     }
 }
