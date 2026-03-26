@@ -36,7 +36,7 @@ const userRole = computed(
     () => user.value?.role?.name || user.value?.role || "employee",
 );
 const department = computed(() => page.props.auth?.user?.department?.name);
-console.log("page", department.value);
+console.log("page", userRole.value);
 
 // const department = computed(() => page.)
 
@@ -164,7 +164,16 @@ const allMenuOptions = [
         label: "Dashboard",
         key: "/dashboard",
         icon: renderIcon(HomeOutline),
-        roleAccess: ["Super Admin", "Admin", "Finance", "Approver", "Employee"],
+        roleAccess: [
+            "Super Admin",
+            "Admin",
+            "Supervisor",
+            "Finance",
+            "Approver",
+            "Employee",
+            "General Manager",
+            "Manager Accounting",
+        ],
     },
     {
         label: "Pengajuan Baru",
@@ -176,7 +185,16 @@ const allMenuOptions = [
         label: "Persetujuan",
         key: "/approvals",
         icon: renderIcon(PeopleOutline),
-        roleAccess: ["Super Admin", "Admin", "Supervisor", "Chief", "Manager"],
+        roleAccess: [
+            "Super Admin",
+            "Admin",
+            "Supervisor",
+            "Chief",
+            "Manager",
+            "General Manager",
+            "Manager Accounting",
+            "Finance",
+        ],
     },
     {
         label: "Pencairan Dana",
@@ -374,17 +392,21 @@ watch(
                 >
                     <span class="text-indigo-700 font-bold text-4xl">CA</span>
                 </div>
-                <Transition name="fade">
-                    <div v-if="!collapsed" class="ml-3">
+                <Transition name="fade" class="ml-4">
+                    <div v-if="!collapsed">
                         <h1
                             class="font-bold text-lg text-gray-800 dark:text-white whitespace-nowrap"
                         >
-                            {{ department }}
+                            {{
+                                userRole !== "Super Admin"
+                                    ? department
+                                    : userRole
+                            }}
                         </h1>
                         <p
                             class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap"
                         >
-                            {{ userRole }}
+                            {{ userRole !== "Super Admin" ? userRole : "" }}
                         </p>
                     </div>
                 </Transition>

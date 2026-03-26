@@ -24,8 +24,8 @@ class DatabaseSeeder extends Seeder
             ApprovalStepSeeder::class,
             ApprovalStepRoleSeeder::class,
         ]);
-        CashAdvance::factory()
-            ->count(300)
-            ->create();
+        // CashAdvance::factory()
+        //     ->count(50)
+        //     ->create();
     }
 }

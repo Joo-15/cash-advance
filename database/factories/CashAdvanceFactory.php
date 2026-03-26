@@ -17,14 +17,12 @@ class CashAdvanceFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => $this->faker->numberBetween(1, 1),
+            'user_id' => $this->faker->numberBetween(6, 6),
             'request_date' => $this->faker->date(),
             'purpose' => $this->faker->sentence(),
             'amount' => $this->faker->numberBetween(100000, 2000000),
             'status' => $this->faker->randomElement([
                 'pending',
-                'approved',
-                'rejected'
             ]),
         ];
     }

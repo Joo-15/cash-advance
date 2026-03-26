@@ -367,7 +367,7 @@ const handleReject = () => {
                 </n-collapse>
             </n-gi>
         </n-grid>
-        <n-form v-if="canApproveCurrent">
+        <n-form v-if="canApproveCurrent && props.roleName !== 'Employee'">
             <!-- NOTES -->
             <n-grid :cols="1" x-gap="16" class="approval-grid">
                 <n-grid-item>

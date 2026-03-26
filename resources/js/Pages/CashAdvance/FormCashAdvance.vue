@@ -118,14 +118,14 @@ watch(
 
             <!-- Keperluan Field -->
             <n-form-item
-                label="Keperluan"
+                label="Tujuan"
                 :validation-status="errors.purpose ? 'error' : null"
                 :feedback="errors.purpose"
                 required
             >
                 <n-input
                     v-model:value="purpose"
-                    placeholder="Masukkan keperluan"
+                    placeholder="Masukkan tujuan"
                     type="textarea"
                     :rows="3"
                 />

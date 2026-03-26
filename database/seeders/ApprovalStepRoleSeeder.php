@@ -14,37 +14,37 @@ class ApprovalStepRoleSeeder extends Seeder
         $approvalStepRoles = [
             [
                 'approval_step_id' => 1,
-                'role_id' => 2,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'approval_step_id' => 1,
-                'role_id' => 3,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'approval_step_id' => 1,
                 'role_id' => 4,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'approval_step_id' => 2,
+                'approval_step_id' => 1,
                 'role_id' => 5,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'approval_step_id' => 3,
+                'approval_step_id' => 1,
                 'role_id' => 6,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'approval_step_id' => 4,
+                'approval_step_id' => 2,
                 'role_id' => 7,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'approval_step_id' => 3,
+                'role_id' => 8,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'approval_step_id' => 4,
+                'role_id' => 9,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

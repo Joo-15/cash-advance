@@ -165,7 +165,7 @@ const handleDownload = () => {
                 :title="page.props.pageHeader ?? 'Pengguna'"
                 :show-add="true"
                 :show-download="false"
-                @add="tambah"
+                @add="tambah('user', 'create')"
             ></PageHeader>
         </template>
         <template #filters>
@@ -193,6 +193,7 @@ const handleDownload = () => {
                 @clear-filter="handleClear"
             />
             <ModalForm
+                v-if="currentFormType === 'user'"
                 v-model:show-modal="modalForm"
                 edit-title="Edit Pengguna"
                 create-title="Tambah Pengguna"

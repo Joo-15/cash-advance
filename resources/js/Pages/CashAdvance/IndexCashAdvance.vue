@@ -104,6 +104,7 @@ const {
 const rows = computed(() =>
     props.cashadvance.data.map((row) => ({ ...row, detail: true })),
 );
+console.log("rows", rows);
 
 // Column configuration
 const columnConfig = [
@@ -153,11 +154,14 @@ const columnConfig = [
         fixed: "right",
         align: "center",
         actionConfig: {
-            showEdit: (row) => row?.status !== "disbursed",
-            showDelete: (row) => row?.status !== "disbursed",
-            showDetail: true, // Detail selalu tampil
+            showEdit: (row) => row?.status === "panding",
+
+            showDelete: (row) => row?.approvals?.[0].status === "pending",
+            // (row?.status === "disbursed" &&
+            //     row?.approvals?.[0].status !== "pending") ||
+            // row?.status !== "rejected",
+            showDetail: true,
             showView: false,
-            // showProses: (row) => row?.status === "pending",
             size: "small",
         },
         sorter: false, // Aksi tidak perlu sorting
@@ -177,6 +181,18 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
 const handleDownload = () => {
     console.log("Download Excel");
 };
+
+const modalTitle = computed(() => {
+    if (currentFormType.value === "approval") {
+        return "Detail Persetujuan";
+    }
+
+    if (modalMode.value === "edit") {
+        return "Edit Pinjaman";
+    }
+
+    return "Tambah Pinjaman";
+});
 </script>
 
 <template>
@@ -226,9 +242,8 @@ const handleDownload = () => {
             />
             <ModalForm
                 v-model:show-modal="modalForm"
-                edit-title="Edit Pinjaman"
-                create-title="Tambah Pinjaman"
-                :is-detail-mode="false"
+                :title="modalTitle"
+                :is-detail-mode="currentFormType === 'approval'"
                 :data-edit="selectedRow"
                 :auto-focus="false"
             >

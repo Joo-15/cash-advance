@@ -19,7 +19,7 @@ class DisbursementController extends Controller
      */
     public function index(Request $request)
     {
-        $departmentName = Auth::user()->department->name;
+        $departmentName = Auth::user()->department?->name;
 
         $perPage = (int) $request->input('per_page', 10);
 

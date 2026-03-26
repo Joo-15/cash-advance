@@ -3,7 +3,13 @@ import { ref, reactive, watch, onBeforeUnmount, h, computed } from "vue";
 import { router } from "@inertiajs/vue3";
 import { debounce } from "lodash";
 import { NButton, NIcon, NSpace, NTag, NTooltip } from "naive-ui";
-import { PencilOutline, TrashOutline, EyeOutline, CheckmarkOutline, SendSharp } from "@vicons/ionicons5";
+import {
+    PencilOutline,
+    TrashOutline,
+    EyeOutline,
+    CheckmarkOutline,
+    SendSharp,
+} from "@vicons/ionicons5";
 
 /**
  ===================================================
@@ -84,7 +90,6 @@ export function useDataTable({
      */
 
     const renderCurrency = (value, currency = config.currency) => {
-
         if (!value && value !== 0)
             return h("span", { class: "text-gray-400" }, "-");
 
@@ -167,7 +172,7 @@ export function useDataTable({
     const createActionButton = ({
         type,
         icon,
-        label,        // Tambahkan label
+        label, // Tambahkan label
         onClick,
         props = {},
         size,
@@ -187,8 +192,13 @@ export function useDataTable({
                     ...props,
                 },
                 {
-                    default: () => label,  // Teks tombol
-                    ...(icon ? { icon: () => h(NIcon, null, { default: () => h(icon) }) } : {})
+                    default: () => label, // Teks tombol
+                    ...(icon
+                        ? {
+                              icon: () =>
+                                  h(NIcon, null, { default: () => h(icon) }),
+                          }
+                        : {}),
                 },
             );
 
@@ -239,39 +249,44 @@ export function useDataTable({
 
     const renderActions = (row, actionConfig = {}, actions = {}) => {
         // Ambil status dari row
-        const status = row?.status?.toLowerCase?.() || '';
-        const isDisbursed = status === 'disbursed';
+        const status = row?.status?.toLowerCase?.() || "";
+        const isDisbursed = status === "disbursed";
 
         // Gabungkan actionConfig dengan kondisi status
         const mergedActionConfig = {
             ...actionConfig,
             // Jika status disbursed, nonaktifkan edit, delete, proses
-            showEdit: actionConfig.showEdit !== undefined
-                ? (typeof actionConfig.showEdit === 'function'
-                    ? actionConfig.showEdit(row)
-                    : !isDisbursed && actionConfig.showEdit)
-                : !isDisbursed,
-            showDelete: actionConfig.showDelete !== undefined
-                ? (typeof actionConfig.showDelete === 'function'
-                    ? actionConfig.showDelete(row)
-                    : !isDisbursed && actionConfig.showDelete)
-                : !isDisbursed,
-            showProses: actionConfig.showProses !== undefined
-                ? (typeof actionConfig.showProses === 'function'
-                    ? actionConfig.showProses(row)
-                    : actionConfig.showProses)
-                : true,
+            showEdit:
+                actionConfig.showEdit !== undefined
+                    ? typeof actionConfig.showEdit === "function"
+                        ? actionConfig.showEdit(row)
+                        : !isDisbursed && actionConfig.showEdit
+                    : !isDisbursed,
+            showDelete:
+                actionConfig.showDelete !== undefined
+                    ? typeof actionConfig.showDelete === "function"
+                        ? actionConfig.showDelete(row)
+                        : !isDisbursed && actionConfig.showDelete
+                    : !isDisbursed,
+            showProses:
+                actionConfig.showProses !== undefined
+                    ? typeof actionConfig.showProses === "function"
+                        ? actionConfig.showProses(row)
+                        : actionConfig.showProses
+                    : true,
             // Detail dan View tetap tampil (bisa diatur sendiri)
-            showDetail: actionConfig.showDetail !== undefined
-                ? (typeof actionConfig.showDetail === 'function'
-                    ? actionConfig.showDetail(row)
-                    : actionConfig.showDetail)
-                : true,
-            showView: actionConfig.showView !== undefined
-                ? (typeof actionConfig.showView === 'function'
-                    ? actionConfig.showView(row)
-                    : actionConfig.showView)
-                : true,
+            showDetail:
+                actionConfig.showDetail !== undefined
+                    ? typeof actionConfig.showDetail === "function"
+                        ? actionConfig.showDetail(row)
+                        : actionConfig.showDetail
+                    : true,
+            showView:
+                actionConfig.showView !== undefined
+                    ? typeof actionConfig.showView === "function"
+                        ? actionConfig.showView(row)
+                        : actionConfig.showView
+                    : true,
         };
 
         const {
@@ -311,7 +326,7 @@ export function useDataTable({
                     icon: SendSharp, // Atau bisa pakai icon
                     onClick: () => actions.onProses(row.id),
                     props: {
-                        size: 'small',
+                        size: "small",
                         variant: "solid",
                         circle: false,
                         type: "secondary",
@@ -324,17 +339,17 @@ export function useDataTable({
         }
 
         if (showDetail && actions.onDetail) {
-
             buttons.push(
                 createActionButton({
                     type: "success",
                     icon: EyeOutline,
-                    onClick: () => actions.onDetail(row.cash_advance_id || row.id), // mengambil id cash_advance
+                    onClick: () =>
+                        actions.onDetail(row.cash_advance_id || row.id), // mengambil id cash_advance
                     props: {
                         size,
                         variant: "light",
                         // Optional: Tambahkan loading state
-                        loading: row._loading_detail === true
+                        loading: row._loading_detail === true,
                     },
                     size,
                     tooltip: "Lihat Detail",
@@ -368,7 +383,6 @@ export function useDataTable({
             );
         }
 
-
         if (showCustom && customButtons.length) {
             customButtons.forEach((btn, index) => {
                 buttons.push(
@@ -385,14 +399,12 @@ export function useDataTable({
             });
         }
 
-
-
         return buttons.length
             ? h(
-                NSpace,
-                { align: "center", justify: placement, size: 4 },
-                { default: () => buttons },
-            )
+                  NSpace,
+                  { align: "center", justify: placement, size: 4 },
+                  { default: () => buttons },
+              )
             : null;
     };
 
@@ -485,36 +497,40 @@ export function useDataTable({
 
                 // Helper function untuk mengakses nested object
                 function getNestedValue(obj, path) {
+                    console.log("object", obj);
                     if (!obj || !path) return null;
 
                     // Pisahkan path dengan titik: "cash_advance.amount" -> ["cash_advance", "amount"]
-                    const keys = path.split('.');
+                    const keys = path.split(".");
 
                     // Akses nested value
                     return keys.reduce((current, key) => {
-                        return current && current[key] !== undefined ? current[key] : null;
+                        return current && current[key] !== undefined
+                            ? current[key]
+                            : null;
                     }, obj);
                 }
 
                 // Function untuk render currency
-                function renderCurrency(value, currency = 'IDR') {
-                    if (value === null || value === undefined || value === '') {
-                        return 'Rp 0';
+                function renderCurrency(value, currency = "IDR") {
+                    if (value === null || value === undefined || value === "") {
+                        return "Rp 0";
                     }
 
                     // Konversi ke number jika string
-                    const numValue = typeof value === 'string'
-                        ? parseFloat(value.replace(/[^\d.-]/g, ''))
-                        : value;
+                    const numValue =
+                        typeof value === "string"
+                            ? parseFloat(value.replace(/[^\d.-]/g, ""))
+                            : value;
 
-                    if (isNaN(numValue)) return 'Rp 0';
+                    if (isNaN(numValue)) return "Rp 0";
 
                     // Format dengan Intl.NumberFormat
-                    return new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
+                    return new Intl.NumberFormat("id-ID", {
+                        style: "currency",
                         currency: currency,
                         minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
+                        maximumFractionDigits: 0,
                     }).format(numValue);
                 }
 
@@ -548,6 +564,7 @@ export function useDataTable({
      * CREATE COLUMNS - Fungsi utama untuk membuat konfigurasi kolom
      */
     const createColumns = (columnConfig = [], actions = {}) => {
+        console.log("columnConfig", columnConfig);
         return columnConfig.map((column) => {
             const baseColumn = createBaseColumn(column);
 
@@ -589,9 +606,9 @@ export function useDataTable({
      */
     const resetSortOrderInConfig = (columnConfig) => {
         resetSort();
-        return columnConfig.map(col => ({
+        return columnConfig.map((col) => ({
             ...col,
-            sortOrder: false
+            sortOrder: false,
         }));
     };
 
@@ -599,9 +616,9 @@ export function useDataTable({
      * Buat konfigurasi kolom dengan sort order yang aktif
      */
     const createColumnConfigWithSort = (baseConfig) => {
-        return baseConfig.map(col => ({
+        return baseConfig.map((col) => ({
             ...col,
-            sortOrder: getSortOrder(col.key)
+            sortOrder: getSortOrder(col.key),
         }));
     };
 
@@ -631,7 +648,12 @@ export function useDataTable({
      * Update sort dari external
      */
     const updateSort = (sortKey, sortOrder) => {
-        if (!sortKey || sortOrder === false || sortOrder === null || sortOrder === undefined) {
+        if (
+            !sortKey ||
+            sortOrder === false ||
+            sortOrder === null ||
+            sortOrder === undefined
+        ) {
             resetSort();
         } else {
             setSort(sortKey, sortOrder);
@@ -657,7 +679,7 @@ export function useDataTable({
      */
     const getActiveSort = () => ({
         key: activeSortKey.value,
-        order: activeSortOrder.value
+        order: activeSortOrder.value,
     });
 
     /**
@@ -766,13 +788,11 @@ export function useDataTable({
             filters.sort = sortOptions.field;
             filters.order = sortOptions.order;
             updateSort(sortOptions.field, order);
-
         }
 
         // Fetch data dengan sorting baru
         loadingTable.value = true;
         debouncedFetch();
-
 
         // console.log("testing", sortOptions);
         // if (sortOptions?.field) {
@@ -785,7 +805,6 @@ export function useDataTable({
         //     resetSort();
         // }
         // datatableHandleSortChange(sortOptions);
-
     };
 
     /**

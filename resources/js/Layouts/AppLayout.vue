@@ -106,9 +106,7 @@ onMounted(() => {
             bordered
             class="h-14 px-6 flex items-center justify-between bg-gradient-to-r from-green-500 via-green-400 to-green-500 text-white fixed top-0 left-0 right-0 z-50 shadow-md"
         >
-            <h2 class="text-lg font-semibold">
-                <img src="/images/logo1.png" alt="Logo" class="bg-none" />
-            </h2>
+            <h2 class="text-lg font-semibold">CASH ADVANCE</h2>
             <div class="dark:border-gray-800">
                 <NDropdown
                     width="150"

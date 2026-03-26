@@ -19,9 +19,12 @@ class CashAdvanceController extends Controller
 
     public function index(Request $request)
     {
-        $departmentName = Auth::user()->department->name;
+        $departmentName = Auth::user()->department?->name;
+        $user = Auth::user();
 
         $perPage = (int) $request->input('per_page', 10);
+
+        $isSuperAdmin = $user->role === 'super_admin'; // sesuaikan dengan sistemmu
 
         $cashadvance = CashAdvance::with([
             'approvals.approvalStep.approvalStepRoles.role',
@@ -40,16 +43,20 @@ class CashAdvanceController extends Controller
                 $query->where('status', $request->status);
             })
             ->when($request->sort && $request->order, function ($query) use ($request) {
-                // Whitelist field yang boleh di-sort
                 $allowedSorts = ['request_date', 'purpose', 'amount', 'status'];
 
                 if (in_array($request->sort, $allowedSorts)) {
                     $query->orderBy($request->sort, $request->order);
                 }
             })
-            ->whereHas('user.department', function ($query) use ($departmentName) {
-                $query->where('name', $departmentName);
+
+            // ✅ Filter hanya jika BUKAN super admin
+            ->when(!$isSuperAdmin && $departmentName, function ($query) use ($departmentName) {
+                return $query->whereHas('user.department', function ($q) use ($departmentName) {
+                    $q->where('name', $departmentName);
+                });
             })
+
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
