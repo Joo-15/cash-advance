@@ -28,7 +28,7 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
 });
 
-console.log("disbursement", props.disbursement);
+console.log("disbursement", props.fundUsage);
 // Refs
 const formRef = ref(null);
 
@@ -82,8 +82,8 @@ const {
     filters: {
         search: props.filters.search || "",
         status: props.filters.status || null,
-        pageSize: Number(props.disbursement.per_page ?? 10),
-        page: Number(props.disbursement.current_page ?? 1),
+        pageSize: Number(props.fundUsage.per_page ?? 10),
+        page: Number(props.fundUsage.current_page ?? 1),
         sort: props.filters.sort || null,
         order: props.filters.order || null,
     },
@@ -99,40 +99,22 @@ const {
 
 // Table data transformation
 const rows = computed(() =>
-    props.disbursement.data.map((row) => ({ ...row, detail: true })),
+    props.fundUsage.data.map((row) => ({ ...row, detail: true })),
 );
 
 // Column configuration
 const columnConfig = [
     {
-        title: "Pemohon",
-        key: "user.name",
+        title: "Tgl. Cair",
+        key: "disbursement.disbursed_at",
+        type: "date",
         width: 120,
-        // sorter: true,
-    },
-    {
-        title: "Departement",
-        key: "user.department.name",
-        width: 200,
-        ellipsis: { tooltip: true },
-        sorter: false,
     },
     {
         title: "Tujuan",
         key: "purpose",
         width: 200,
         ellipsis: { tooltip: true },
-        sorter: true, // Tambahkan sorter jika perlu
-    },
-
-    {
-        title: "Jumlah Diminta",
-        key: "amount",
-        type: "currency",
-        currency: "IDR",
-        align: "right",
-        sorter: true, // Aktifkan sorting
-        width: 150,
     },
     {
         title: "Jumlah Dicairkan",
@@ -143,19 +125,11 @@ const columnConfig = [
         width: 150,
     },
     {
-        title: "Status",
-        key: "status",
-        type: "status",
-        width: 80,
+        title: "Bukti",
+        key: "attachment",
+        type: "attachment",
         align: "center",
-        sorter: true, // Aktifkan sorting
-        statusMap: {
-            pending: { type: "warning", label: "Pending" },
-            approved: { type: "success", label: "Approved" },
-            disbursed: { type: "info", label: "Disbursed" },
-            rejected: { type: "error", label: "Rejected" },
-            default: { type: "default", label: "Unknown" },
-        },
+        width: 150,
     },
     {
         title: "Aksi",
@@ -165,11 +139,7 @@ const columnConfig = [
         fixed: "right",
         align: "center",
         actionConfig: {
-            showEdit: false,
-            showDelete: false,
-            showDetail: false,
-            showProses: true,
-            size: "small",
+            showProses: (row) => row?.status === "disbursed",
         },
         sorter: false, // Aksi tidak perlu sorting
     },
@@ -177,7 +147,7 @@ const columnConfig = [
 
 // Actions configuration
 const actions = {
-    onProses: (row) => proses("disbursement", "proses", row),
+    onProses: (row) => proses("fundUsage", "proses", row),
 };
 
 // Table columns
@@ -191,14 +161,7 @@ const handleDownload = () => {
 <template>
     <Container>
         <template #header>
-            <PageHeader
-                add-button-text="Ajukan Pinjaman"
-                title="Pencairan Dana"
-                :show-add="false"
-                :show-download="true"
-                @add="tambah('cash-advance', 'create')"
-                @download="handleDownload"
-            ></PageHeader>
+            <PageHeader title="Penggunaan Dana"></PageHeader>
         </template>
         <template #filters>
             <Filters
@@ -215,7 +178,7 @@ const handleDownload = () => {
             <BaseTable
                 :columns="tableColumns"
                 :data-ref="rows"
-                :meta="disbursement"
+                :meta="fundUsage"
                 :filters="filters"
                 :select-options="STATUS_OPTIONS_PENCAIRAN"
                 :page-size="filters.pageSize"
@@ -229,14 +192,14 @@ const handleDownload = () => {
             />
             <ModalForm
                 v-model:show-modal="modalForm"
-                create-title="Pencairan Dana"
+                create-title="Upload Bukti"
                 :is-detail-mode="false"
                 :data-edit="selectedRow"
                 :auto-focus="false"
             >
                 <template #form="{ closeModal }">
                     <FormFundUsage
-                        v-if="currentFormType === 'disbursement'"
+                        v-if="currentFormType === 'fundUsage'"
                         :modal-mode="modalMode"
                         :loading="loadingButton"
                         :data-selected="selectedRow"

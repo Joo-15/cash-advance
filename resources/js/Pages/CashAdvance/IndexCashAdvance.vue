@@ -154,15 +154,9 @@ const columnConfig = [
         fixed: "right",
         align: "center",
         actionConfig: {
-            showEdit: (row) => row?.status === "panding",
-
+            showEdit: (row) => row?.approvals?.[0].status === "pending",
             showDelete: (row) => row?.approvals?.[0].status === "pending",
-            // (row?.status === "disbursed" &&
-            //     row?.approvals?.[0].status !== "pending") ||
-            // row?.status !== "rejected",
             showDetail: true,
-            showView: false,
-            size: "small",
         },
         sorter: false, // Aksi tidak perlu sorting
     },

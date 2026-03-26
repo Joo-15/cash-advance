@@ -9,6 +9,8 @@ import {
     EyeOutline,
     CheckmarkOutline,
     SendSharp,
+    ReceiptOutline,
+    AttachOutline,
 } from "@vicons/ionicons5";
 
 /**
@@ -149,6 +151,40 @@ export function useDataTable({
         );
     };
 
+    const renderAttachment = (value) => {
+        // Cek kosong
+        if (!value || (typeof value === 'string' && value.trim() === '')) {
+            return h(
+                NTag,
+                {
+                    type: "warning",
+                    size: "small",
+                    round: true,
+                    bordered: false,
+                },
+                { default: () => "Belum Uplaod" }
+            );
+        }
+
+        // Sudah ada attachment
+        const fileName = value.split('/').pop();
+
+        return h(
+            NTag,
+            {
+                type: "success",
+                size: "small",
+                round: true,
+                bordered: false,
+                onClick: () => window.open(value, '_blank'),
+            },
+            {
+                default: () => fileName,
+                icon: () => h(NIcon, { size: 18 }, { default: () => h(AttachOutline) })
+            }
+        );
+    };
+
     const renderBoolean = (value, booleanMap = {}) => {
         const map = {
             true: { type: "success", label: "Yes", icon: null },
@@ -195,9 +231,9 @@ export function useDataTable({
                     default: () => label, // Teks tombol
                     ...(icon
                         ? {
-                              icon: () =>
-                                  h(NIcon, null, { default: () => h(icon) }),
-                          }
+                            icon: () =>
+                                h(NIcon, null, { default: () => h(icon) }),
+                        }
                         : {}),
                 },
             );
@@ -322,18 +358,13 @@ export function useDataTable({
         if (showProses && actions.onProses) {
             buttons.push(
                 createActionButton({
-                    label: "Proses", // Tambahkan label
-                    icon: SendSharp, // Atau bisa pakai icon
+                    // label: "Proses", // Tambahkan label
+                    icon: ReceiptOutline, // Atau bisa pakai icon
+                    type: "info",
                     onClick: () => actions.onProses(row.id),
-                    props: {
-                        size: "small",
-                        variant: "solid",
-                        circle: false,
-                        type: "secondary",
-
-                        // color: "#8a2be2"
-                    },
-                    tooltip: "Proses pencairan dana cash advance",
+                    props: editProps,
+                    size,
+                    tooltip: "Proses",
                 }),
             );
         }
@@ -401,10 +432,10 @@ export function useDataTable({
 
         return buttons.length
             ? h(
-                  NSpace,
-                  { align: "center", justify: placement, size: 4 },
-                  { default: () => buttons },
-              )
+                NSpace,
+                { align: "center", justify: placement, size: 4 },
+                { default: () => buttons },
+            )
             : null;
     };
 
@@ -497,7 +528,7 @@ export function useDataTable({
 
                 // Helper function untuk mengakses nested object
                 function getNestedValue(obj, path) {
-                    console.log("object", obj);
+                    console.log("aksiObject", obj);
                     if (!obj || !path) return null;
 
                     // Pisahkan path dengan titik: "cash_advance.amount" -> ["cash_advance", "amount"]
@@ -545,6 +576,11 @@ export function useDataTable({
             case "status":
                 baseColumn.render = (row) =>
                     renderStatus(row[column.key], column.statusMap);
+                break;
+
+            case "attachment":
+                baseColumn.render = (row) =>
+                    renderAttachment(row[column.key]);
                 break;
 
             case "action":

@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\ApprovalStepController;
 use App\Http\Controllers\Web\ApprovalStepRoleController;
 use App\Http\Controllers\Web\CashAdvanceController;
 use App\Http\Controllers\Web\DisbursementController;
+use App\Http\Controllers\Web\FundUsageController;
 use App\Http\Controllers\Web\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -46,7 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // DISBURSEMENT
     Route::resource('/pencairan-dana', DisbursementController::class);
-    Route::resource('/penggunaan-dana', DisbursementController::class);
+    Route::resource('/penggunaan-dana', FundUsageController::class);
     // Route::get('/disbursement/{disbursement}/show', [DisbursementController::class, 'show'])->name('disbursement.show');
     // Route::get('/disbursement', [DisbursementController::class, 'store'])->name('disbursement.store');
 

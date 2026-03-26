@@ -11,6 +11,7 @@ import {
     NProgress,
     NDatePicker,
     NInputNumber,
+    NDivider,
 } from "naive-ui";
 import {
     formatDate,
@@ -136,13 +137,14 @@ const [disbursed_at] = defineField("disbursed_at");
             <!-- Total Pinjaman Disetujui -->
             <div class="total-amount-section">
                 <div class="total-label">Total Pinjaman Disetujui</div>
-                <div class="total-amount">Rp 65.000.000</div>
+                <div class="total-amount">{{ displayData.amount }}</div>
             </div>
 
             <!-- Form Pencairan -->
             <div class="form-section">
-                <div class="form-title">INPUT JUMLAH PENCAIRAN</div>
-
+                <n-divider title-placement="center" class="text-indigo-600">
+                    <b>JUMLAH PENCAIRAN</b>
+                </n-divider>
                 <n-form @submit.prevent="submitForm">
                     <!-- Grid 2 kolom -->
                     <div
@@ -154,6 +156,7 @@ const [disbursed_at] = defineField("disbursed_at");
                     >
                         <!-- Jumlah Pencairan -->
                         <n-form-item
+                            size="large"
                             label="Jumlah"
                             :validation-status="errors.amount ? 'error' : null"
                             :feedback="errors.amount"
@@ -176,6 +179,7 @@ const [disbursed_at] = defineField("disbursed_at");
 
                         <!-- Tanggal Pencairan -->
                         <n-form-item
+                            size="large"
                             label="Tanggal"
                             :validation-status="
                                 errors.disbursed_at ? 'error' : null
@@ -195,7 +199,7 @@ const [disbursed_at] = defineField("disbursed_at");
                     </div>
 
                     <!-- Buttons -->
-                    <div class="form-actions">
+                    <div class="form-actions mt-4">
                         <n-button
                             type="primary"
                             size="large"
@@ -325,16 +329,6 @@ const [disbursed_at] = defineField("disbursed_at");
 
 .form-section {
     margin-top: 16px;
-}
-
-.form-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1f2f3d;
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #10b981;
-    display: inline-block;
 }
 
 .currency-prefix {

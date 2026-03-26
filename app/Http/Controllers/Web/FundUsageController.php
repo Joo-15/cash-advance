@@ -44,7 +44,7 @@ class FundUsageController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        return Inertia::render('fundUsage/IndexfundUsage', [
+        return Inertia::render('FundUsage/IndexFundUsage', [
             'fundUsage' => $fundUsage,
             'filters' => $request->only([
                 'search',
@@ -78,7 +78,17 @@ class FundUsageController extends Controller
      */
     public function show(string $id)
     {
-        //
+
+        $data = CashAdvance::with([
+            'disbursement',
+        ])
+            ->where('id', $id)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
     }
 
     /**

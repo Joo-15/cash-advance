@@ -135,7 +135,7 @@ export function useCrud(options = {}) {
             // Cek response
             if (response.data.success) {
                 selectedRow.value = response.data.data
-                console.log('selectedrow', selectedRow)
+                console.log('data response proses', selectedRow)
                 modalForm.value = true // Buka modal setelah data didapat
 
             } else {
