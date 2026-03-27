@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import {
     NButton,
     NEmpty,
@@ -12,7 +12,6 @@ import {
     NCard,
     NGrid,
     NGridItem,
-    NProgress,
     useMessage,
 } from "naive-ui";
 import {
@@ -24,6 +23,7 @@ import {
     DocumentOutline,
     CheckmarkOutline,
 } from "@vicons/ionicons5";
+import { formatDate, formatRupiah } from "@/utils/helpers";
 
 const props = defineProps({
     files: {
@@ -32,7 +32,7 @@ const props = defineProps({
     },
     maxSize: {
         type: Number,
-        default: 5, // MB
+        default: 5,
     },
     maxFiles: {
         type: Number,
@@ -40,7 +40,7 @@ const props = defineProps({
     },
     accept: {
         type: Array,
-        default: () => ["pdf"],
+        default: () => ["pdf", "jpg", "jpeg", "png"],
     },
     multiple: {
         type: Boolean,
@@ -50,7 +50,6 @@ const props = defineProps({
         type: String,
         default: "Upload file",
     },
-    // Informasi peminjam (bisa di-pass dari parent)
     borrowerInfo: {
         type: Object,
         default: () => ({
@@ -62,100 +61,224 @@ const props = defineProps({
             totalStages: 2,
         }),
     },
+    loading: Boolean,
+    showModal: Boolean,
+    dataSelected: Array,
+    closeModal: Function,
+    submit: Function,
+});
+
+const selectedItem = computed(() => props.dataSelected?.[0] || {});
+const displayData = computed(() => {
+    const item = selectedItem.value;
+    const lastApproval = item?.approvals?.slice(-1)[0] || null;
+    return {
+        id: item?.id,
+        purpose: item?.purpose,
+        name: item?.user?.name,
+        department: item?.user?.department?.name,
+        amount: formatRupiah(item?.amount),
+        disbursedAmount: formatRupiah(item?.disbursement?.amount) || "-",
+        disbursedDate: item?.disbursement?.disbursed_at
+            ? item?.disbursement?.disbursed_at.split(" ")[0]
+            : "-",
+        approveDate: lastApproval?.approved_at
+            ? lastApproval.approved_at.split(" ")[0]
+            : null,
+    };
 });
 
 const emit = defineEmits(["update:files", "submit", "cancel"]);
 
 const message = useMessage();
-const localFiles = ref([...props.files]);
+const localFiles = ref([]);
 const showPreview = ref(false);
 const previewFileData = ref(null);
 const submitting = ref(false);
+const uploadRef = ref(null);
+const lastProcessedFile = ref(null); // Untuk menyimpan file terakhir yang diproses
+let debounceTimer = null;
 
 const acceptTypes = props.accept.map((ext) => `.${ext}`).join(",");
 
-// Format Rupiah
-const formatRupiah = (value) => {
-    if (!value) return "-";
-    return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-    }).format(value);
-};
-
-watch(
-    localFiles,
-    (newFiles) => {
-        emit("update:files", newFiles);
-    },
-    { deep: true },
-);
-
+// Watch untuk props.files
 watch(
     () => props.files,
     (newFiles) => {
-        if (JSON.stringify(newFiles) !== JSON.stringify(localFiles.value)) {
+        console.log("Props files changed:", newFiles);
+        if (newFiles && newFiles.length > 0) {
             localFiles.value = [...newFiles];
+        } else {
+            if (localFiles.value.length === 0) {
+                localFiles.value = [];
+            }
         }
     },
     { deep: true },
 );
 
-const customRequest = ({ file, onFinish, onError }) => {
-    // Validasi size
-    if (file.file?.size > props.maxSize * 1024 * 1024) {
-        message.error(`Ukuran file melebihi ${props.maxSize}MB`);
-        onError();
-        return;
-    }
+// Watch localFiles
+watch(
+    localFiles,
+    (newFiles) => {
+        console.log("Local files changed:", newFiles);
+        emit("update:files", newFiles);
+    },
+    { deep: true },
+);
 
-    // Validasi tipe
-    const extension = file.name?.split(".").pop()?.toLowerCase();
-    if (!props.accept.includes(extension)) {
-        message.error(
-            `Tipe file tidak didukung. Format: ${props.accept.join(", ")}`,
-        );
-        onError();
-        return;
-    }
-
-    // Validasi jumlah file
-    if (!props.multiple && localFiles.value.length >= props.maxFiles) {
-        message.warning(`Maksimal ${props.maxFiles} file`);
-        onError();
-        return;
-    }
-
-    const newFile = {
-        id: Date.now() + Math.random(),
-        name: file.name,
-        size: file.file?.size || 0,
-        type: extension,
-        file: file.file,
-        url: file.file ? URL.createObjectURL(file.file) : null,
-    };
-
-    if (props.multiple) {
-        localFiles.value.push(newFile);
-    } else {
-        localFiles.value = [newFile];
-    }
-
-    onFinish();
+// Fungsi untuk mengecek apakah file sudah ada
+const isFileExists = (newFile) => {
+    return localFiles.value.some(
+        (existingFile) =>
+            existingFile.name === newFile.name &&
+            existingFile.size === newFile.size,
+    );
 };
 
+// Fungsi untuk menangani upload file dengan debounce
+const handleFileUpload = (fileObj) => {
+    // Clear timer sebelumnya
+    if (debounceTimer) {
+        clearTimeout(debounceTimer);
+    }
+
+    // Debounce untuk mencegah double upload
+    debounceTimer = setTimeout(() => {
+        // Generate unique ID untuk file
+        const fileKey = `${fileObj.name}_${fileObj.size}_${fileObj.lastModified || Date.now()}`;
+
+        // Cek apakah file ini sama dengan yang terakhir diproses (dalam 500ms)
+        if (lastProcessedFile.value === fileKey) {
+            console.log("Duplicate file detected, skipping:", fileObj.name);
+            return;
+        }
+
+        // Tandai file sedang diproses
+        lastProcessedFile.value = fileKey;
+
+        // Validasi ukuran
+        const fileSize = fileObj.size;
+        if (fileSize > props.maxSize * 1024 * 1024) {
+            message.error(`Ukuran file melebihi ${props.maxSize}MB`);
+            lastProcessedFile.value = null;
+            return;
+        }
+
+        // Validasi tipe
+        const extension = fileObj.name.split(".").pop()?.toLowerCase();
+        if (!props.accept.includes(extension)) {
+            message.error(
+                `Tipe file tidak didukung. Format: ${props.accept.join(", ")}`,
+            );
+            lastProcessedFile.value = null;
+            return;
+        }
+
+        // Validasi jumlah file
+        if (!props.multiple && localFiles.value.length >= props.maxFiles) {
+            message.warning(`Maksimal ${props.maxFiles} file`);
+            lastProcessedFile.value = null;
+            return;
+        }
+
+        // Cek duplikasi file
+        const newFileCheck = {
+            name: fileObj.name,
+            size: fileSize,
+        };
+
+        if (isFileExists(newFileCheck)) {
+            message.warning(`File "${fileObj.name}" sudah ada`);
+            lastProcessedFile.value = null;
+            return;
+        }
+
+        // Buat object file baru
+        const newFile = {
+            id: Date.now() + Math.random(),
+            name: fileObj.name,
+            size: fileSize,
+            type: extension,
+            file: fileObj,
+            url: URL.createObjectURL(fileObj),
+            status: "success",
+            uploadTime: Date.now(),
+        };
+
+        console.log("Creating new file:", newFile);
+
+        // Tambahkan ke localFiles
+        if (props.multiple) {
+            localFiles.value.push(newFile);
+        } else {
+            // Hapus file lama
+            if (localFiles.value.length > 0 && localFiles.value[0].url) {
+                URL.revokeObjectURL(localFiles.value[0].url);
+            }
+            localFiles.value = [newFile];
+        }
+
+        console.log("Updated localFiles:", localFiles.value);
+        message.success(`File ${newFile.name} berhasil diupload`);
+
+        // Reset lastProcessedFile setelah 1 detik
+        setTimeout(() => {
+            lastProcessedFile.value = null;
+        }, 1000);
+    }, 100); // Debounce 100ms
+};
+
+// Handler untuk @change dengan pengecekan file list
 const handleChange = ({ file, fileList }) => {
-    // handled by customRequest
+    console.log("Change event received:", { file, fileList });
+
+    // Ambil file object yang benar
+    let fileObj = file.file || file;
+
+    // Cek apakah ini file yang valid
+    if (!fileObj || !fileObj.name) {
+        console.error("Invalid file object:", file);
+        return;
+    }
+
+    // Cek apakah file sudah ada di fileList sebelumnya
+    // Naive UI sering memanggil change dengan file yang sama multiple times
+    const existingInList = fileList.filter(
+        (f) => f.file?.name === fileObj.name || f.name === fileObj.name,
+    );
+
+    // Jika file sudah ada di list dan ini adalah panggilan kedua, skip
+    if (existingInList.length > 1) {
+        console.log("File already in list, skipping duplicate");
+        return;
+    }
+
+    // Proses file
+    handleFileUpload(fileObj);
 };
 
 const removeFile = (index) => {
-    // Revoke object URL
-    if (localFiles.value[index].url) {
+    console.log("Removing file at index:", index);
+    if (localFiles.value[index]?.url) {
         URL.revokeObjectURL(localFiles.value[index].url);
     }
     localFiles.value.splice(index, 1);
+
+    if (localFiles.value.length === 0) {
+        emit("update:files", []);
+    }
+};
+
+const removeAllFiles = () => {
+    localFiles.value.forEach((file) => {
+        if (file.url) {
+            URL.revokeObjectURL(file.url);
+        }
+    });
+    localFiles.value = [];
+    emit("update:files", []);
+    message.success("Semua file berhasil dihapus");
 };
 
 const previewFile = (file) => {
@@ -189,23 +312,31 @@ const formatFileSize = (bytes) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-// Handle cancel
 const handleCancel = () => {
-    // Reset files
+    console.log("Cancel clicked");
     localFiles.value.forEach((file) => {
         if (file.url) {
             URL.revokeObjectURL(file.url);
         }
     });
     localFiles.value = [];
+    if (debounceTimer) {
+        clearTimeout(debounceTimer);
+    }
+    lastProcessedFile.value = null;
+    if (props.closeModal) {
+        props.closeModal();
+    }
     emit("cancel");
     message.info("Data dibatalkan");
 };
 
-// Handle submit
 const handleSubmit = async () => {
-    // Validasi file wajib
-    if (localFiles.value.length === 0) {
+    console.log("Submit clicked, localFiles:", localFiles.value);
+    console.log("Local files length:", localFiles.value.length);
+
+    if (!localFiles.value || localFiles.value.length === 0) {
+        console.warn("No files found!");
         message.warning("Harap upload file terlebih dahulu");
         return;
     }
@@ -213,28 +344,37 @@ const handleSubmit = async () => {
     submitting.value = true;
 
     try {
-        // Simulasi API call atau emit event
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const formData = new FormData();
 
-        const formData = {
-            files: localFiles.value,
-            borrowerInfo: props.borrowerInfo,
-        };
+        localFiles.value.forEach((file, index) => {
+            if (file.file) {
+                console.log(`Appending file ${index}:`, file.file);
+                formData.append(`files[${index}]`, file.file);
+            }
+        });
 
-        emit("submit", formData);
+        formData.append("borrowerInfo", JSON.stringify(props.borrowerInfo));
+        formData.append("dataSelected", JSON.stringify(selectedItem.value));
+
+        if (props.submit) {
+            await props.submit(formData);
+        } else {
+            emit("submit", {
+                files: localFiles.value,
+                borrowerInfo: props.borrowerInfo,
+                dataSelected: selectedItem.value,
+            });
+        }
+
         message.success("Bukti berhasil disimpan");
-
-        // Optional: reset setelah submit
-        // localFiles.value = [];
     } catch (error) {
         console.error("Submit error:", error);
-        message.error("Gagal menyimpan bukti");
+        message.error(error.message || "Gagal menyimpan bukti");
     } finally {
         submitting.value = false;
     }
 };
 
-// Reset method untuk parent
 const reset = () => {
     localFiles.value.forEach((file) => {
         if (file.url) {
@@ -242,212 +382,141 @@ const reset = () => {
         }
     });
     localFiles.value = [];
+    if (debounceTimer) {
+        clearTimeout(debounceTimer);
+    }
+    lastProcessedFile.value = null;
 };
 
 defineExpose({ reset });
 </script>
 
 <template>
-    <div class="upload-component-container">
-        <!-- Informasi Peminjam & Pencairan -->
-        <NCard :bordered="false" class="info-card" size="small">
-            <NGrid :cols="2" :x-gap="16" :y-gap="12">
-                <NGridItem>
-                    <div class="info-item">
-                        <div class="info-label">PEMINJAM</div>
-                        <div class="info-value">
-                            {{ borrowerInfo?.name || "-" }}
+    <n-card class="detail-card">
+        <div class="upload-component-container">
+            <!-- Informasi Peminjam & Pencairan -->
+            <NCard :bordered="false" class="info-card" size="small">
+                <NGrid :cols="2" :x-gap="16" :y-gap="12">
+                    <NGridItem>
+                        <div class="info-item">
+                            <div class="info-label">Peminjam</div>
+                            <div class="info-value">
+                                {{ displayData.name ?? "-" }}
+                            </div>
                         </div>
-                    </div>
-                </NGridItem>
-                <NGridItem>
-                    <div class="info-item">
-                        <div class="info-label">DEPARTEMEN</div>
-                        <div class="info-value">
-                            <NTag :bordered="false" type="info" size="small">
-                                {{ borrowerInfo?.department || "-" }}
-                            </NTag>
+                    </NGridItem>
+                    <NGridItem>
+                        <div class="info-item">
+                            <div class="info-label">Departemen</div>
+                            <div class="info-value">
+                                <NTag
+                                    :bordered="false"
+                                    type="info"
+                                    size="small"
+                                >
+                                    {{ displayData.department ?? "-" }}
+                                </NTag>
+                            </div>
                         </div>
-                    </div>
-                </NGridItem>
-                <NGridItem>
-                    <div class="info-item">
-                        <div class="info-label">TANGGAL CAIR</div>
-                        <div class="info-value">
-                            {{ borrowerInfo?.disbursementDate || "-" }}
+                    </NGridItem>
+                    <NGridItem>
+                        <div class="info-item">
+                            <div class="info-label">Tanggal Dicairkan</div>
+                            <div class="info-value">
+                                {{
+                                    formatDate(displayData.disbursedDate ?? "-")
+                                }}
+                            </div>
                         </div>
-                    </div>
-                </NGridItem>
-                <NGridItem>
-                    <div class="info-item">
-                        <div class="info-label">JUMLAH DICAIRKAN</div>
-                        <div class="info-value amount">
-                            {{ formatRupiah(borrowerInfo?.amount) }}
+                    </NGridItem>
+                    <NGridItem>
+                        <div class="info-item">
+                            <div class="info-label">Jumlah Dicairkan</div>
+                            <div class="info-value amount">
+                                {{ displayData.disbursedAmount }}
+                            </div>
                         </div>
-                    </div>
-                </NGridItem>
-                <NGridItem :span="2" v-if="borrowerInfo?.currentStage">
-                    <div class="info-item">
-                        <div class="info-label">TAHAP PENCAIRAN</div>
-                        <div class="info-value stage">
-                            <NProgress
-                                type="line"
-                                :percentage="
-                                    (borrowerInfo.currentStage /
-                                        borrowerInfo.totalStages) *
-                                    100
-                                "
-                                :show-indicator="false"
-                                style="width: 200px"
-                            />
-                            <span class="stage-text">
-                                Tahap {{ borrowerInfo.currentStage }} /
-                                {{ borrowerInfo.totalStages }}
-                            </span>
-                        </div>
-                    </div>
-                </NGridItem>
-            </NGrid>
-        </NCard>
+                    </NGridItem>
+                </NGrid>
+            </NCard>
 
-        <!-- Upload Header -->
-        <div class="upload-header">
-            <NIcon size="18" color="#18a058">
-                <DocumentOutline />
-            </NIcon>
-            <span class="upload-title">DOKUMEN BUKTI</span>
-        </div>
-
-        <!-- Upload Component -->
-        <div class="upload-component">
-            <!-- Upload area (drag & drop) -->
-            <NUpload
-                :multiple="multiple"
-                :accept="acceptTypes"
-                :max="maxFiles"
-                :default-upload="false"
-                @change="handleChange"
-                :custom-request="customRequest"
-                class="upload-area"
-            >
-                <NUploadDragger>
-                    <div class="upload-dragger-content">
-                        <NIcon size="32" color="#18a058">
-                            <CloudUploadOutline />
-                        </NIcon>
-                        <NText depth="3" size="small">
-                            Klik atau tarik file ke sini
-                        </NText>
-                        <n-text depth="3" size="tiny" class="file-hint">
-                            {{ placeholder }} · {{ maxSize }}MB maks
-                        </n-text>
-                    </div>
-                </NUploadDragger>
-            </NUpload>
-
-            <!-- File list -->
-            <div class="file-list" v-if="localFiles.length > 0">
-                <div
-                    v-for="(file, index) in localFiles"
-                    :key="file.id || index"
-                    class="file-item"
-                >
-                    <div class="file-info">
-                        <n-icon size="16" class="file-icon">
-                            <DocumentTextOutline v-if="isPdf(file.name)" />
-                            <ImageOutline v-else />
-                        </n-icon>
-                        <span class="file-name" :title="file.name">
-                            {{ truncateFileName(file.name) }}
-                        </span>
-                        <span class="file-size">{{
-                            formatFileSize(file.size)
-                        }}</span>
-                    </div>
-                    <div class="file-actions">
-                        <NButton
-                            size="tiny"
-                            text
-                            @click="previewFile(file)"
-                            v-if="canPreview(file)"
-                        >
-                            <template #icon>
-                                <n-icon><EyeOutline /></n-icon>
-                            </template>
-                        </NButton>
-                        <n-button
-                            size="tiny"
-                            text
-                            type="error"
-                            @click="removeFile(index)"
-                        >
-                            <template #icon>
-                                <n-icon><TrashOutline /></n-icon>
-                            </template>
-                        </n-button>
-                    </div>
-                </div>
+            <!-- Upload Header -->
+            <div class="upload-header">
+                <NIcon size="18" color="#18a058">
+                    <DocumentOutline />
+                </NIcon>
+                <span class="upload-title">DOKUMEN BUKTI</span>
+                <!-- <div class="header-actions" v-if="localFiles.length > 0">
+                    <NButton
+                        size="small"
+                        text
+                        type="error"
+                        @click="removeAllFiles"
+                    >
+                        <template #icon>
+                            <NIcon><TrashOutline /></NIcon>
+                        </template>
+                        Hapus Semua
+                    </NButton>
+                </div> -->
             </div>
 
-            <!-- Preview Modal -->
-            <NModal
-                v-model:show="showPreview"
-                preset="card"
-                title="Preview File"
-                style="width: 80%; max-width: 800px"
-            >
-                <div class="preview-container">
-                    <img
-                        v-if="
-                            previewFileData && previewFileData.type === 'image'
-                        "
-                        :src="previewFileData.url"
-                        class="preview-image"
-                    />
-                    <iframe
-                        v-else-if="
-                            previewFileData && previewFileData.type === 'pdf'
-                        "
-                        :src="previewFileData.url"
-                        class="preview-pdf"
-                    />
-                    <n-empty
-                        v-else
-                        description="Tidak dapat preview file ini"
-                    />
-                </div>
-            </NModal>
-        </div>
+            <!-- Upload Component -->
+            <div class="upload-component">
+                <NUpload
+                    ref="uploadRef"
+                    :multiple="multiple"
+                    :accept="acceptTypes"
+                    :max="maxFiles"
+                    :default-upload="false"
+                    @change="handleChange"
+                    class="upload-area"
+                >
+                    <NUploadDragger>
+                        <div class="upload-dragger-content">
+                            <NIcon size="32" color="#18a058">
+                                <CloudUploadOutline />
+                            </NIcon>
+                            <NText depth="3" size="small">
+                                Klik atau tarik file ke sini
+                            </NText>
+                            <NText depth="3" size="tiny" class="file-hint">
+                                {{ placeholder }} · {{ maxSize }}MB maks ·
+                                {{ accept.join(", ") }}
+                            </NText>
+                        </div>
+                    </NUploadDragger>
+                </NUpload>
+            </div>
 
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <NButton size="large" @click="handleCancel" class="cancel-btn">
-                Batal
-            </NButton>
-            <NButton
-                type="primary"
-                size="large"
-                :loading="submitting"
-                @click="handleSubmit"
-                class="submit-btn"
-            >
-                <template #icon>
-                    <NIcon><CheckmarkOutline /></NIcon>
-                </template>
-                Simpan Bukti
-            </NButton>
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <NButton size="large" @click="handleCancel" class="cancel-btn">
+                    Batal
+                </NButton>
+                <NButton
+                    type="primary"
+                    size="large"
+                    :loading="submitting"
+                    @click="handleSubmit"
+                    class="submit-btn"
+                >
+                    <template #icon>
+                        <NIcon><CheckmarkOutline /></NIcon>
+                    </template>
+                    Simpan Bukti
+                </NButton>
+            </div>
         </div>
-    </div>
+    </n-card>
 </template>
 
 <style scoped>
-.upload-component-container {
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto;
+.detail-card {
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-/* Info Card */
 .info-card {
     margin-bottom: 24px;
     border-radius: 12px;
@@ -478,19 +547,6 @@ defineExpose({ reset });
     font-size: 16px;
 }
 
-.info-value.stage {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.stage-text {
-    font-size: 13px;
-    color: #5e6b7c;
-}
-
-/* Upload Header */
 .upload-header {
     display: flex;
     align-items: center;
@@ -504,9 +560,14 @@ defineExpose({ reset });
     font-weight: 600;
     font-size: 16px;
     color: #1f2d3d;
+    flex: 1;
 }
 
-/* Upload Component */
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
 .upload-component {
     width: 100%;
     margin-bottom: 24px;
@@ -596,7 +657,6 @@ defineExpose({ reset });
     border: none;
 }
 
-/* Action Buttons */
 .action-buttons {
     display: flex;
     justify-content: flex-end;
@@ -611,7 +671,6 @@ defineExpose({ reset });
     border-radius: 8px;
 }
 
-/* Responsive */
 @media (max-width: 640px) {
     .action-buttons {
         flex-direction: column;
@@ -620,11 +679,6 @@ defineExpose({ reset });
     .cancel-btn,
     .submit-btn {
         width: 100%;
-    }
-
-    .info-value.stage {
-        flex-direction: column;
-        align-items: flex-start;
     }
 }
 </style>

@@ -6,20 +6,17 @@ import { useDataTable } from "@/Composables/useDataTable";
 import { useCrud } from "@/Composables/useCrud";
 
 // Constants
-import { STATUS_OPTIONS, STATUS_OPTIONS_PENCAIRAN } from "@/Constants/status";
-import { CASH_ADVANCE_STATS } from "@/Constants/cashAdvanceStats";
+import { STATUS_OPTIONS_PENCAIRAN } from "@/Constants/status";
 
 // Components
 import BaseTable from "@/Components/DataTable/BaseTable.vue";
 import Container from "@/Components/Layout/Container.vue";
 import PageHeader from "@/Components/Page/PageHeader.vue";
-import StatCards from "@/Components/Page/StatCards.vue";
 import Filters from "@/Components/Page/Filters.vue";
 import ModalForm from "@/Components/Page/ModalForm.vue";
-import FormCashAdvance from "./FormFundUsage.vue";
-import FormApproval from "../Approval/FormApproval.vue";
+
 import { useAuth } from "@/Composables/useAuth";
-import FormDisbursement from "./FormFundUsage.vue";
+
 import FormFundUsage from "./FormFundUsage.vue";
 
 // Props definition
@@ -28,7 +25,7 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
 });
 
-console.log("disbursement", props.fundUsage);
+console.log("penggunaan dana", props.fundUsage);
 // Refs
 const formRef = ref(null);
 

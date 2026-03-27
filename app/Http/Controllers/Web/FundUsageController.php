@@ -80,7 +80,9 @@ class FundUsageController extends Controller
     {
 
         $data = CashAdvance::with([
-            'disbursement',
+            'approvals',
+            'user.department',
+            'disbursement'
         ])
             ->where('id', $id)
             ->get();
