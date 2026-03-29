@@ -5,6 +5,7 @@ use App\Http\Controllers\Web\ApprovalController;
 use App\Http\Controllers\Web\ApprovalStepController;
 use App\Http\Controllers\Web\ApprovalStepRoleController;
 use App\Http\Controllers\Web\CashAdvanceController;
+use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DisbursementController;
 use App\Http\Controllers\Web\FundUsageController;
 use App\Http\Controllers\Web\UserController;
@@ -25,9 +26,7 @@ Route::get('/', function () {
 // Auth Middleware Group (SEMUA route yang butuh auth)
 Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Profile Routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

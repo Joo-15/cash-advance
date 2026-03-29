@@ -2,7 +2,7 @@
 import { ref, reactive, watch, onBeforeUnmount, h, computed } from "vue";
 import { router } from "@inertiajs/vue3";
 import { debounce } from "lodash";
-import { NButton, NIcon, NSpace, NTag, NTooltip } from "naive-ui";
+import { NButton, NIcon, NSpace, NTag, NTooltip, useDialog } from "naive-ui";
 import {
     PencilOutline,
     TrashOutline,
@@ -68,6 +68,7 @@ export function useDataTable({
      */
 
     // Loading states
+    const dialog = useDialog()
     const loadingSearch = ref(false);
     const loadingTable = ref(false);
     const currentPage = ref(1);
@@ -162,12 +163,13 @@ export function useDataTable({
                     round: true,
                     bordered: false,
                 },
-                { default: () => "Belum Uplaod" }
+                { default: () => "Belum Upload" }
             );
         }
 
         // Sudah ada attachment
         const fileName = value.split('/').pop();
+        const fullUrl = `/storage/${value}`; // Sesuaikan dengan URL storage Anda
 
         return h(
             NTag,
@@ -176,10 +178,33 @@ export function useDataTable({
                 size: "small",
                 round: true,
                 bordered: false,
-                onClick: () => window.open(value, '_blank'),
+                style: { cursor: 'pointer' },
+                onClick: () => {
+                    // Buka modal dengan PDF
+                    dialog.create({
+                        title: "Lampiran Bukti",
+                        content: () => h('div', { style: { width: '100%', height: '80vh' } }, [
+                            h('iframe', {
+                                src: fullUrl,
+                                style: {
+                                    width: '100%',
+                                    height: '100%',
+                                    border: 'none'
+                                },
+                                frameborder: '0'
+                            })
+                        ]),
+                        style: {
+                            width: '70%',
+                            maxWidth: '1200px'
+                        },
+                        positiveText: 'Tutup',
+                        showIcon: false
+                    })
+                },
             },
             {
-                default: () => fileName,
+                default: () => "Lampiran Bukti",
                 icon: () => h(NIcon, { size: 18 }, { default: () => h(AttachOutline) })
             }
         );

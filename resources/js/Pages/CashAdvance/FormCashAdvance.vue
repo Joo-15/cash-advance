@@ -9,6 +9,7 @@ import {
     NDatePicker,
     NForm,
     NFormItem,
+    NIcon,
     NInput,
     NInputNumber,
     NModal,
@@ -18,6 +19,7 @@ import {
 // Utilities & Validations
 import { cashAdvanceSchema } from "@/Validations/validationSchemas";
 import { formatNumber, parseNumber } from "@/utils/helpers";
+import { CloseOutline, SaveOutline } from "@vicons/ionicons5";
 
 /*
 | Props & Emits
@@ -157,7 +159,14 @@ watch(
         <!-- Form Actions -->
         <div class="flex justify-end border-t pt-4 px-2 mt-4">
             <n-space>
-                <n-button @click="closeModal"> Batal </n-button>
+                <n-button @click="closeModal">
+                    <template #icon>
+                        <n-icon>
+                            <close-outline />
+                        </n-icon>
+                    </template>
+                    Batal
+                </n-button>
 
                 <n-button
                     type="primary"
@@ -165,6 +174,11 @@ watch(
                     :loading="loading"
                     :disabled="loading"
                 >
+                    <template #icon>
+                        <n-icon>
+                            <SaveOutline />
+                        </n-icon>
+                    </template>
                     {{ isEditMode ? "Update" : "Simpan" }}
                 </n-button>
             </n-space>
@@ -176,23 +190,5 @@ watch(
 /* Input Number Styling */
 :deep(.jumlah-input .n-input__input) {
     text-align: right;
-}
-
-:deep(.n-input-number .n-input__prefix) {
-    color: #6b7280;
-    font-weight: 500;
-    padding-right: 8px;
-}
-
-/* Modal Styling */
-:deep(.n-modal) {
-    transition: all 0.3s ease;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 640px) {
-    :deep(.n-modal) {
-        margin: 16px;
-    }
 }
 </style>

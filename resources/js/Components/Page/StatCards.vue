@@ -18,7 +18,7 @@ const emit = defineEmits(["update:status"]);
         <div
             v-for="stat in stats"
             :key="stat.key"
-            class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition"
+            class="bg-slate-50 rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition"
         >
             <StatsCard :stat="stat" :value="statData?.[stat.key] ?? 0" />
         </div>

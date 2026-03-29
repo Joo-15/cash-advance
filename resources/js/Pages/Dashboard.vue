@@ -1,239 +1,648 @@
 <script setup>
-import { Head } from "@inertiajs/vue3";
-import { ref } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
+import { usePage, router } from "@inertiajs/vue3";
+import {
+    NCard,
+    NGrid,
+    NGridItem,
+    NText,
+    NIcon,
+    NDatePicker,
+    NTag,
+    NProgress,
+} from "naive-ui";
+import {
+    TrendingUpOutline,
+    CheckmarkCircleOutline,
+    TimeOutline,
+    WarningOutline,
+    ArrowUpOutline,
+    AlertOutline,
+    BusinessOutline,
+    BriefcaseOutline,
+    CashOutline,
+    CodeOutline,
+    PeopleOutline,
+    GridOutline,
+} from "@vicons/ionicons5";
+import Chart from "chart.js/auto";
+import Container from "@/Components/Layout/Container.vue";
+import PageHeader from "@/Components/Page/PageHeader.vue";
 
-const stats = ref([
-    {
-        label: "Total Pengguna",
-        value: "2,543",
-        change: "+12.5%",
-        trend: "up",
+// Define props dari Inertia
+const props = defineProps({
+    stats: {
+        type: Object,
+        required: true,
+        default: () => ({
+            total_pengajuan: 0,
+            total_dicairkan: 0,
+            pending_amount: 0,
+            pending_count: 0,
+            unaccounted_amount: 0,
+            percentage_change: 0,
+            transaction_count: 0,
+        }),
     },
-    {
-        label: "Pendapatan",
-        value: "Rp 45.2M",
-        change: "+8.2%",
-        trend: "up",
+    per_departemen: {
+        type: Array,
+        required: true,
+        default: () => [],
     },
-    {
-        label: "Pesanan Baru",
-        value: "156",
-        change: "+23.1%",
-        trend: "up",
+    status_counts: {
+        type: Object,
+        required: true,
+        default: () => ({
+            disbursed: 0,
+            approved: 0,
+            pending: 0,
+            rejected: 0,
+        }),
     },
-    {
-        label: "Produk Terjual",
-        value: "892",
-        change: "-3.4%",
-        trend: "down",
+    trend: {
+        type: Object,
+        required: true,
+        default: () => ({
+            months: [],
+            total: [],
+            disbursed: [],
+        }),
     },
-]);
+    current_month: {
+        type: String,
+        required: true,
+        default: () => {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        },
+    },
+});
 
-const recentActivities = ref([
-    {
-        user: "Ahmad Rizki",
-        action: "melakukan pembelian",
-        time: "5 menit lalu",
+// Refs
+const trendChart = ref(null);
+let chartInstance = null;
+
+// Computed
+const totalStatus = computed(() => {
+    return (
+        props.status_counts.disbursed +
+        props.status_counts.approved +
+        props.status_counts.pending +
+        props.status_counts.rejected
+    );
+});
+
+// Methods
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(value || 0);
+};
+
+const getPercentage = (value, total) => {
+    if (total === 0) return 0;
+    return (value / total) * 100;
+};
+
+const getIcon = (iconName) => {
+    const icons = {
+        BusinessOutline,
+        BriefcaseOutline,
+        CashOutline,
+        CodeOutline,
+        PeopleOutline,
+        GridOutline,
+    };
+    return icons[iconName] || BusinessOutline;
+};
+
+const handleMonthChange = (value) => {
+    if (value) {
+        router.get(
+            "/dashboard",
+            { month: value },
+            {
+                preserveState: true,
+                preserveScroll: true,
+            },
+        );
+    }
+};
+
+// Initialize chart
+const initChart = () => {
+    if (trendChart.value && props.trend.months.length > 0) {
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(trendChart.value, {
+            type: "bar",
+            data: {
+                labels: props.trend.months,
+                datasets: [
+                    {
+                        label: "Total Pengajuan",
+                        data: props.trend.total,
+                        backgroundColor: "#18a058",
+                        borderRadius: 6,
+                    },
+                    {
+                        label: "Sudah Dicairkan",
+                        data: props.trend.disbursed,
+                        backgroundColor: "#2080f0",
+                        borderRadius: 6,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                let label = context.dataset.label || "";
+                                if (label) {
+                                    label += ": ";
+                                }
+                                label += formatCurrency(context.raw);
+                                return label;
+                            },
+                        },
+                    },
+                    legend: {
+                        position: "top",
+                    },
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: (value) => {
+                                return formatCurrency(value);
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+};
+
+// Watch for trend changes
+watch(
+    () => props.trend,
+    () => {
+        initChart();
     },
-    {
-        user: "Siti Nurhaliza",
-        action: "mendaftar akun baru",
-        time: "12 menit lalu",
-    },
-    { user: "Budi Santoso", action: "mengupdate profil", time: "1 jam lalu" },
-    { user: "Dewi Lestari", action: "menambahkan review", time: "2 jam lalu" },
-]);
+    { deep: true },
+);
+
+// Lifecycle
+onMounted(() => {
+    initChart();
+});
 </script>
-
 <template>
-    <Head title="Dashboard" />
+    <Container>
+        <template #header>
+            <PageHeader title="Dashboard"></PageHeader>
+        </template>
+        <template #content>
+            <div class="finance-dashboard">
+                <!-- Header
+        <div class="dashboard-header">
+            <n-text class="page-title" strong>Dashboard Finance</n-text>
+            <n-date-picker
+                :value="current_month"
+                type="month"
+                placeholder="Pilih Bulan"
+                clearable
+                @update:value="handleMonthChange"
+                style="width: 200px"
+            />
+        </div> -->
 
-    <div class="space-y-6">
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div
-                v-for="(stat, index) in stats"
-                :key="index"
-                class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
-            >
-                <div class="flex items-start justify-between mb-3">
-                    <p class="text-sm text-gray-600 font-medium">
-                        {{ stat.label }}
-                    </p>
-                    <div
-                        :class="[
-                            'w-9 h-9 rounded-lg flex items-center justify-center',
-                            index === 0
-                                ? 'bg-indigo-50'
-                                : index === 1
-                                  ? 'bg-purple-50'
-                                  : index === 2
-                                    ? 'bg-pink-50'
-                                    : 'bg-blue-50',
-                        ]"
-                    >
-                        <svg
-                            class="w-5 h-5 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                v-if="index === 0"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                            />
-                            <path
-                                v-else-if="index === 1"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                            />
-                            <path
-                                v-else-if="index === 2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
-                            <path
-                                v-else
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M13 10V3L4 14h7v7l9-11h-7z"
-                            />
-                        </svg>
-                    </div>
-                </div>
-                <div>
-                    <p class="text-3xl font-bold text-gray-900 mb-1">
-                        {{ stat.value }}
-                    </p>
-                    <p class="text-xs text-gray-500">
-                        {{ stat.change }} Completed
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Chart Card -->
-            <div
-                class="lg:col-span-2 bg-white rounded-lg p-6 border border-gray-100"
-            >
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">
-                    Statistik Penjualan
-                </h2>
+                <!-- Statistik Cards -->
                 <div
-                    class="h-64 flex items-center justify-center bg-gray-50 rounded-lg"
+                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
                 >
-                    <p class="text-gray-500">Chart akan ditampilkan di sini</p>
-                </div>
-            </div>
+                    <!-- Total Pengajuan -->
+                    <n-card class="stat-card total-card" :bordered="false">
+                        <div
+                            class="stat-header flex justify-between items-center"
+                        >
+                            <n-text depth="2" class="stat-title">
+                                Total Pengajuan Bulan
+                            </n-text>
+                            <n-icon :size="24" color="white">
+                                <TrendingUpOutline />
+                            </n-icon>
+                        </div>
 
-            <!-- Recent Activity -->
-            <div class="bg-white rounded-lg p-6 border border-gray-100">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">
-                    Aktivitas Terbaru
-                </h2>
-                <div class="space-y-4">
-                    <div
-                        v-for="(activity, index) in recentActivities"
-                        :key="index"
-                        class="pb-4 border-b border-gray-100 last:border-0 last:pb-0"
-                    >
-                        <p class="text-sm font-medium text-gray-900">
-                            {{ activity.user }}
-                        </p>
-                        <p class="text-sm text-gray-600">
-                            {{ activity.action }}
-                        </p>
-                        <p class="text-xs text-gray-400 mt-1">
-                            {{ activity.time }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
+                        <div class="stat-value">
+                            {{ formatCurrency(stats.total_pengajuan) }}
+                        </div>
 
-        <!-- Additional Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Quick Actions -->
-            <div class="bg-white rounded-lg p-6 border border-gray-100">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">
-                    Aksi Cepat
-                </h2>
-                <div class="grid grid-cols-2 gap-3">
-                    <button
-                        class="px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm"
-                    >
-                        Tambah Produk
-                    </button>
-                    <button
-                        class="px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm"
-                    >
-                        Lihat Laporan
-                    </button>
-                    <button
-                        class="px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm"
-                    >
-                        Kelola User
-                    </button>
-                    <button
-                        class="px-4 py-3 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors font-medium text-sm"
-                    >
-                        Pengaturan
-                    </button>
-                </div>
-            </div>
+                        <div
+                            class="stat-trend positive flex items-center gap-1"
+                        >
+                            <n-icon :size="14"><ArrowUpOutline /></n-icon>
+                            {{ stats.percentage_change }}% vs bulan lalu
+                        </div>
+                    </n-card>
 
-            <!-- Summary -->
-            <div class="bg-white rounded-lg p-6 border border-gray-100">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">
-                    Ringkasan Hari Ini
-                </h2>
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600"
-                            >Transaksi Berhasil</span
+                    <!-- Sudah Dicairkan -->
+                    <n-card class="stat-card disbursed-card" :bordered="false">
+                        <div
+                            class="stat-header flex justify-between items-center"
                         >
-                        <span class="text-sm font-semibold text-gray-900"
-                            >24</span
+                            <n-text depth="2" class="stat-title">
+                                Sudah Dicairkan
+                            </n-text>
+                            <n-icon :size="24" color="white">
+                                <CheckmarkCircleOutline />
+                            </n-icon>
+                        </div>
+
+                        <div class="stat-value">
+                            {{ formatCurrency(stats.total_dicairkan) }}
+                        </div>
+
+                        <div class="stat-subtitle">
+                            {{ stats.transaction_count }} transaksi
+                        </div>
+                    </n-card>
+
+                    <!-- Pending -->
+                    <n-card class="stat-card pending-card" :bordered="false">
+                        <div
+                            class="stat-header flex justify-between items-center"
                         >
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600"
-                            >Transaksi Pending</span
+                            <n-text depth="2" class="stat-title">
+                                Pending Persetujuan
+                            </n-text>
+                            <n-icon :size="24" color="white">
+                                <TimeOutline />
+                            </n-icon>
+                        </div>
+
+                        <div class="stat-value">
+                            {{ formatCurrency(stats.pending_amount) }}
+                        </div>
+
+                        <div class="stat-subtitle">
+                            {{ stats.pending_count }} pengajuan menunggu
+                        </div>
+                    </n-card>
+
+                    <!-- Belum Dipertanggungjawabkan -->
+                    <n-card class="stat-card overdue-card" :bordered="false">
+                        <div
+                            class="stat-header flex justify-between items-center"
                         >
-                        <span class="text-sm font-semibold text-gray-900"
-                            >8</span
-                        >
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600"
-                            >Produk Terjual</span
-                        >
-                        <span class="text-sm font-semibold text-gray-900"
-                            >67</span
-                        >
-                    </div>
-                    <div
-                        class="flex justify-between items-center pt-3 border-t border-gray-100"
-                    >
-                        <span class="text-sm font-medium text-gray-900"
-                            >Total Pendapatan</span
-                        >
-                        <span class="text-sm font-bold text-blue-600"
-                            >Rp 12.4M</span
-                        >
-                    </div>
+                            <n-text depth="2" class="stat-title">
+                                Belum Dipertanggungjawabkan
+                            </n-text>
+                            <n-icon :size="24" color="white">
+                                <WarningOutline />
+                            </n-icon>
+                        </div>
+
+                        <div class="stat-value">
+                            {{ formatCurrency(stats.unaccounted_amount) }}
+                        </div>
+
+                        <div class="stat-trend warning flex items-center gap-1">
+                            <n-icon :size="14"><AlertOutline /></n-icon>
+                            perlu perhatian
+                        </div>
+                    </n-card>
                 </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                    <!-- Pengajuan per Departemen -->
+                    <n-card
+                        title="Pengajuan per Departemen"
+                        :bordered="false"
+                        class="border rounded-lg border-slate-100 bg-slate-50/60"
+                    >
+                        <div class="space-y-3">
+                            <div
+                                v-for="dept in per_departemen"
+                                :key="dept.name"
+                                class="flex justify-between items-center"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <n-icon
+                                        :size="20"
+                                        :color="dept.color || '#18a058'"
+                                    >
+                                        <component :is="getIcon(dept.icon)" />
+                                    </n-icon>
+
+                                    <n-text>{{ dept.name }}</n-text>
+
+                                    <n-text depth="3" size="small">
+                                        ({{ dept.total_requests }} pengajuan)
+                                    </n-text>
+                                </div>
+
+                                <n-text strong style="color: #18a058">
+                                    {{ formatCurrency(dept.amount) }}
+                                </n-text>
+                            </div>
+                        </div>
+                    </n-card>
+
+                    <!-- Status Pengajuan -->
+                    <n-card title="Status Pengajuan" :bordered="false">
+                        <div class="space-y-4">
+                            <!-- Dicairkan -->
+                            <div>
+                                <div
+                                    class="flex justify-between items-center mb-1"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <n-tag
+                                            type="success"
+                                            size="small"
+                                            round
+                                        >
+                                            Dicairkan
+                                        </n-tag>
+                                        <n-text>{{
+                                            status_counts.disbursed
+                                        }}</n-text>
+                                    </div>
+                                </div>
+
+                                <n-progress
+                                    type="line"
+                                    :percentage="
+                                        getPercentage(
+                                            status_counts.disbursed,
+                                            totalStatus,
+                                        )
+                                    "
+                                    :color="'#18a058'"
+                                    :show-indicator="false"
+                                    :height="8"
+                                />
+                            </div>
+
+                            <!-- Disetujui -->
+                            <div>
+                                <div
+                                    class="flex justify-between items-center mb-1"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <n-tag type="info" size="small" round>
+                                            Disetujui
+                                        </n-tag>
+                                        <n-text>{{
+                                            status_counts.approved
+                                        }}</n-text>
+                                    </div>
+                                </div>
+
+                                <n-progress
+                                    type="line"
+                                    :percentage="
+                                        getPercentage(
+                                            status_counts.approved,
+                                            totalStatus,
+                                        )
+                                    "
+                                    :color="'#2080f0'"
+                                    :show-indicator="false"
+                                    :height="8"
+                                />
+                            </div>
+
+                            <!-- Pending -->
+                            <div>
+                                <div
+                                    class="flex justify-between items-center mb-1"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <n-tag
+                                            type="warning"
+                                            size="small"
+                                            round
+                                        >
+                                            Pending
+                                        </n-tag>
+                                        <n-text>{{
+                                            status_counts.pending
+                                        }}</n-text>
+                                    </div>
+                                </div>
+
+                                <n-progress
+                                    type="line"
+                                    :percentage="
+                                        getPercentage(
+                                            status_counts.pending,
+                                            totalStatus,
+                                        )
+                                    "
+                                    :color="'#f0a020'"
+                                    :show-indicator="false"
+                                    :height="8"
+                                />
+                            </div>
+
+                            <!-- Ditolak -->
+                            <div>
+                                <div
+                                    class="flex justify-between items-center mb-1"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <n-tag type="error" size="small" round>
+                                            Ditolak
+                                        </n-tag>
+                                        <n-text>{{
+                                            status_counts.rejected
+                                        }}</n-text>
+                                    </div>
+                                </div>
+
+                                <n-progress
+                                    type="line"
+                                    :percentage="
+                                        getPercentage(
+                                            status_counts.rejected,
+                                            totalStatus,
+                                        )
+                                    "
+                                    :color="'#d03050'"
+                                    :show-indicator="false"
+                                    :height="8"
+                                />
+                            </div>
+                        </div>
+                    </n-card>
+                </div>
+
+                <!-- Row 3: Trend Chart -->
+                <n-grid :cols="1" :x-gap="16" :y-gap="16" class="mt-4">
+                    <n-grid-item>
+                        <n-card
+                            title="Trend Pengajuan 6 Bulan Terakhir"
+                            :bordered="false"
+                        >
+                            <div style="height: 300px">
+                                <canvas ref="trendChart"></canvas>
+                            </div>
+                        </n-card>
+                    </n-grid-item>
+                </n-grid>
             </div>
-        </div>
-    </div>
+        </template>
+    </Container>
 </template>
+
+<style scoped>
+.finance-dashboard {
+    /* padding: 24px; */
+    /* background: #f5f7fa; */
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+/* Stat Cards */
+.stat-card {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.total-card {
+    background: linear-gradient(135deg, #76abf1 0%, #6088e4 100%);
+}
+
+.disbursed-card {
+    background: linear-gradient(135deg, #96f3e4 0%, #2fd1c0 100%);
+}
+
+.pending-card {
+    background: linear-gradient(135deg, #f0eb93 0%, #dace64 100%);
+}
+
+.overdue-card {
+    background: linear-gradient(135deg, #f45f4b 0%, #d38373 100%);
+}
+
+.total-card .stat-title,
+.total-card .stat-value,
+.total-card .stat-trend,
+.disbursed-card .stat-title,
+.disbursed-card .stat-value,
+.disbursed-card .stat-subtitle,
+.pending-card .stat-title,
+.pending-card .stat-value,
+.pending-card .stat-subtitle,
+.overdue-card .stat-title,
+.overdue-card .stat-value,
+.overdue-card .stat-trend {
+    color: white;
+}
+
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.stat-title {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.stat-subtitle {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.stat-trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+}
+
+/* Department List */
+/* .department-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+} */
+
+.department-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.department-item:last-child {
+    border-bottom: none;
+}
+
+.department-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Status List */
+.status-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.status-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Margin utilities */
+.mt-4 {
+    margin-top: 16px;
+}
+</style>

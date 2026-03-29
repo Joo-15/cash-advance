@@ -220,34 +220,42 @@ export function useCrud(options = {}) {
                 await sleep(submitSleepTime);
             }
 
-            // Ambil filters dari URL
             const currentFilters = getCurrentFilters();
 
             console.log("📦 values:", values);
-            console.log("📦 currentFilters:", currentFilters);
-            console.log("📦 customFilters:", customFilters);
 
-            // Gabungkan data
-            const submitData = {
-                ...values,
-                ...currentFilters,
-                ...customFilters,
-            };
+            let submitData;
 
-            // Tentukan method dan URL
-            let requestUrl = null;
-            if (id) {
-                requestUrl = route(url, id);
+            // ✅ HANDLE FORM DATA
+            if (values instanceof FormData) {
+                submitData = values;
+
+                // append filters ke FormData
+                Object.entries({
+                    ...currentFilters,
+                    ...customFilters,
+                }).forEach(([key, val]) => {
+                    if (val !== null && val !== undefined) {
+                        submitData.append(key, val);
+                    }
+                });
             } else {
-                requestUrl = route(url);
+                // ✅ HANDLE OBJECT BIASA
+                submitData = {
+                    ...values,
+                    ...currentFilters,
+                    ...customFilters,
+                };
             }
+
+            // URL
+            const requestUrl = id ? route(url, id) : route(url);
 
             const options = {
                 preserveScroll,
                 preserveState,
                 onSuccess: (response) => {
                     modalForm.value = false;
-
                     if (typeof onSuccess === "function") {
                         onSuccess(response);
                     }
@@ -255,7 +263,6 @@ export function useCrud(options = {}) {
                 onError: (errors) => {
                     console.error("Submit error:", errors);
 
-                    // Handle validation errors
                     if (errors && typeof errors === "object") {
                         const firstError = Object.values(errors)[0];
                         message.error(firstError || messages.errorSubmit);
@@ -271,9 +278,16 @@ export function useCrud(options = {}) {
                 },
             };
 
-            // Execute request
+            // 🚀 HANDLE METHOD + FILE UPLOAD
             if (method === "put" || method === "patch") {
-                router.put(requestUrl, submitData, options);
+                if (submitData instanceof FormData) {
+                    submitData.append("_method", method.toUpperCase());
+
+                    // 🔥 WAJIB pakai POST untuk file
+                    router.post(requestUrl, submitData, options);
+                } else {
+                    router.put(requestUrl, submitData, options);
+                }
             } else if (method === "post") {
                 router.post(requestUrl, submitData, options);
             } else if (method === "delete") {
@@ -284,7 +298,6 @@ export function useCrud(options = {}) {
             }
         } catch (error) {
             console.error("Submit error:", error);
-
             loadingButton.value = false;
             if (onError) onError(error);
         }

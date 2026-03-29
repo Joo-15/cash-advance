@@ -30,20 +30,6 @@ console.log("penggunaan dana", props.fundUsage);
 const formRef = ref(null);
 
 const {
-    userName,
-    userAvatar,
-    greeting,
-    fullNameWithTitle,
-    departmentName,
-    roleName,
-    isAdmin,
-    isSupervisor,
-    isEmployee,
-    hasRole,
-    inDepartmentName,
-} = useAuth();
-
-const {
     loadingButton,
     modalForm,
     currentFormType,

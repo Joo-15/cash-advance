@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import {
     NButton,
     NEmpty,
@@ -13,6 +13,8 @@ import {
     NGrid,
     NGridItem,
     useMessage,
+    NForm,
+    NSpace,
 } from "naive-ui";
 import {
     CloudUploadOutline,
@@ -22,6 +24,8 @@ import {
     TrashOutline,
     DocumentOutline,
     CheckmarkOutline,
+    SaveOutline,
+    CloseOutline,
 } from "@vicons/ionicons5";
 import { formatDate, formatRupiah } from "@/utils/helpers";
 
@@ -30,43 +34,15 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    maxSize: {
-        type: Number,
-        default: 5,
-    },
-    maxFiles: {
-        type: Number,
-        default: 1,
-    },
-    accept: {
-        type: Array,
-        default: () => ["pdf", "jpg", "jpeg", "png"],
-    },
-    multiple: {
-        type: Boolean,
-        default: false,
-    },
-    placeholder: {
-        type: String,
-        default: "Upload file",
-    },
-    borrowerInfo: {
-        type: Object,
-        default: () => ({
-            name: "Fajar Nugroho",
-            department: "R&D",
-            disbursementDate: "18 Mar 2025",
-            amount: 30000000,
-            currentStage: 1,
-            totalStages: 2,
-        }),
-    },
+
     loading: Boolean,
     showModal: Boolean,
     dataSelected: Array,
     closeModal: Function,
     submit: Function,
 });
+
+const message = useMessage();
 
 const selectedItem = computed(() => props.dataSelected?.[0] || {});
 const displayData = computed(() => {
@@ -77,6 +53,7 @@ const displayData = computed(() => {
         purpose: item?.purpose,
         name: item?.user?.name,
         department: item?.user?.department?.name,
+        attachment: item?.attachment || null,
         amount: formatRupiah(item?.amount),
         disbursedAmount: formatRupiah(item?.disbursement?.amount) || "-",
         disbursedDate: item?.disbursement?.disbursed_at
@@ -88,307 +65,97 @@ const displayData = computed(() => {
     };
 });
 
-const emit = defineEmits(["update:files", "submit", "cancel"]);
+console.log("selected row", props.dataSelected);
 
-const message = useMessage();
-const localFiles = ref([]);
-const showPreview = ref(false);
-const previewFileData = ref(null);
-const submitting = ref(false);
-const uploadRef = ref(null);
-const lastProcessedFile = ref(null); // Untuk menyimpan file terakhir yang diproses
-let debounceTimer = null;
+const fileList = ref([]);
+const pdfUrl = ref(null);
 
-const acceptTypes = props.accept.map((ext) => `.${ext}`).join(",");
-
-// Watch untuk props.files
-watch(
-    () => props.files,
-    (newFiles) => {
-        console.log("Props files changed:", newFiles);
-        if (newFiles && newFiles.length > 0) {
-            localFiles.value = [...newFiles];
-        } else {
-            if (localFiles.value.length === 0) {
-                localFiles.value = [];
-            }
-        }
-    },
-    { deep: true },
-);
-
-// Watch localFiles
-watch(
-    localFiles,
-    (newFiles) => {
-        console.log("Local files changed:", newFiles);
-        emit("update:files", newFiles);
-    },
-    { deep: true },
-);
-
-// Fungsi untuk mengecek apakah file sudah ada
-const isFileExists = (newFile) => {
-    return localFiles.value.some(
-        (existingFile) =>
-            existingFile.name === newFile.name &&
-            existingFile.size === newFile.size,
-    );
+// Get PDF URL
+const getPdfUrl = (attachment) => {
+    if (!attachment) return null;
+    // Sesuaikan dengan URL storage Anda
+    return `/storage/${attachment}`;
+    // Atau jika menggunakan asset
+    // return import.meta.env.VITE_APP_URL + '/storage/' + attachment
 };
 
-// Fungsi untuk menangani upload file dengan debounce
-const handleFileUpload = (fileObj) => {
-    // Clear timer sebelumnya
-    if (debounceTimer) {
-        clearTimeout(debounceTimer);
+// Initialize existing PDF
+const initializePdf = () => {
+    if (displayData.value.attachment) {
+        pdfUrl.value = getPdfUrl(displayData.value.attachment);
+
+        // // Add to file list for preview
+        // fileList.value = [
+        //     {
+        //         id: props.cashAdvance.id,
+        //         name:
+        //             props.cashAdvance.original_name ||
+        //             props.cashAdvance.attachment.split("/").pop(),
+        //         status: "finished",
+        //         url: pdfUrl.value,
+        //     },
+        // ];
+    }
+};
+
+// ✅ VALIDASI SEBELUM MASUK
+const beforeUpload = ({ file }) => {
+    const maxSizeMB = 2;
+
+    // tipe file
+    if (file.type !== "application/pdf") {
+        message.error("File harus PDF");
+        return false;
     }
 
-    // Debounce untuk mencegah double upload
-    debounceTimer = setTimeout(() => {
-        // Generate unique ID untuk file
-        const fileKey = `${fileObj.name}_${fileObj.size}_${fileObj.lastModified || Date.now()}`;
+    // ukuran file
+    if (file.file.size / 1024 / 1024 > maxSizeMB) {
+        message.error("Maksimal ukuran 2MB");
+        return false;
+    }
 
-        // Cek apakah file ini sama dengan yang terakhir diproses (dalam 500ms)
-        if (lastProcessedFile.value === fileKey) {
-            console.log("Duplicate file detected, skipping:", fileObj.name);
-            return;
-        }
+    // replace file lama
+    fileList.value = [file];
 
-        // Tandai file sedang diproses
-        lastProcessedFile.value = fileKey;
-
-        // Validasi ukuran
-        const fileSize = fileObj.size;
-        if (fileSize > props.maxSize * 1024 * 1024) {
-            message.error(`Ukuran file melebihi ${props.maxSize}MB`);
-            lastProcessedFile.value = null;
-            return;
-        }
-
-        // Validasi tipe
-        const extension = fileObj.name.split(".").pop()?.toLowerCase();
-        if (!props.accept.includes(extension)) {
-            message.error(
-                `Tipe file tidak didukung. Format: ${props.accept.join(", ")}`,
-            );
-            lastProcessedFile.value = null;
-            return;
-        }
-
-        // Validasi jumlah file
-        if (!props.multiple && localFiles.value.length >= props.maxFiles) {
-            message.warning(`Maksimal ${props.maxFiles} file`);
-            lastProcessedFile.value = null;
-            return;
-        }
-
-        // Cek duplikasi file
-        const newFileCheck = {
-            name: fileObj.name,
-            size: fileSize,
-        };
-
-        if (isFileExists(newFileCheck)) {
-            message.warning(`File "${fileObj.name}" sudah ada`);
-            lastProcessedFile.value = null;
-            return;
-        }
-
-        // Buat object file baru
-        const newFile = {
-            id: Date.now() + Math.random(),
-            name: fileObj.name,
-            size: fileSize,
-            type: extension,
-            file: fileObj,
-            url: URL.createObjectURL(fileObj),
-            status: "success",
-            uploadTime: Date.now(),
-        };
-
-        console.log("Creating new file:", newFile);
-
-        // Tambahkan ke localFiles
-        if (props.multiple) {
-            localFiles.value.push(newFile);
-        } else {
-            // Hapus file lama
-            if (localFiles.value.length > 0 && localFiles.value[0].url) {
-                URL.revokeObjectURL(localFiles.value[0].url);
-            }
-            localFiles.value = [newFile];
-        }
-
-        console.log("Updated localFiles:", localFiles.value);
-        message.success(`File ${newFile.name} berhasil diupload`);
-
-        // Reset lastProcessedFile setelah 1 detik
-        setTimeout(() => {
-            lastProcessedFile.value = null;
-        }, 1000);
-    }, 100); // Debounce 100ms
+    return false; // karena manual upload
 };
 
-// Handler untuk @change dengan pengecekan file list
-const handleChange = ({ file, fileList }) => {
-    console.log("Change event received:", { file, fileList });
+// ✅ HANDLE CHANGE (backup kontrol)
+const handleChange = ({ fileList: newFileList }) => {
+    fileList.value = newFileList.slice(-1);
+};
 
-    // Ambil file object yang benar
-    let fileObj = file.file || file;
-
-    // Cek apakah ini file yang valid
-    if (!fileObj || !fileObj.name) {
-        console.error("Invalid file object:", file);
+// ✅ SUBMIT
+const submitForm = () => {
+    if (!fileList.value.length) {
+        message.error("File wajib diupload");
         return;
     }
 
-    // Cek apakah file sudah ada di fileList sebelumnya
-    // Naive UI sering memanggil change dengan file yang sama multiple times
-    const existingInList = fileList.filter(
-        (f) => f.file?.name === fileObj.name || f.name === fileObj.name,
-    );
+    const formData = new FormData();
 
-    // Jika file sudah ada di list dan ini adalah panggilan kedua, skip
-    if (existingInList.length > 1) {
-        console.log("File already in list, skipping duplicate");
-        return;
-    }
+    // kirim relasi id
+    formData.append("id", displayData.value.id);
 
-    // Proses file
-    handleFileUpload(fileObj);
-};
+    // kirim file
+    formData.append("files[]", fileList.value[0].file);
 
-const removeFile = (index) => {
-    console.log("Removing file at index:", index);
-    if (localFiles.value[index]?.url) {
-        URL.revokeObjectURL(localFiles.value[index].url);
-    }
-    localFiles.value.splice(index, 1);
+    props.submit({
+        values: formData,
+        method: "put",
+        url: "penggunaan-dana.update",
+        id: displayData.value.id,
 
-    if (localFiles.value.length === 0) {
-        emit("update:files", []);
-    }
-};
-
-const removeAllFiles = () => {
-    localFiles.value.forEach((file) => {
-        if (file.url) {
-            URL.revokeObjectURL(file.url);
-        }
+        onSuccess: () => {},
     });
-    localFiles.value = [];
-    emit("update:files", []);
-    message.success("Semua file berhasil dihapus");
 };
 
-const previewFile = (file) => {
-    previewFileData.value = {
-        url: file.url,
-        type: file.type === "pdf" ? "pdf" : "image",
-    };
-    showPreview.value = true;
-};
+console.log("pdf", pdfUrl.value);
 
-const canPreview = (file) => {
-    return file.type === "pdf" || ["jpg", "jpeg", "png"].includes(file.type);
-};
-
-const isPdf = (fileName) => {
-    return fileName?.toLowerCase().endsWith(".pdf");
-};
-
-const truncateFileName = (name, maxLength = 30) => {
-    if (!name) return "";
-    if (name.length <= maxLength) return name;
-    const ext = name.split(".").pop();
-    const baseName = name.slice(0, maxLength - ext.length - 3);
-    return `${baseName}...${ext}`;
-};
-
-const formatFileSize = (bytes) => {
-    if (!bytes) return "";
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-const handleCancel = () => {
-    console.log("Cancel clicked");
-    localFiles.value.forEach((file) => {
-        if (file.url) {
-            URL.revokeObjectURL(file.url);
-        }
-    });
-    localFiles.value = [];
-    if (debounceTimer) {
-        clearTimeout(debounceTimer);
-    }
-    lastProcessedFile.value = null;
-    if (props.closeModal) {
-        props.closeModal();
-    }
-    emit("cancel");
-    message.info("Data dibatalkan");
-};
-
-const handleSubmit = async () => {
-    console.log("Submit clicked, localFiles:", localFiles.value);
-    console.log("Local files length:", localFiles.value.length);
-
-    if (!localFiles.value || localFiles.value.length === 0) {
-        console.warn("No files found!");
-        message.warning("Harap upload file terlebih dahulu");
-        return;
-    }
-
-    submitting.value = true;
-
-    try {
-        const formData = new FormData();
-
-        localFiles.value.forEach((file, index) => {
-            if (file.file) {
-                console.log(`Appending file ${index}:`, file.file);
-                formData.append(`files[${index}]`, file.file);
-            }
-        });
-
-        formData.append("borrowerInfo", JSON.stringify(props.borrowerInfo));
-        formData.append("dataSelected", JSON.stringify(selectedItem.value));
-
-        if (props.submit) {
-            await props.submit(formData);
-        } else {
-            emit("submit", {
-                files: localFiles.value,
-                borrowerInfo: props.borrowerInfo,
-                dataSelected: selectedItem.value,
-            });
-        }
-
-        message.success("Bukti berhasil disimpan");
-    } catch (error) {
-        console.error("Submit error:", error);
-        message.error(error.message || "Gagal menyimpan bukti");
-    } finally {
-        submitting.value = false;
-    }
-};
-
-const reset = () => {
-    localFiles.value.forEach((file) => {
-        if (file.url) {
-            URL.revokeObjectURL(file.url);
-        }
-    });
-    localFiles.value = [];
-    if (debounceTimer) {
-        clearTimeout(debounceTimer);
-    }
-    lastProcessedFile.value = null;
-};
-
-defineExpose({ reset });
+onMounted(() => {
+    initializePdf();
+});
+// defineExpose({ reset });
 </script>
 
 <template>
@@ -446,67 +213,75 @@ defineExpose({ reset });
                     <DocumentOutline />
                 </NIcon>
                 <span class="upload-title">DOKUMEN BUKTI</span>
-                <!-- <div class="header-actions" v-if="localFiles.length > 0">
-                    <NButton
-                        size="small"
-                        text
-                        type="error"
-                        @click="removeAllFiles"
-                    >
-                        <template #icon>
-                            <NIcon><TrashOutline /></NIcon>
-                        </template>
-                        Hapus Semua
-                    </NButton>
-                </div> -->
             </div>
 
             <!-- Upload Component -->
-            <div class="upload-component">
-                <NUpload
-                    ref="uploadRef"
-                    :multiple="multiple"
-                    :accept="acceptTypes"
-                    :max="maxFiles"
-                    :default-upload="false"
-                    @change="handleChange"
-                    class="upload-area"
-                >
-                    <NUploadDragger>
-                        <div class="upload-dragger-content">
-                            <NIcon size="32" color="#18a058">
-                                <CloudUploadOutline />
-                            </NIcon>
-                            <NText depth="3" size="small">
-                                Klik atau tarik file ke sini
-                            </NText>
-                            <NText depth="3" size="tiny" class="file-hint">
-                                {{ placeholder }} · {{ maxSize }}MB maks ·
-                                {{ accept.join(", ") }}
-                            </NText>
-                        </div>
-                    </NUploadDragger>
-                </NUpload>
-            </div>
+            <NForm>
+                <div class="upload-component">
+                    <NUpload
+                        v-model:file-list="fileList"
+                        :max="1"
+                        accept=".pdf"
+                        :default-upload="false"
+                        @before-upload="beforeUpload"
+                        @change="handleChange"
+                    >
+                        <NUploadDragger>
+                            <div class="upload-dragger-content">
+                                <NIcon size="32" color="#18a058">
+                                    <CloudUploadOutline />
+                                </NIcon>
 
-            <!-- Action Buttons -->
-            <div class="action-buttons">
-                <NButton size="large" @click="handleCancel" class="cancel-btn">
-                    Batal
-                </NButton>
-                <NButton
-                    type="primary"
-                    size="large"
-                    :loading="submitting"
-                    @click="handleSubmit"
-                    class="submit-btn"
-                >
-                    <template #icon>
-                        <NIcon><CheckmarkOutline /></NIcon>
-                    </template>
-                    Simpan Bukti
-                </NButton>
-            </div>
+                                <NText depth="3" size="small">
+                                    Klik atau tarik file PDF ke sini
+                                </NText>
+
+                                <NText depth="3" size="tiny">
+                                    Maksimal 2MB · PDF saja
+                                </NText>
+                            </div>
+                        </NUploadDragger>
+                    </NUpload>
+                </div>
+                <!-- <div v-if="pdfUrl" class="pdf-container">
+                    <iframe
+                        :src="pdfUrl"
+                        class="pdf-iframe"
+                        frameborder="0"
+                        width="100%"
+                        height="600px"
+                    >
+                    </iframe>
+                </div> -->
+
+                <!-- Action Buttons -->
+                <div class="flex justify-end border-t pt-4 px-2 mt-4">
+                    <n-space>
+                        <n-button @click="closeModal">
+                            <template #icon>
+                                <n-icon>
+                                    <CloseOutline />
+                                </n-icon>
+                            </template>
+                            Batal
+                        </n-button>
+
+                        <n-button
+                            type="primary"
+                            :loading="loading"
+                            :disabled="loading"
+                            @click="submitForm"
+                        >
+                            <template #icon>
+                                <n-icon>
+                                    <SaveOutline />
+                                </n-icon>
+                            </template>
+                            Simpan Bukti
+                        </n-button>
+                    </n-space>
+                </div>
+            </NForm>
         </div>
     </n-card>
 </template>
@@ -655,30 +430,5 @@ defineExpose({ reset });
     width: 100%;
     height: 500px;
     border: none;
-}
-
-.action-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 16px;
-    padding-top: 8px;
-    border-top: 1px solid #f0f0f0;
-}
-
-.cancel-btn,
-.submit-btn {
-    min-width: 120px;
-    border-radius: 8px;
-}
-
-@media (max-width: 640px) {
-    .action-buttons {
-        flex-direction: column;
-    }
-
-    .cancel-btn,
-    .submit-btn {
-        width: 100%;
-    }
 }
 </style>

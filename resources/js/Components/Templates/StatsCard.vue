@@ -6,7 +6,7 @@ import {
     TimeOutline,
     CloseOutline,
 } from "@vicons/ionicons5";
-import { NIcon } from "naive-ui";
+import { NIcon, NTag } from "naive-ui";
 
 const props = defineProps({
     stat: { type: Object, required: true },
@@ -49,9 +49,11 @@ const colors = colorClasses[props.stat.color] || colorClasses.blue;
         </div>
     </div>
     <div>
-        <p class="text-3xl font-bold text-gray-900">
+        <p class="text-3xl font-bold text-gray-900 py-2">
             {{ value }}
         </p>
-        <!-- <p class="text-xs text-gray-400 mt-1">Data pengajuan</p> -->
+        <!-- <n-tag :type="stat.tagType" :bordered="false">
+            {{ stat.subLabel }}
+        </n-tag> -->
     </div>
 </template>

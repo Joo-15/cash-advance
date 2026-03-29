@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\FundUsageRequest;
 use App\Models\CashAdvance;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class FundUsageController extends Controller
@@ -39,7 +42,7 @@ class FundUsageController extends Controller
                     $query->orderBy($request->sort, $request->order);
                 }
             })
-            ->whereIn('status', ['approved', 'disbursed'])
+            ->whereIn('status', ['disbursed'])
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
@@ -104,9 +107,47 @@ class FundUsageController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(FundUsageRequest $request, CashAdvance $penggunaan_dana)
     {
-        //
+        try {
+            // Hanya handle file upload
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $file) {
+                    // Hapus file lama jika ada
+                    if ($penggunaan_dana->attachment) {
+                        Storage::disk('public')->delete($penggunaan_dana->attachment);
+                    }
+
+                    // Generate unique filename
+                    $originalName = $file->getClientOriginalName();
+                    $fileName = time() . '_' . uniqid() . '_' . $originalName;
+                    $filePath = $file->storeAs('uploads/documents', $fileName, 'public');
+
+                    // Update hanya field attachment
+                    $penggunaan_dana->update([
+                        'attachment' => $filePath,
+                        'original_name' => $originalName
+                    ]);
+                }
+
+                $message = "File berhasil diperbarui";
+            } else {
+                $message = "Tidak ada file yang diupload";
+            }
+
+            return redirect()
+                ->back()
+                ->with('success', $message);
+        } catch (\Exception $e) {
+            Log::error('Update file failed', [
+                'cash_advance_id' => $penggunaan_dana->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()
+                ->back()
+                ->with('error', 'Gagal mengupdate file. Silakan coba lagi.');
+        }
     }
 
     /**

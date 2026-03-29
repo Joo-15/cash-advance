@@ -157,7 +157,7 @@ const [disbursed_at] = defineField("disbursed_at");
                         <!-- Jumlah Pencairan -->
                         <n-form-item
                             size="large"
-                            label="Jumlah"
+                            label="Jumlah dicairkan"
                             :validation-status="errors.amount ? 'error' : null"
                             :feedback="errors.amount"
                             required
@@ -199,7 +199,7 @@ const [disbursed_at] = defineField("disbursed_at");
                     </div>
 
                     <!-- Buttons -->
-                    <div class="form-actions mt-4">
+                    <div class="form-actions">
                         <n-button
                             type="primary"
                             size="large"
@@ -216,6 +216,10 @@ const [disbursed_at] = defineField("disbursed_at");
 </template>
 
 <style scoped>
+:deep(.jumlah-input .n-input__input) {
+    text-align: right;
+}
+
 .disbursement-card {
     border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);

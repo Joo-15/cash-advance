@@ -143,6 +143,13 @@ const columnConfig = [
         width: 150,
     },
     {
+        title: "Bukti",
+        key: "attachment",
+        type: "attachment",
+        align: "center",
+        width: 150,
+    },
+    {
         title: "Status",
         key: "status",
         type: "status",

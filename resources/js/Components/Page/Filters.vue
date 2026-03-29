@@ -3,7 +3,7 @@ import { NInput, NSelect } from "naive-ui";
 
 // Props dari parent
 const props = defineProps({
-    placeholder: { type: String, default: "Search.." },
+    placeholder: { type: String, default: "Cari data disini.." },
     filters: { type: Object, required: true },
     showSearch: { type: Boolean, required: false },
     showSelect: { type: Boolean, required: false },
@@ -19,6 +19,7 @@ const emit = defineEmits(["update:search", "update:status"]);
         <div class="flex items-center gap-4">
             <div class="flex-1" v-if="showSearch">
                 <n-input
+                    size="medium"
                     :value="filters.search"
                     :placeholder="placeholder"
                     clearable
@@ -29,6 +30,7 @@ const emit = defineEmits(["update:search", "update:status"]);
 
             <div v-if="showSelect" class="w-56">
                 <n-select
+                    size="medium"
                     :value="filters.status"
                     :options="selectOptions"
                     placeholder="Filter Status"
