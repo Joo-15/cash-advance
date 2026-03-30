@@ -68,7 +68,7 @@ export function useDataTable({
      */
 
     // Loading states
-    const dialog = useDialog()
+    const dialog = useDialog();
     const loadingSearch = ref(false);
     const loadingTable = ref(false);
     const currentPage = ref(1);
@@ -81,6 +81,7 @@ export function useDataTable({
     const filters = reactive({
         search: initialFilters.search || "",
         status: initialFilters.status || null,
+        department: initialFilters.department || null,
         pageSize: initialFilters.pageSize || initialPageSize,
         sort: initialFilters.sort || null,
         order: initialFilters.order || null,
@@ -154,7 +155,7 @@ export function useDataTable({
 
     const renderAttachment = (value) => {
         // Cek kosong
-        if (!value || (typeof value === 'string' && value.trim() === '')) {
+        if (!value || (typeof value === "string" && value.trim() === "")) {
             return h(
                 NTag,
                 {
@@ -163,12 +164,12 @@ export function useDataTable({
                     round: true,
                     bordered: false,
                 },
-                { default: () => "Belum Upload" }
+                { default: () => "Belum Upload" },
             );
         }
 
         // Sudah ada attachment
-        const fileName = value.split('/').pop();
+        const fileName = value.split("/").pop();
         const fullUrl = `/storage/${value}`; // Sesuaikan dengan URL storage Anda
 
         return h(
@@ -178,35 +179,41 @@ export function useDataTable({
                 size: "small",
                 round: true,
                 bordered: false,
-                style: { cursor: 'pointer' },
+                style: { cursor: "pointer" },
                 onClick: () => {
                     // Buka modal dengan PDF
                     dialog.create({
                         title: "Lampiran Bukti",
-                        content: () => h('div', { style: { width: '100%', height: '80vh' } }, [
-                            h('iframe', {
-                                src: fullUrl,
-                                style: {
-                                    width: '100%',
-                                    height: '100%',
-                                    border: 'none'
-                                },
-                                frameborder: '0'
-                            })
-                        ]),
+                        content: () =>
+                            h(
+                                "div",
+                                { style: { width: "100%", height: "80vh" } },
+                                [
+                                    h("iframe", {
+                                        src: fullUrl,
+                                        style: {
+                                            width: "100%",
+                                            height: "100%",
+                                            border: "none",
+                                        },
+                                        frameborder: "0",
+                                    }),
+                                ],
+                            ),
                         style: {
-                            width: '70%',
-                            maxWidth: '1200px'
+                            width: "70%",
+                            maxWidth: "1200px",
                         },
-                        positiveText: 'Tutup',
-                        showIcon: false
-                    })
+                        positiveText: "Tutup",
+                        showIcon: false,
+                    });
                 },
             },
             {
                 default: () => "Lampiran Bukti",
-                icon: () => h(NIcon, { size: 18 }, { default: () => h(AttachOutline) })
-            }
+                icon: () =>
+                    h(NIcon, { size: 18 }, { default: () => h(AttachOutline) }),
+            },
         );
     };
 
@@ -256,9 +263,9 @@ export function useDataTable({
                     default: () => label, // Teks tombol
                     ...(icon
                         ? {
-                            icon: () =>
-                                h(NIcon, null, { default: () => h(icon) }),
-                        }
+                              icon: () =>
+                                  h(NIcon, null, { default: () => h(icon) }),
+                          }
                         : {}),
                 },
             );
@@ -457,10 +464,10 @@ export function useDataTable({
 
         return buttons.length
             ? h(
-                NSpace,
-                { align: "center", justify: placement, size: 4 },
-                { default: () => buttons },
-            )
+                  NSpace,
+                  { align: "center", justify: placement, size: 4 },
+                  { default: () => buttons },
+              )
             : null;
     };
 
@@ -604,8 +611,7 @@ export function useDataTable({
                 break;
 
             case "attachment":
-                baseColumn.render = (row) =>
-                    renderAttachment(row[column.key]);
+                baseColumn.render = (row) => renderAttachment(row[column.key]);
                 break;
 
             case "action":
@@ -761,6 +767,7 @@ export function useDataTable({
         };
 
         if (filters.search) params.search = filters.search;
+        if (filters.department) params.department = filters.department;
         if (filters.status) params.status = filters.status;
         if (filters.sort && filters.order) {
             params.sort = filters.sort;
@@ -802,6 +809,14 @@ export function useDataTable({
     // Watch status
     watch(
         () => filters.status,
+        () => {
+            loadingTable.value = true;
+            debouncedFetch();
+        },
+    );
+
+    watch(
+        () => filters.department,
         () => {
             loadingTable.value = true;
             debouncedFetch();

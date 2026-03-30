@@ -390,7 +390,9 @@ watch(
                         collapsed ? 'w-10 h-10' : 'w-10 h-10',
                     ]"
                 >
-                    <span class="text-indigo-700 font-bold text-4xl">CA</span>
+                    <span class="text-indigo-700 font-bold text-4xl"
+                        ><img src="/images/logoonly.png" alt="Foto"
+                    /></span>
                 </div>
                 <Transition name="fade" class="ml-4">
                     <div v-if="!collapsed">
@@ -398,7 +400,12 @@ watch(
                             class="font-bold text-lg text-gray-800 dark:text-white whitespace-nowrap"
                         >
                             {{
-                                userRole !== "Super Admin"
+                                ![
+                                    "Super Admin",
+                                    "General Manager",
+                                    "Manager Accounting",
+                                    "Finance",
+                                ].includes(userRole)
                                     ? department
                                     : userRole
                             }}

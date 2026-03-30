@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Web\ApprovalController;
 use App\Http\Controllers\Web\ApprovalStepController;
@@ -49,6 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('/penggunaan-dana', FundUsageController::class);
     // Route::get('/disbursement/{disbursement}/show', [DisbursementController::class, 'show'])->name('disbursement.show');
     // Route::get('/disbursement', [DisbursementController::class, 'store'])->name('disbursement.store');
+    Route::get('/departments/options', [DepartmentController::class, 'getOptions']);
 
 
 

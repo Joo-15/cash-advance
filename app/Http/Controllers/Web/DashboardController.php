@@ -40,7 +40,7 @@ class DashboardController extends Controller
         $cashAdvanceQuery = CashAdvance::query();
 
         // Jika bukan admin/finance, hanya lihat data department sendiri
-        if (!in_array($user->role->name, ['Super Admin', 'Admin', 'Finance'])) {
+        if (!in_array($user->role->name, ['Super Admin', 'Admin', 'General Manager', 'Manager Accounting', 'Finance'])) {
             $cashAdvanceQuery->whereHas('user', function ($query) use ($user) {
                 $query->where('department_id', $user->department_id);
             });

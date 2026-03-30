@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { usePage } from "@inertiajs/vue3";
 
 // Composables
@@ -14,11 +14,11 @@ import Container from "@/Components/Layout/Container.vue";
 import PageHeader from "@/Components/Page/PageHeader.vue";
 import Filters from "@/Components/Page/Filters.vue";
 import ModalForm from "@/Components/Page/ModalForm.vue";
-import FormApprovalStep from "./FormApproval.vue";
 import FormApproval from "./FormApproval.vue";
 import { useAuth } from "@/Composables/useAuth";
 import { formatDate } from "@/utils/helpers";
 import { STATUS_OPTIONS } from "@/Constants/status";
+import { useDepartment } from "@/Composables/useCollection";
 
 // Props definition
 const props = defineProps({
@@ -31,19 +31,7 @@ const page = usePage();
 // Refs
 const formRef = ref(null);
 
-const {
-    userName,
-    userAvatar,
-    greeting,
-    fullNameWithTitle,
-    departmentName,
-    roleName,
-    isAdmin,
-    isSupervisor,
-    isEmployee,
-    hasRole,
-    inDepartmentName,
-} = useAuth();
+const { userName, departmentName, roleName } = useAuth();
 
 const {
     loadingButton,
@@ -81,6 +69,7 @@ const {
     route: route("approvals.index"),
     filters: {
         search: props.filters.search || "",
+        department: props.filters.department || null,
         status: props.filters.status || null,
         pageSize: Number(props.approval.per_page ?? 10),
         page: Number(props.approval.current_page ?? 1),
@@ -97,6 +86,10 @@ const {
     },
 });
 
+const { departments } = useDepartment({});
+
+console.log("department", departments);
+
 // Table data transformation
 const rows = computed(() =>
     props.approval.data.map((row) => ({ ...row, detail: true })),
@@ -111,7 +104,7 @@ const columnConfig = [
         sorter: false,
     },
     {
-        title: "Department",
+        title: "Departemen",
         key: "cash_advance.user.department.name",
         width: 150,
         sorter: false,
@@ -134,6 +127,7 @@ const columnConfig = [
     {
         title: "Tgl. Pengajuan",
         key: "cash_advance.request_date",
+        align: "center",
         type: "date",
         width: 150,
         sorter: false,
@@ -180,9 +174,9 @@ const actions = {
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));
 
-const handleDownload = () => {
-    console.log("Download Excel");
-};
+// onMounted(() => {
+//     fetchDepartments();
+// });
 </script>
 
 <template>
@@ -191,10 +185,6 @@ const handleDownload = () => {
             <PageHeader
                 add-button-text="Tambah"
                 :title="page.props.pageHeader ?? 'Cash Advance'"
-                :show-add="false"
-                :show-download="false"
-                @add="tambah"
-                @download="handleDownload"
             ></PageHeader>
         </template>
         <template #filters>
@@ -202,9 +192,11 @@ const handleDownload = () => {
                 :filters="filters"
                 :show-search="true"
                 :show-select="true"
-                :select-options="STATUS_OPTIONS"
+                :department-options="departments"
+                :status-options="STATUS_OPTIONS"
                 :loading-search="loadingSearch"
                 @update:search="filters.search = $event"
+                @update:department="filters.department = $event"
                 @update:status="filters.status = $event"
             ></Filters>
         </template>

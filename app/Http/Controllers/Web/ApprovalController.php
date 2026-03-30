@@ -50,10 +50,16 @@ class ApprovalController extends Controller
                     ->orWhere('approvals.status', 'like', $searchTerm);
             });
         }
+        // Filter berdasarkan departemen
+        if ($request->department) {
+            $query->whereHas('cashAdvance.user', function ($subQuery) use ($request) {
+                $subQuery->where('department_id', $request->department);
+            });
+        }
 
         // Filter berdasarkan status
         if ($request->status) {
-            $query->where('approvals.status', $request->status);
+            $query->where('status', $request->status);
         }
 
         // Sorting - Gunakan subquery untuk menghindari join dan DISTINCT
@@ -136,6 +142,7 @@ class ApprovalController extends Controller
             'filters' => $request->only([
                 'search',
                 'status',
+                'department',
                 'per_page',
                 'sort',
                 'order'

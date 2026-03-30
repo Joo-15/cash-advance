@@ -132,8 +132,8 @@ onMounted(() => {
                             {{ user?.name || "User" }}
                         </n-tooltip> -->
 
-                        <n-avatar round class="bg-blue-400">
-                            <n-icon size="20">
+                        <n-avatar size="small" round class="bg-blue-400">
+                            <n-icon size="18">
                                 <Person />
                             </n-icon>
                         </n-avatar>
