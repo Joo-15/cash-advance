@@ -88,7 +88,7 @@ const rows = computed(() =>
 // Column configuration
 const columnConfig = [
     {
-        title: "Tgl. Cair",
+        title: "Tgl. Pencairan",
         key: "disbursement.disbursed_at",
         type: "date",
         width: 120,

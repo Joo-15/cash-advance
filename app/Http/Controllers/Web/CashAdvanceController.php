@@ -19,65 +19,80 @@ class CashAdvanceController extends Controller
 
     public function index(Request $request)
     {
-        $departmentName = Auth::user()->department?->name;
         $user = Auth::user();
+        $departmentName = $user->department?->name;
+        $isSuperAdmin = $user->role === 'super_admin'; // sesuaikan dengan sistemmu
 
         $perPage = (int) $request->input('per_page', 10);
 
-        $isSuperAdmin = $user->role === 'super_admin'; // sesuaikan dengan sistemmu
-
-        $cashadvance = CashAdvance::with([
+        // Base query dengan eager loading
+        $query = CashAdvance::with([
             'approvals.approvalStep.approvalStepRoles.role',
             'user.department'
-        ])
-            ->when($request->search, function ($query) use ($request) {
-                $searchTerm = '%' . $request->search . '%';
+        ]);
 
-                $query->where(function ($q) use ($searchTerm) {
-                    $q->where('purpose', 'like', $searchTerm)
+        // Filter search
+        if ($request->filled('search')) {
+            $searchTerm = '%' . $request->search . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('purpose', 'like', $searchTerm)
+                    ->orWhere('request_date', 'like', $searchTerm)
+                    ->orWhereRaw("CAST(amount AS CHAR) like ?", [$searchTerm]);
+            });
+        }
+
+        // Filter status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter berdasarkan department (kecuali super admin)
+        if (!$isSuperAdmin && $departmentName) {
+            $query->whereHas('user.department', function ($q) use ($departmentName) {
+                $q->where('name', $departmentName);
+            });
+        }
+
+        // Sorting
+        if ($request->filled('sort') && $request->filled('order')) {
+            $allowedSorts = ['request_date', 'purpose', 'amount', 'status', 'created_at'];
+            if (in_array($request->sort, $allowedSorts)) {
+                $query->orderBy($request->sort, $request->order);
+            }
+        }
+
+        // Pagination
+        $cashadvance = $query->latest()->paginate($perPage)->withQueryString();
+
+        // Optimasi statData - menggunakan 1 query (group by)
+        $statusCounts = CashAdvance::query()
+            ->when(!$isSuperAdmin && $departmentName, function ($q) use ($departmentName) {
+                $q->whereHas('user.department', function ($sub) use ($departmentName) {
+                    $sub->where('name', $departmentName);
+                });
+            })
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $searchTerm = '%' . $request->search . '%';
+                $q->where(function ($sub) use ($searchTerm) {
+                    $sub->where('purpose', 'like', $searchTerm)
                         ->orWhere('request_date', 'like', $searchTerm)
                         ->orWhereRaw("CAST(amount AS CHAR) like ?", [$searchTerm]);
                 });
             })
-            ->when($request->status, function ($query) use ($request) {
-                $query->where('status', $request->status);
-            })
-            ->when($request->sort && $request->order, function ($query) use ($request) {
-                $allowedSorts = ['request_date', 'purpose', 'amount', 'status'];
-
-                if (in_array($request->sort, $allowedSorts)) {
-                    $query->orderBy($request->sort, $request->order);
-                }
-            })
-
-            // ✅ Filter hanya jika BUKAN super admin
-            ->when(!$isSuperAdmin && $departmentName, function ($query) use ($departmentName) {
-                return $query->whereHas('user.department', function ($q) use ($departmentName) {
-                    $q->where('name', $departmentName);
-                });
-            })
-
-            ->latest()
-            ->paginate($perPage)
-            ->withQueryString();
+            ->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
 
         return Inertia::render('CashAdvance/IndexCashAdvance', [
             'cashadvance' => $cashadvance,
-            'filters' => $request->only([
-                'search',
-                'status',
-                'per_page',
-                'sort',
-                'order'
-            ]),
+            'filters' => $request->only(['search', 'status', 'per_page', 'sort', 'order']),
             'statData' => [
-                'total_pengajuan' => CashAdvance::count(),
-                'pengajuan_disetujui' => CashAdvance::where('status', 'approved')->count(),
-                'pengajuan_pending' => CashAdvance::where('status', 'pending')->count(),
-                'pengajuan_ditolak' => CashAdvance::where('status', 'rejected')->count(),
-                'pengajuan_dicairkan' => CashAdvance::where('status', 'disbursed')->count(),
+                'total_pengajuan' => $statusCounts->sum(),
+                'pengajuan_disetujui' => $statusCounts->get('approved', 0),
+                'pengajuan_pending' => $statusCounts->get('pending', 0),
+                'pengajuan_ditolak' => $statusCounts->get('rejected', 0),
+                'pengajuan_dicairkan' => $statusCounts->get('disbursed', 0),
             ],
-
         ]);
     }
 

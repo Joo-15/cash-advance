@@ -1,6 +1,5 @@
 <!-- Components/DataTable/BaseTable.vue -->
 <script setup>
-import { computed, ref, watch } from "vue";
 import { NButton, NIcon, NTag } from "naive-ui";
 import InertiaDataTable from "@/Components/DataTable/InertiaDataTable.vue";
 import { RefreshOutline } from "@vicons/ionicons5";
@@ -62,7 +61,7 @@ const getStatusLabel = (value) => {
                 closable
                 @close="filters.department = null"
             >
-                Status: {{ getStatusLabel(filters.department) }}
+                Departemen
             </n-tag>
             <n-tag
                 v-if="filters.status"
@@ -70,7 +69,7 @@ const getStatusLabel = (value) => {
                 closable
                 @close="filters.status = null"
             >
-                Status: {{ getStatusLabel(filters.status) }}
+                Status
             </n-tag>
             <n-tag
                 v-if="hasActiveSortFn()"

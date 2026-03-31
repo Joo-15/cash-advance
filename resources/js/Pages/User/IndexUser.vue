@@ -16,6 +16,7 @@ import PageHeader from "@/Components/Page/PageHeader.vue";
 import Filters from "@/Components/Page/Filters.vue";
 import ModalForm from "@/Components/Page/ModalForm.vue";
 import FormUser from "./FormUser.vue";
+import { useDepartment } from "@/Composables/useCollection";
 
 // Props definition
 const props = defineProps({
@@ -69,20 +70,20 @@ const {
     route: route("users.index"),
     filters: {
         search: props.filters.search || "",
-        status: props.filters.status || null,
+        department: props.filters.department
+            ? Number(props.filters.department)
+            : null,
         pageSize: Number(props.users.per_page ?? 10),
         sort: props.filters.sort || null,
         order: props.filters.order || null,
     },
     only: ["users"],
     debounceTime: 300, // Tambahkan debounce time
-    tableConfig: {
-        currency: "IDR",
-        dateFormat: "DD-MM-YYYY",
-        actionSize: "small",
-        ellipsisTooltip: true,
-    },
 });
+
+const { loading: loadingDepartments, departments } = useDepartment({});
+
+const departmentOptions = computed(() => departments.value || []);
 
 // Table data transformation
 const rows = computed(() =>
@@ -151,10 +152,6 @@ const actions = {
 
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));
-
-const handleDownload = () => {
-    console.log("Download Excel");
-};
 </script>
 
 <template>
@@ -170,11 +167,14 @@ const handleDownload = () => {
         </template>
         <template #filters>
             <Filters
+                :loading-options="loadingDepartments"
                 :filters="filters"
                 :show-search="true"
+                :show-department="true"
+                :department-options="departmentOptions"
                 :loading-search="loadingSearch"
                 @update:search="filters.search = $event"
-                @update:status="filters.status = $event"
+                @update:department="filters.department = $event"
             ></Filters>
         </template>
         <template #content>

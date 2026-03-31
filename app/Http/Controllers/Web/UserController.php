@@ -18,10 +18,9 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $perPage = (int) $request->input('per_page', 10);
+        $perPage = $request->get('per_page', 10);
 
-        $user = User::with('department', 'role')
-
+        $users = User::with('department', 'role')
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -31,13 +30,18 @@ class UserController extends Controller
                         });
                 });
             })
+            ->when($request->department, function ($query, $department) {
+                $query->whereHas('department', function ($q) use ($department) {
+                    $q->where('id', $department);
+                });
+            })
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
 
         return Inertia::render('User/IndexUser', [
             'pageHeader' => 'Data Pengguna',
-            'users' => $user,
+            'users' => $users,
             'departments' => Department::getSelectOptions(),
             'roles' => Role::getSelectOptions(),
             'filters' => $request->only([

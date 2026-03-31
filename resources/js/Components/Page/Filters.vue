@@ -6,7 +6,8 @@ const props = defineProps({
     placeholder: { type: String, default: "Cari data disini.." },
     filters: { type: Object, required: true },
     showSearch: { type: Boolean, default: false },
-    showSelect: { type: Boolean, default: false },
+    showStatus: { type: Boolean, default: false },
+    showDepartment: { type: Boolean, default: false },
     departmentOptions: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
     loadingSearch: { type: Boolean, default: false },
@@ -63,25 +64,32 @@ const emit = defineEmits([
             </div>
 
             <!-- Department Select -->
-            <div v-if="showSelect" class="w-56">
+            <div v-if="showDepartment" class="w-56">
+                <!-- ✅ Tampilkan skeleton saat loading -->
+                <!-- <n-skeleton
+                    v-if="loadingOptions"
+                    width="100%"
+                    height="40px"
+                    sharp
+                /> -->
+                <!-- ✅ Tampilkan select jika data sudah siap -->
                 <n-select
-                    v-if="departmentOptions && departmentOptions.length > 0"
                     size="large"
                     :value="filters.department"
                     :options="departmentOptions"
-                    placeholder="Departemen"
+                    placeholder="Pilih Departemen"
                     clearable
                     @update:value="$emit('update:department', $event)"
                 />
             </div>
 
             <!-- Status Select -->
-            <div v-if="showSelect" class="w-56">
+            <div v-if="showStatus" class="w-40">
                 <n-select
                     size="large"
                     :value="filters.status"
                     :options="statusOptions"
-                    placeholder="Filter Status"
+                    placeholder="Pilih Status"
                     clearable
                     @update:value="$emit('update:status', $event)"
                 />

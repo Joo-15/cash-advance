@@ -6,7 +6,8 @@ const props = defineProps({
     stats: { type: Array, default: () => [] },
     statData: { type: Object, default: () => ({}) },
 });
-
+console.log("statData", props.statData);
+// console.log("stats", props.stats);
 // Emit events ke parent
 const emit = defineEmits(["update:status"]);
 </script>
@@ -18,9 +19,9 @@ const emit = defineEmits(["update:status"]);
         <div
             v-for="stat in stats"
             :key="stat.key"
-            class="bg-slate-50 rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition"
+            class="bg-slate-50 rounded-xl py-2 px-5 shadow-sm border border-gray-100 hover:shadow-md transition"
         >
-            <StatsCard :stat="stat" :value="statData?.[stat.key] ?? 0" />
+            <StatsCard :stat="stat" :value="statData" />
         </div>
     </div>
 </template>

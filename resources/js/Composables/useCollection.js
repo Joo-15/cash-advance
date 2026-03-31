@@ -1,18 +1,18 @@
 // Composables/useCollection.js
-import { ref, onMounted } from "vue";
+import { ref, onBeforeMount, onMounted } from "vue"; // ← Ganti onMounted → onBeforeMount
 import axios from "axios";
 
 export function useDepartment(options = {}) {
-    const departments = ref([]); // Pastikan ini ref
-    const loading = ref(false);
+    const departments = ref([]);
+    const loading = ref(true);
     const error = ref(null);
 
     const fetchDepartments = async () => {
         loading.value = true;
         try {
             const response = await axios.get("/departments/options");
-            departments.value = response.data; // Set value, bukan departments
-            console.log("Departments fetched:", departments.value); // Debug
+            departments.value = response.data;
+
             return response.data;
         } catch (err) {
             error.value = err;
@@ -27,7 +27,7 @@ export function useDepartment(options = {}) {
     });
 
     return {
-        departments, // Return ref
+        departments,
         loading,
         error,
         fetchDepartments,

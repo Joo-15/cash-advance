@@ -90,11 +90,7 @@ const {
     },
 });
 
-const {
-    departments,
-    loading: loadingDepartments,
-    fetchDepartments,
-} = useDepartment({});
+const { loading: loadingDepartments, departments } = useDepartment({});
 
 const departmentOptions = computed(() => departments.value || []);
 
@@ -103,74 +99,103 @@ const rows = computed(() =>
     props.approval.data.map((row) => ({ ...row, detail: true })),
 );
 
+// console.log("role", roleName.value);
+
 // Column configuration
-const columnConfig = [
-    {
-        title: "Pemohon",
-        key: "cash_advance.user.name",
-        width: 150,
-        sorter: false,
-    },
-    {
-        title: "Departemen",
-        key: "cash_advance.user.department.name",
-        width: 150,
-        sorter: false,
-    },
-    {
-        title: "Tujuan",
-        key: "cash_advance.purpose",
-        // width: 150,
-        sorter: false,
-    },
-    {
-        title: "Jumlah",
-        key: "cash_advance.amount",
-        type: "currency",
-        currency: "IDR",
-        align: "right",
-        sorter: true, // Aktifkan sorting
-        width: 150,
-    },
-    {
-        title: "Tgl. Pengajuan",
-        key: "cash_advance.request_date",
-        align: "center",
-        type: "date",
-        width: 150,
-        sorter: false,
-    },
-    {
-        title: "Status",
-        key: "status",
-        type: "status",
-        width: 100,
-        align: "center",
-        sorter: true, // Aktifkan sorting
-        statusMap: {
-            pending: { type: "warning", label: "Pending" },
-            approved: { type: "success", label: "Approved" },
-            rejected: { type: "error", label: "Rejected" },
-            default: { type: "default", label: "Unknown" },
+const columnConfig = computed(() => {
+    const columns = [
+        {
+            title: "Pemohon",
+            key: "cash_advance.user.name",
+            width: 150,
+            sorter: false,
+            visible: true,
         },
-    },
-    {
-        title: "Aksi",
-        key: "actions",
-        type: "action",
-        width: 120,
-        fixed: "right",
-        align: "center",
-        actionConfig: {
-            showEdit: false,
-            showDelete: false,
-            showView: false,
-            showDetail: true,
-            size: "small",
+        {
+            title: "Departemen",
+            key: "cash_advance.user.department.name",
+            width: 150,
+            sorter: false,
+            visible: [
+                "Admin",
+                "Super Admin",
+                "General Manager",
+                "Manager Accounting",
+                "Finance",
+            ].includes(roleName.value),
         },
-        sorter: false,
-    },
-];
+        {
+            title: "Tujuan",
+            key: "cash_advance.purpose",
+            sorter: false,
+            visible: true,
+        },
+        {
+            title: "Jumlah",
+            key: "cash_advance.amount",
+            type: "currency",
+            currency: "IDR",
+            align: "right",
+            sorter: true,
+            width: 150,
+            visible: true,
+        },
+        {
+            title: "Tgl. Pengajuan",
+            key: "cash_advance.request_date",
+            align: "center",
+            type: "date",
+            width: 150,
+            sorter: false,
+            visible: true,
+        },
+        {
+            title: "Status",
+            key: "status",
+            type: "status",
+            width: 100,
+            align: "center",
+            sorter: true,
+            statusMap: {
+                pending: { type: "warning", label: "Pending" },
+                approved: { type: "success", label: "Approved" },
+                rejected: { type: "error", label: "Rejected" },
+                default: { type: "default", label: "Unknown" },
+            },
+            visible: true,
+        },
+        {
+            title: "Aksi",
+            key: "actions",
+            type: "action",
+            width: 120,
+            fixed: "right",
+            align: "center",
+            actionConfig: {
+                showEdit: false,
+                showDelete: false,
+                showView: false,
+                showDetail: true,
+                size: "small",
+            },
+            sorter: false,
+            // ✅ Setting visible berdasarkan role
+            visible: [
+                "Admin",
+                "Super Admin",
+                "Supervisor",
+                "Chef",
+                "Manager",
+                "General Manager",
+                "Manager Accounting",
+                "Finance",
+            ].includes(roleName.value),
+        },
+    ];
+
+    // Filter kolom yang visible
+    return columns.filter((column) => column.visible !== false);
+});
 
 // Actions configuration
 const actions = {
@@ -180,7 +205,7 @@ const actions = {
 };
 
 // Table columns
-const tableColumns = computed(() => createColumns(columnConfig, actions));
+const tableColumns = computed(() => createColumns(columnConfig.value, actions));
 </script>
 
 <template>
@@ -193,9 +218,11 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
         </template>
         <template #filters>
             <Filters
+                :loading-options="loadingDepartments"
                 :filters="filters"
                 :show-search="true"
-                :show-select="true"
+                :show-status="true"
+                :show-department="true"
                 :department-options="departmentOptions"
                 :status-options="STATUS_OPTIONS"
                 :loading-search="loadingSearch"
