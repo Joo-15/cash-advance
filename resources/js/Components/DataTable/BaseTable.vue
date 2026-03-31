@@ -22,7 +22,7 @@ const props = defineProps({
     hasActiveSortFn: { type: Function, required: true },
     resetSortFn: { type: Function, required: true },
 });
-
+console.log("filters", props.filters);
 const emit = defineEmits([
     "update:page",
     "update:pageSize",
@@ -40,7 +40,12 @@ const getStatusLabel = (value) => {
     <div class="bg-white rounded-xl shadow-sm">
         <!-- Active Filters -->
         <div
-            v-if="filters.search || filters.status || hasActiveSortFn()"
+            v-if="
+                filters.search ||
+                filters.status ||
+                filters.department ||
+                hasActiveSortFn()
+            "
             class="mb-4 flex flex-wrap gap-2"
         >
             <n-tag
@@ -50,6 +55,14 @@ const getStatusLabel = (value) => {
                 @close="filters.search = ''"
             >
                 Search: {{ filters.search }}
+            </n-tag>
+            <n-tag
+                v-if="filters.department"
+                type="info"
+                closable
+                @close="filters.department = null"
+            >
+                Status: {{ getStatusLabel(filters.department) }}
             </n-tag>
             <n-tag
                 v-if="filters.status"

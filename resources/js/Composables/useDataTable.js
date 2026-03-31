@@ -894,6 +894,7 @@ export function useDataTable({
 
         // Reset semua filters
         filters.search = "";
+        filters.department = null;
         filters.status = null;
         filters.sort = null;
         filters.order = null;

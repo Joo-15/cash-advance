@@ -26,6 +26,8 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
 });
 
+console.log("filters index", props.filters);
+
 // Composables initialization
 const page = usePage();
 // Refs
@@ -69,7 +71,9 @@ const {
     route: route("approvals.index"),
     filters: {
         search: props.filters.search || "",
-        department: props.filters.department || null,
+        department: props.filters.department
+            ? Number(props.filters.department)
+            : null,
         status: props.filters.status || null,
         pageSize: Number(props.approval.per_page ?? 10),
         page: Number(props.approval.current_page ?? 1),
@@ -86,9 +90,13 @@ const {
     },
 });
 
-const { departments } = useDepartment({});
+const {
+    departments,
+    loading: loadingDepartments,
+    fetchDepartments,
+} = useDepartment({});
 
-console.log("department", departments);
+const departmentOptions = computed(() => departments.value || []);
 
 // Table data transformation
 const rows = computed(() =>
@@ -173,10 +181,6 @@ const actions = {
 
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));
-
-// onMounted(() => {
-//     fetchDepartments();
-// });
 </script>
 
 <template>
@@ -192,7 +196,7 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
                 :filters="filters"
                 :show-search="true"
                 :show-select="true"
-                :department-options="departments"
+                :department-options="departmentOptions"
                 :status-options="STATUS_OPTIONS"
                 :loading-search="loadingSearch"
                 @update:search="filters.search = $event"
