@@ -130,7 +130,6 @@ export function useDataTable({
     };
 
     const renderStatus = (value, statusMap = {}) => {
-
         const defaultMap = {
             pending: { type: "warning", label: "Pending" },
             approved: { type: "success", label: "Approved" },
@@ -264,9 +263,9 @@ export function useDataTable({
                     default: () => label, // Teks tombol
                     ...(icon
                         ? {
-                            icon: () =>
-                                h(NIcon, null, { default: () => h(icon) }),
-                        }
+                              icon: () =>
+                                  h(NIcon, null, { default: () => h(icon) }),
+                          }
                         : {}),
                 },
             );
@@ -465,10 +464,10 @@ export function useDataTable({
 
         return buttons.length
             ? h(
-                NSpace,
-                { align: "center", justify: placement, size: 4 },
-                { default: () => buttons },
-            )
+                  NSpace,
+                  { align: "center", justify: placement, size: 4 },
+                  { default: () => buttons },
+              )
             : null;
     };
 
