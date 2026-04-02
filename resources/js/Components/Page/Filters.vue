@@ -19,42 +19,13 @@ const emit = defineEmits([
     "update:status",
     "update:department",
 ]);
-
-// Computed untuk validasi value
-// const getSafeDepartmentValue = computed(() => {
-//     // Jika masih loading atau options kosong
-//     if (props.loadingOptions || !props.departmentOptions?.length) {
-//         return null;
-//     }
-
-//     const value = props.filters.department;
-//     if (!value && value !== 0) return null;
-
-//     // Konversi ke number untuk perbandingan
-//     const numericValue = Number(value);
-
-//     // Cek apakah value valid
-//     const isValid = props.departmentOptions.some(
-//         (opt) => opt.value === numericValue,
-//     );
-
-//     return isValid ? numericValue : null;
-// });
-
-// console.log("get", getSafeDepartmentValue);
-
-// Handler untuk department change
-// const handleDepartmentChange = (value) => {
-//     emit("update:department", value ? Number(value) : null);
-// };
 </script>
 <template>
-    <div class="shadow-sm mb-4">
+    <div class="mb-4">
         <div class="flex items-center gap-4">
             <!-- Search Input -->
             <div class="flex-1" v-if="showSearch">
                 <n-input
-                    size="large"
                     :value="filters.search"
                     :placeholder="placeholder"
                     clearable
@@ -74,7 +45,6 @@ const emit = defineEmits([
                 /> -->
                 <!-- ✅ Tampilkan select jika data sudah siap -->
                 <n-select
-                    size="large"
                     :value="filters.department"
                     :options="departmentOptions"
                     placeholder="Pilih Departemen"
@@ -86,7 +56,6 @@ const emit = defineEmits([
             <!-- Status Select -->
             <div v-if="showStatus" class="w-40">
                 <n-select
-                    size="large"
                     :value="filters.status"
                     :options="statusOptions"
                     placeholder="Pilih Status"

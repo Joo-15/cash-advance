@@ -137,7 +137,7 @@ const columnConfig = computed(() => {
             type: "currency",
             currency: "IDR",
             align: "right",
-            sorter: true,
+            sorter: false,
             width: 150,
             visible: true,
         },
@@ -309,11 +309,11 @@ const columnConfig = computed(() => {
                                     h(
                                         NTag,
                                         {
-                                            type: "success", // HIJAU untuk step yang menjadi tanggung jawab user sekarang
+                                            type: "warning", // HIJAU untuk step yang menjadi tanggung jawab user sekarang
                                             size: "small",
                                             round: true,
                                             bordered: false,
-                                            style: "font-weight: bold;",
+                                            class: "font-bold text-yellow-800",
                                         },
                                         {
                                             default: () =>

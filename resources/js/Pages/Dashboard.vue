@@ -580,9 +580,8 @@ onMounted(() => {
 }
 
 .stat-value {
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 600;
-    margin-bottom: 8px;
 }
 
 .stat-subtitle {

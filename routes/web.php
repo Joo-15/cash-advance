@@ -15,50 +15,69 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // Public Routes
+// Route::get('/', function () {
+//     return Inertia::render('Welcome', [
+//         'canLogin' => Route::has('login'),
+//         'canRegister' => Route::has('register'),
+//         'laravelVersion' => Application::VERSION,
+//         'phpVersion' => PHP_VERSION,
+//     ]);
+// });
+
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    return redirect()->route('login');
 });
 
 // Auth Middleware Group (SEMUA route yang butuh auth)
 Route::middleware(['auth', 'verified'])->group(function () {
-    // Dashboard
+
+    // Dashboard & Profile (All roles)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Profile Routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Resource Routes
-    // Route::resource('produk', ProdukController::class);
-    Route::resource('pengajuan-pinjaman', CashAdvanceController::class);
-    Route::resource('approvals', ApprovalController::class);
-    Route::get('/approvals/{id}/detail', [ApprovalController::class, 'getDetail'])->name('approvals.detail');
-    Route::put('/approvals/{approval}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
-    Route::put('/approvals/{approval}/reject', [ApprovalController::class, 'reject'])->name('approvals.reject');
-    Route::resource('users', UserController::class);
-    Route::resource('approval/approval-steps', ApprovalStepController::class);
-    Route::resource('approval/approval-step-roles', ApprovalStepRoleController::class);
-
-    // DISBURSEMENT
-    Route::resource('/pencairan-dana', DisbursementController::class);
     Route::resource('/penggunaan-dana', FundUsageController::class);
-    // Route::get('/disbursement/{disbursement}/show', [DisbursementController::class, 'show'])->name('disbursement.show');
-    // Route::get('/disbursement', [DisbursementController::class, 'store'])->name('disbursement.store');
     Route::get('/departments/options', [DepartmentController::class, 'getOptions']);
 
+    // ============================================
+    // STAFF & MANAGER & ADMIN & SUPER ADMIN
+    // ============================================
+    Route::middleware(['role:Super Admin,Admin,Employee'])->group(function () {
+        Route::resource('pengajuan-pinjaman', CashAdvanceController::class);
+    });
 
+    // ============================================
+    // MANAGER, ADMIN, SUPER ADMIN
+    // ============================================
+    Route::middleware(['role:Super Admin,Admin,Supervisor,Chef,Manager,General Manager,Manager Accounting,Finance'])->group(function () {
+        // Approvals
+        Route::resource('approvals', ApprovalController::class);
+        Route::get('/approvals/{id}/detail', [ApprovalController::class, 'getDetail'])->name('approvals.detail');
+        Route::put('/approvals/{approval}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
+        Route::put('/approvals/{approval}/reject', [ApprovalController::class, 'reject'])->name('approvals.reject');
+    });
 
+    // ============================================
+    // FINANCE
+    // ============================================
+    Route::middleware(['role:Super Admin,Admin,Finance'])->group(function () {
+        // Disbursement 
+        Route::resource('/pencairan-dana', DisbursementController::class);
+    });
 
+    // ============================================
+    // SUPER ADMIN ONLY
+    // ============================================
+    Route::middleware(['role:Super Admin'])->group(function () {
+        Route::resource('approval/approval-steps', ApprovalStepController::class);
+        Route::resource('approval/approval-step-roles', ApprovalStepRoleController::class);
+    });
 
-    // Tambahkan route lainnya di sini...
-    // Route::resource('pelanggan', PelangganController::class);
-    // Route::resource('penjualan', PenjualanController::class);
+    Route::middleware(['role:Super Admin,Admin,Finance'])->group(function () {
+        Route::resource('users', UserController::class);
+    });
 });
 
 // Auth Routes (login, register, etc.)

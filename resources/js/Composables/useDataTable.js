@@ -1,4 +1,5 @@
 // composables/useInertiaDataTable.js
+
 import { ref, reactive, watch, onBeforeUnmount, h, computed } from "vue";
 import { router } from "@inertiajs/vue3";
 import { debounce } from "lodash";
@@ -15,11 +16,65 @@ import {
 
 /**
  ===================================================
+ HELPER FUNCTIONS (Ditempatkan di awal)
+ ===================================================
+ */
+
+const getNestedValue = (obj, path) => {
+    if (!obj || !path) return null;
+    if (typeof path === "string" && path.includes(".")) {
+        return path.split(".").reduce((current, key) => {
+            return current?.[key] ?? null;
+        }, obj);
+    }
+    return obj[path] ?? null;
+};
+
+const formatCurrency = (value, currency = "IDR") => {
+    if (value === null || value === undefined || value === "") return "Rp 0";
+    let numValue =
+        typeof value === "string"
+            ? parseFloat(value.replace(/[^\d.-]/g, ""))
+            : value;
+    if (isNaN(numValue)) return "Rp 0";
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(numValue);
+};
+
+const formatDateSafe = (value, format = "DD-MM-YYYY") => {
+    if (!value) return "-";
+    try {
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return "-";
+        const day = date.getDate().toString().padStart(2, "0");
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const year = date.getFullYear();
+        const hours = date.getHours().toString().padStart(2, "0");
+        const minutes = date.getMinutes().toString().padStart(2, "0");
+        const seconds = date.getSeconds().toString().padStart(2, "0");
+
+        return format
+            .replace("DD", day)
+            .replace("MM", month)
+            .replace("YYYY", year)
+            .replace("HH", hours)
+            .replace("mm", minutes)
+            .replace("ss", seconds);
+    } catch {
+        return "-";
+    }
+};
+
+/**
+ ===================================================
  KONSTANTA & DEFAULT CONFIG
  ===================================================
  */
 
-// Konstanta untuk konfigurasi default tabel
 const DEFAULT_TABLE_CONFIG = {
     currency: "IDR",
     dateFormat: "DD-MM-YYYY",
@@ -27,16 +82,12 @@ const DEFAULT_TABLE_CONFIG = {
     ellipsisTooltip: true,
 };
 
-// Predefined sorters untuk berbagai tipe data
 const SORTERS = {
     string: (key) => (row1, row2) =>
         String(row1[key] || "").localeCompare(String(row2[key] || "")),
-
     number: (key) => (row1, row2) => (row1[key] || 0) - (row2[key] || 0),
-
     date: (key) => (row1, row2) =>
         new Date(row1[key] || 0).getTime() - new Date(row2[key] || 0).getTime(),
-
     currency: (key) => (row1, row2) => {
         const parse = (val) =>
             parseFloat(String(val || "0").replace(/[^0-9.-]+/g, ""));
@@ -56,7 +107,7 @@ export function useDataTable({
     initialPageSize = 10,
     only = [],
     debounceTime = 200,
-    tableConfig = {}, // Konfigurasi tambahan untuk tabel
+    tableConfig = {},
 }) {
     // Gabungkan konfigurasi tabel
     const config = { ...DEFAULT_TABLE_CONFIG, ...tableConfig };
@@ -67,7 +118,6 @@ export function useDataTable({
      ===================================================
      */
 
-    // Loading states
     const dialog = useDialog();
     const loadingSearch = ref(false);
     const loadingTable = ref(false);
@@ -89,44 +139,16 @@ export function useDataTable({
 
     /**
      ===================================================
-     RENDER FUNCTIONS (dari useTableColumns)
+     RENDER FUNCTIONS
      ===================================================
      */
 
     const renderCurrency = (value, currency = config.currency) => {
-        if (!value && value !== 0)
-            return h("span", { class: "text-gray-400" }, "-");
-
-        const formatter = new Intl.NumberFormat("id-ID", {
-            style: "currency",
-            currency: currency,
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        });
-
-        return h("span", { class: "font-mono" }, formatter.format(value));
+        return formatCurrency(value, currency);
     };
 
     const renderDate = (value, format = config.dateFormat) => {
-        if (!value) return h("span", { class: "text-gray-400" }, "-");
-
-        const date = new Date(value);
-        if (isNaN(date.getTime()))
-            return h("span", { class: "text-gray-400" }, "-");
-
-        const day = date.getDate().toString().padStart(2, "0");
-        const month = (date.getMonth() + 1).toString().padStart(2, "0");
-        const year = date.getFullYear();
-
-        const formatted = format
-            .replace("DD", day)
-            .replace("MM", month)
-            .replace("YYYY", year)
-            .replace("HH", date.getHours().toString().padStart(2, "0"))
-            .replace("mm", date.getMinutes().toString().padStart(2, "0"))
-            .replace("ss", date.getSeconds().toString().padStart(2, "0"));
-
-        return h("span", {}, formatted);
+        return formatDateSafe(value, format);
     };
 
     const renderStatus = (value, statusMap = {}) => {
@@ -135,11 +157,13 @@ export function useDataTable({
             approved: { type: "success", label: "Approved" },
             rejected: { type: "error", label: "Rejected" },
             draft: { type: "info", label: "Draft" },
-            default: { type: "default", label: value },
+            disbursed: { type: "success", label: "Disbursed" },
+            cancelled: { type: "error", label: "Cancelled" },
+            default: { type: "default", label: value || "-" },
         };
 
         const map = { ...defaultMap, ...statusMap };
-        const status = map[value] || map.default;
+        const status = map[value?.toLowerCase?.() || value] || map.default;
 
         return h(
             NTag,
@@ -153,8 +177,28 @@ export function useDataTable({
         );
     };
 
+    const renderBoolean = (value, booleanMap = {}) => {
+        const map = {
+            true: { type: "success", label: "Yes" },
+            false: { type: "error", label: "No" },
+            ...booleanMap,
+        };
+        const boolValue = value ? "true" : "false";
+        const config = map[boolValue];
+
+        return h(
+            NTag,
+            {
+                type: config.type,
+                size: "small",
+                round: true,
+                bordered: false,
+            },
+            { default: () => config.label },
+        );
+    };
+
     const renderAttachment = (value) => {
-        // Cek kosong
         if (!value || (typeof value === "string" && value.trim() === "")) {
             return h(
                 NTag,
@@ -168,9 +212,9 @@ export function useDataTable({
             );
         }
 
-        // Sudah ada attachment
-        const fileName = value.split("/").pop();
-        const fullUrl = `/storage/${value}`; // Sesuaikan dengan URL storage Anda
+        const fullUrl = value.startsWith("http")
+            ? value
+            : `/storage/${value.replace(/^\/+/, "")}`;
 
         return h(
             NTag,
@@ -181,73 +225,27 @@ export function useDataTable({
                 bordered: false,
                 style: { cursor: "pointer" },
                 onClick: () => {
-                    // Buka modal dengan PDF
-                    dialog.create({
-                        title: "Lampiran Bukti",
-                        content: () =>
-                            h(
-                                "div",
-                                { style: { width: "100%", height: "80vh" } },
-                                [
-                                    h("iframe", {
-                                        src: fullUrl,
-                                        style: {
-                                            width: "100%",
-                                            height: "100%",
-                                            border: "none",
-                                        },
-                                        frameborder: "0",
-                                    }),
-                                ],
-                            ),
-                        style: {
-                            width: "70%",
-                            maxWidth: "1200px",
-                        },
-                        positiveText: "Tutup",
-                        showIcon: false,
-                    });
+                    window.open(fullUrl, "_blank");
                 },
             },
             {
-                default: () => "Lampiran Bukti",
+                default: () => "Lihat Lampiran",
                 icon: () =>
                     h(NIcon, { size: 18 }, { default: () => h(AttachOutline) }),
             },
         );
     };
 
-    const renderBoolean = (value, booleanMap = {}) => {
-        const map = {
-            true: { type: "success", label: "Yes", icon: null },
-            false: { type: "error", label: "No", icon: null },
-            ...booleanMap,
-        };
-
-        const boolValue = value ? "true" : "false";
-        const config = map[boolValue];
-
-        return h(
-            NTag,
-            {
-                type: config.type,
-                size: "small",
-            },
-            { default: () => config.label },
-        );
-    };
-
     const createActionButton = ({
         type,
         icon,
-        label, // Tambahkan label
+        label,
         onClick,
         props = {},
         size,
         tooltip,
         style,
     }) => {
-        // Jika ada label, buat button dengan teks
         if (label) {
             const button = h(
                 NButton,
@@ -260,7 +258,7 @@ export function useDataTable({
                     ...props,
                 },
                 {
-                    default: () => label, // Teks tombol
+                    default: () => label,
                     ...(icon
                         ? {
                               icon: () =>
@@ -283,7 +281,6 @@ export function useDataTable({
             return button;
         }
 
-        // Jika tidak ada label, buat button circle dengan icon saja
         const button = h(
             NButton,
             {
@@ -316,14 +313,11 @@ export function useDataTable({
     };
 
     const renderActions = (row, actionConfig = {}, actions = {}) => {
-        // Ambil status dari row
         const status = row?.status?.toLowerCase?.() || "";
         const isDisbursed = status === "disbursed";
 
-        // Gabungkan actionConfig dengan kondisi status
         const mergedActionConfig = {
             ...actionConfig,
-            // Jika status disbursed, nonaktifkan edit, delete, proses
             showEdit:
                 actionConfig.showEdit !== undefined
                     ? typeof actionConfig.showEdit === "function"
@@ -342,7 +336,6 @@ export function useDataTable({
                         ? actionConfig.showProses(row)
                         : actionConfig.showProses
                     : true,
-            // Detail dan View tetap tampil (bisa diatur sendiri)
             showDetail:
                 actionConfig.showDetail !== undefined
                     ? typeof actionConfig.showDetail === "function"
@@ -390,8 +383,7 @@ export function useDataTable({
         if (showProses && actions.onProses) {
             buttons.push(
                 createActionButton({
-                    // label: "Proses", // Tambahkan label
-                    icon: ReceiptOutline, // Atau bisa pakai icon
+                    icon: ReceiptOutline,
                     type: "info",
                     onClick: () => actions.onProses(row.id),
                     props: editProps,
@@ -407,11 +399,10 @@ export function useDataTable({
                     type: "success",
                     icon: EyeOutline,
                     onClick: () =>
-                        actions.onDetail(row.cash_advance_id || row.id), // mengambil id cash_advance
+                        actions.onDetail(row.cash_advance_id || row.id),
                     props: {
                         size,
                         variant: "light",
-                        // Optional: Tambahkan loading state
                         loading: row._loading_detail === true,
                     },
                     size,
@@ -447,7 +438,7 @@ export function useDataTable({
         }
 
         if (showCustom && customButtons.length) {
-            customButtons.forEach((btn, index) => {
+            customButtons.forEach((btn) => {
                 buttons.push(
                     createActionButton({
                         type: btn.type || "default",
@@ -456,7 +447,6 @@ export function useDataTable({
                         props: btn.props,
                         size,
                         tooltip: btn.tooltip,
-                        style: buttons.length > 0 ? "margin-left: 6px" : "",
                     }),
                 );
             });
@@ -552,66 +542,40 @@ export function useDataTable({
             case "currency":
                 baseColumn.align = column.align || "right";
                 baseColumn.render = (row) => {
-                    // Cara mengakses nested key (cash_advance.amount)
                     const value = getNestedValue(row, column.key);
                     return renderCurrency(value, column.currency);
                 };
                 break;
 
-                // Helper function untuk mengakses nested object
-                function getNestedValue(obj, path) {
-                    // console.log("aksiObject", obj);
-                    if (!obj || !path) return null;
-
-                    // Pisahkan path dengan titik: "cash_advance.amount" -> ["cash_advance", "amount"]
-                    const keys = path.split(".");
-
-                    // Akses nested value
-                    return keys.reduce((current, key) => {
-                        return current && current[key] !== undefined
-                            ? current[key]
-                            : null;
-                    }, obj);
-                }
-
-                // Function untuk render currency
-                function renderCurrency(value, currency = "IDR") {
-                    if (value === null || value === undefined || value === "") {
-                        return "Rp 0";
-                    }
-
-                    // Konversi ke number jika string
-                    const numValue =
-                        typeof value === "string"
-                            ? parseFloat(value.replace(/[^\d.-]/g, ""))
-                            : value;
-
-                    if (isNaN(numValue)) return "Rp 0";
-
-                    // Format dengan Intl.NumberFormat
-                    return new Intl.NumberFormat("id-ID", {
-                        style: "currency",
-                        currency: currency,
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                    }).format(numValue);
-                }
-
             case "date":
                 baseColumn.render = (row) => {
-                    // Mengambil nilai dari nested object
                     const value = getNestedValue(row, column.key);
                     return renderDate(value, column.dateFormat);
                 };
                 break;
 
+            case "datetime":
+                baseColumn.render = (row) => {
+                    const value = getNestedValue(row, column.key);
+                    return renderDate(
+                        value,
+                        column.dateFormat || "DD-MM-YYYY HH:mm",
+                    );
+                };
+                break;
+
             case "status":
-                baseColumn.render = (row) =>
-                    renderStatus(row[column.key], column.statusMap);
+                baseColumn.render = (row) => {
+                    const value = getNestedValue(row, column.key);
+                    return renderStatus(value, column.statusMap);
+                };
                 break;
 
             case "attachment":
-                baseColumn.render = (row) => renderAttachment(row[column.key]);
+                baseColumn.render = (row) => {
+                    const value = getNestedValue(row, column.key);
+                    return renderAttachment(value);
+                };
                 break;
 
             case "action":
@@ -621,17 +585,97 @@ export function useDataTable({
                 break;
 
             case "boolean":
-                baseColumn.render = (row) =>
-                    renderBoolean(row[column.key], column.booleanMap);
+                baseColumn.render = (row) => {
+                    const value = getNestedValue(row, column.key);
+                    return renderBoolean(value, column.booleanMap);
+                };
+                break;
+
+            default:
+                baseColumn.render = (row) => {
+                    const value = getNestedValue(row, column.key);
+                    return value !== undefined && value !== null
+                        ? String(value)
+                        : "-";
+                };
                 break;
         }
     };
 
     /**
-     * CREATE COLUMNS - Fungsi utama untuk membuat konfigurasi kolom
+     ===================================================
+     SORT MANAGEMENT FUNCTIONS
+     ===================================================
      */
+
+    const resetSort = () => {
+        activeSortKey.value = null;
+        activeSortOrder.value = null;
+    };
+
+    const setSort = (key, order) => {
+        activeSortKey.value = key;
+        activeSortOrder.value = order;
+    };
+
+    const updateSort = (sortKey, sortOrder) => {
+        if (
+            !sortKey ||
+            sortOrder === false ||
+            sortOrder === null ||
+            sortOrder === undefined
+        ) {
+            resetSort();
+        } else {
+            setSort(sortKey, sortOrder);
+        }
+    };
+
+    const hasActiveSort = () => {
+        return activeSortKey.value !== null && activeSortOrder.value !== null;
+    };
+
+    const getSortOrder = (key) => {
+        return activeSortKey.value === key ? activeSortOrder.value : false;
+    };
+
+    const getActiveSort = () => ({
+        key: activeSortKey.value,
+        order: activeSortOrder.value,
+    });
+
+    const hasActiveSortValue = computed(() => hasActiveSort());
+
+    const updateSortOrder = (columns, sortKey, sortOrder) => {
+        updateSort(sortKey, sortOrder);
+        return columns.map((col) => ({
+            ...col,
+            sortOrder: col.key === sortKey ? sortOrder : false,
+        }));
+    };
+
+    const resetSortOrderInConfig = (columnConfig) => {
+        resetSort();
+        return columnConfig.map((col) => ({
+            ...col,
+            sortOrder: false,
+        }));
+    };
+
+    const createColumnConfigWithSort = (baseConfig) => {
+        return baseConfig.map((col) => ({
+            ...col,
+            sortOrder: getSortOrder(col.key),
+        }));
+    };
+
+    /**
+     ===================================================
+     CREATE COLUMNS - Fungsi utama untuk membuat konfigurasi kolom
+     ===================================================
+     */
+
     const createColumns = (columnConfig = [], actions = {}) => {
-        console.log("columnConfig", columnConfig);
         return columnConfig.map((column) => {
             const baseColumn = createBaseColumn(column);
 
@@ -652,107 +696,7 @@ export function useDataTable({
         });
     };
 
-    /**
-     * Helper untuk mendefinisikan kolom
-     */
     const defineColumns = (columns) => columns;
-
-    /**
-     * Update sort order dalam konfigurasi kolom
-     */
-    const updateSortOrder = (columns, sortKey, sortOrder) => {
-        updateSort(sortKey, sortOrder);
-        return columns.map((col) => ({
-            ...col,
-            sortOrder: col.key === sortKey ? sortOrder : false,
-        }));
-    };
-
-    /**
-     * Reset sort order dalam konfigurasi kolom
-     */
-    const resetSortOrderInConfig = (columnConfig) => {
-        resetSort();
-        return columnConfig.map((col) => ({
-            ...col,
-            sortOrder: false,
-        }));
-    };
-
-    /**
-     * Buat konfigurasi kolom dengan sort order yang aktif
-     */
-    const createColumnConfigWithSort = (baseConfig) => {
-        return baseConfig.map((col) => ({
-            ...col,
-            sortOrder: getSortOrder(col.key),
-        }));
-    };
-
-    /**
-     ===================================================
-     SORT MANAGEMENT FUNCTIONS
-     ===================================================
-     */
-
-    /**
-     * RESET SORT - Fungsi untuk mereset icon sorting
-     */
-    const resetSort = () => {
-        activeSortKey.value = null;
-        activeSortOrder.value = null;
-    };
-
-    /**
-     * Set sort order
-     */
-    const setSort = (key, order) => {
-        activeSortKey.value = key;
-        activeSortOrder.value = order;
-    };
-
-    /**
-     * Update sort dari external
-     */
-    const updateSort = (sortKey, sortOrder) => {
-        if (
-            !sortKey ||
-            sortOrder === false ||
-            sortOrder === null ||
-            sortOrder === undefined
-        ) {
-            resetSort();
-        } else {
-            setSort(sortKey, sortOrder);
-        }
-    };
-
-    /**
-     * Cek apakah ada sort aktif
-     */
-    const hasActiveSort = () => {
-        return activeSortKey.value !== null;
-    };
-
-    /**
-     * Dapatkan sort order untuk kolom tertentu
-     */
-    const getSortOrder = (key) => {
-        return activeSortKey.value === key ? activeSortOrder.value : false;
-    };
-
-    /**
-     * Dapatkan informasi sort aktif
-     */
-    const getActiveSort = () => ({
-        key: activeSortKey.value,
-        order: activeSortOrder.value,
-    });
-
-    /**
-     * Computed untuk hasActiveSort (untuk binding ke template)
-     */
-    const hasActiveSortValue = computed(() => hasActiveSort());
 
     /**
      ===================================================
@@ -791,7 +735,6 @@ export function useDataTable({
         });
     };
 
-    // Debounced fetch untuk search dan status
     const debouncedFetch = debounce((page) => {
         currentPage.value = 1;
         fetchData(page);
@@ -854,33 +797,26 @@ export function useDataTable({
 
     const handleSortChange = (sortOptions) => {
         if (!sortOptions || !sortOptions.field) {
-            // Reset sorting
             filters.sort = null;
             filters.order = null;
             resetSort();
         } else {
-            // Update sort state
-            const order = sortOptions.order === "asc" ? "ascend" : "descend";
             filters.sort = sortOptions.field;
             filters.order = sortOptions.order;
+            const order = sortOptions.order === "asc" ? "ascend" : "descend";
             updateSort(sortOptions.field, order);
         }
 
-        // Fetch data dengan sorting baru
         loadingTable.value = true;
         debouncedFetch();
+    };
 
-        // console.log("testing", sortOptions);
-        // if (sortOptions?.field) {
-        //     const order = sortOptions.order === "asc" ? "ascend" : "descend";
-        //     updateSort(sortOptions.field, order);
-
-        //     loadingTable.value = true;
-        //     debouncedFetch();
-        // } else {
-        //     resetSort();
-        // }
-        // datatableHandleSortChange(sortOptions);
+    const handleResetSort = () => {
+        resetSort();
+        filters.sort = null;
+        filters.order = null;
+        loadingTable.value = true;
+        debouncedFetch();
     };
 
     /**
@@ -892,24 +828,14 @@ export function useDataTable({
     const handleClear = () => {
         loadingTable.value = true;
 
-        // Reset semua filters
         filters.search = "";
         filters.department = null;
         filters.status = null;
         filters.sort = null;
         filters.order = null;
 
-        // Reset sort state
         resetSort();
 
-        debouncedFetch();
-    };
-
-    const handleResetSort = async () => {
-        resetSort();
-        filters.sort = null;
-        filters.order = null;
-        loadingTable.value = true;
         debouncedFetch();
     };
 
@@ -948,17 +874,18 @@ export function useDataTable({
         resetSort,
         updateSort,
         hasActiveSort,
-        hasActiveSortValue, // Computed version untuk template
+        hasActiveSortValue,
         getSortOrder,
         getActiveSort,
 
-        // Renderers (untuk penggunaan manual jika diperlukan)
+        // Renderers
         renderers: {
             currency: renderCurrency,
             date: renderDate,
             status: renderStatus,
             boolean: renderBoolean,
             actions: renderActions,
+            attachment: renderAttachment,
         },
     };
 }
