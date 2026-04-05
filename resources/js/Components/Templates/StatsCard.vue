@@ -12,8 +12,7 @@ const props = defineProps({
     stat: { type: Object, required: true },
     value: { type: Object, required: true },
 });
-console.log("stat", props.stat);
-console.log("value", props.value);
+
 const iconMap = {
     document: DocumentOutline,
     check: CheckmarkOutline,
@@ -61,7 +60,7 @@ const getPercentage = (disetujui, total) => {
                 {{ value.total_pengajuan }}
             </p>
 
-            <p class="font-thin text-gray-600 text-xs py-2">
+            <p class="font-normal text-gray-600 text-xs py-2">
                 Semua status pengajuan
             </p>
         </div>
@@ -83,10 +82,10 @@ const getPercentage = (disetujui, total) => {
                 indicator-placement="inside"
                 processing
             />
-            <p class="font-thin text-gray-600 text-xs py-2">
+            <!-- <p class="font-thin text-gray-600 text-xs py-2">
                 {{ value.pengajuan_disetujui }} dari
                 {{ value.total_pengajuan }} pengajuan
-            </p>
+            </p> -->
         </div>
 
         <!-- Pengajuan Pending -->
@@ -106,9 +105,9 @@ const getPercentage = (disetujui, total) => {
                 indicator-placement="inside"
                 processing
             />
-            <p class="font-thin text-gray-600 text-xs py-2">
+            <!-- <p class="font-thin text-gray-600 text-xs py-2">
                 Menunggu persetujuan segera
-            </p>
+            </p> -->
         </div>
 
         <!-- Pengajuan Ditolak -->
@@ -128,13 +127,13 @@ const getPercentage = (disetujui, total) => {
                 indicator-placement="inside"
                 processing
             />
-            <p class="font-thin text-gray-600 text-xs py-2">
+            <!-- <p class="font-thin text-gray-600 text-xs py-2">
                 {{
                     value.pengajuan_ditolak === 0
                         ? "Tidak ada penolakan"
                         : value.pengajuan_ditolak + " Penolakan"
                 }}
-            </p>
+            </p> -->
         </div>
     </div>
 </template>

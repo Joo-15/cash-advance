@@ -6,7 +6,7 @@ import { RefreshOutline } from "@vicons/ionicons5";
 
 // Props - TERIMA semua dari parent
 const props = defineProps({
-    columns: { type: Array, required: true }, // Columns SUDAH diproses
+    columns: { type: Array, required: true },
     dataRef: { type: Array, required: true },
     meta: { type: Object, required: true },
     filters: { type: Object, required: true },
@@ -21,7 +21,7 @@ const props = defineProps({
     hasActiveSortFn: { type: Function, required: true },
     resetSortFn: { type: Function, required: true },
 });
-console.log("filters", props.filters);
+
 const emit = defineEmits([
     "update:page",
     "update:pageSize",
@@ -36,7 +36,8 @@ const getStatusLabel = (value) => {
 </script>
 
 <template>
-    <div class="bg-white rounded-xl shadow-sm">
+    <!-- ✅ SATU ROOT ELEMENT - wrapper div -->
+    <div class="base-table-container">
         <!-- Active Filters -->
         <div
             v-if="
@@ -69,7 +70,7 @@ const getStatusLabel = (value) => {
                 closable
                 @close="filters.status = null"
             >
-                Status
+                Status: {{ getStatusLabel(filters.status) }}
             </n-tag>
             <n-tag
                 v-if="hasActiveSortFn()"
@@ -87,6 +88,7 @@ const getStatusLabel = (value) => {
             </n-button>
         </div>
 
+        <!-- Data Table -->
         <inertia-data-table
             :columns="columns"
             :data="dataRef"
@@ -99,3 +101,9 @@ const getStatusLabel = (value) => {
         />
     </div>
 </template>
+
+<style scoped>
+.base-table-container {
+    @apply w-full;
+}
+</style>

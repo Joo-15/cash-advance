@@ -31,7 +31,7 @@ const props = defineProps({
     closeModal: Function,
     submit: Function,
 });
-// console.log(props.submit);
+
 const emit = defineEmits(["update:showModal", "updated"]);
 
 /*

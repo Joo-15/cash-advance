@@ -1,15 +1,15 @@
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
-import { usePage, router } from "@inertiajs/vue3";
+import { ref, computed, onMounted, watch, onUnmounted } from "vue";
+import { router } from "@inertiajs/vue3";
 import {
     NCard,
     NGrid,
     NGridItem,
     NText,
     NIcon,
-    NDatePicker,
     NTag,
     NProgress,
+    NDatePicker,
 } from "naive-ui";
 import {
     TrendingUpOutline,
@@ -24,10 +24,13 @@ import {
     CodeOutline,
     PeopleOutline,
     GridOutline,
+    RefreshOutline,
+    BarChartOutline,
 } from "@vicons/ionicons5";
 import Chart from "chart.js/auto";
 import Container from "@/Components/Layout/Container.vue";
 import PageHeader from "@/Components/Page/PageHeader.vue";
+import { formatRupiah } from "@/utils/helpers";
 
 // Define props dari Inertia
 const props = defineProps({
@@ -81,6 +84,8 @@ const props = defineProps({
 // Refs
 const trendChart = ref(null);
 let chartInstance = null;
+const isLoading = ref(false);
+const timestamp = ref(Date.now());
 
 // Computed
 const totalStatus = computed(() => {
@@ -93,14 +98,6 @@ const totalStatus = computed(() => {
 });
 
 // Methods
-const formatCurrency = (value) => {
-    return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-    }).format(value || 0);
-};
 
 const getPercentage = (value, total) => {
     if (total === 0) return 0;
@@ -121,16 +118,44 @@ const getIcon = (iconName) => {
 
 const handleMonthChange = (value) => {
     if (value) {
+        isLoading.value = false;
+
+        const date = new Date(value);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+
         router.get(
             "/dashboard",
-            { month: value },
+            { month: `${year}-${month}` },
             {
                 preserveState: true,
                 preserveScroll: true,
+                onFinish: () => {
+                    setTimeout(() => {
+                        isLoading.value = false;
+                    }, 500);
+                },
             },
         );
     }
 };
+
+// const refreshData = () => {
+//     isLoading.value = true;
+//     router.get(
+//         "/dashboard",
+//         {},
+//         {
+//             preserveState: true,
+//             preserveScroll: true,
+//             onFinish: () => {
+//                 setTimeout(() => {
+//                     isLoading.value = false;
+//                 }, 500);
+//             },
+//         },
+//     );
+// };
 
 // Initialize chart
 const initChart = () => {
@@ -139,28 +164,63 @@ const initChart = () => {
             chartInstance.destroy();
         }
 
+        const ctx = trendChart.value.getContext("2d");
+        const gradient1 = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient1.addColorStop(0, "#18a058");
+        gradient1.addColorStop(1, "#0d6e3d");
+
+        const gradient2 = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient2.addColorStop(0, "#2080f0");
+        gradient2.addColorStop(1, "#0c4e9e");
+
         chartInstance = new Chart(trendChart.value, {
-            type: "bar",
+            type: "line",
             data: {
                 labels: props.trend.months,
                 datasets: [
                     {
                         label: "Total Pengajuan",
                         data: props.trend.total,
-                        backgroundColor: "#18a058",
+                        borderColor: gradient1,
+                        backgroundColor: "rgba(24, 160, 88, 0.1)",
+                        borderWidth: 3,
                         borderRadius: 6,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: "#18a058",
+                        pointBorderColor: "#fff",
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
                     },
                     {
                         label: "Sudah Dicairkan",
                         data: props.trend.disbursed,
-                        backgroundColor: "#2080f0",
+                        borderColor: gradient2,
+                        backgroundColor: "rgba(32, 128, 240, 0.1)",
+                        borderWidth: 3,
                         borderRadius: 6,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: "#2080f0",
+                        pointBorderColor: "#fff",
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
                     },
                 ],
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 2000,
+                    easing: "easeInOutQuart",
+                },
+                interaction: {
+                    intersect: false,
+                    mode: "index",
+                },
                 plugins: {
                     tooltip: {
                         callbacks: {
@@ -169,20 +229,52 @@ const initChart = () => {
                                 if (label) {
                                     label += ": ";
                                 }
-                                label += formatCurrency(context.raw);
+                                label += formatRupiah(context.raw);
                                 return label;
                             },
                         },
+                        backgroundColor: "rgba(0, 0, 0, 0.8)",
+                        padding: 12,
+                        cornerRadius: 8,
+                        titleColor: "#fff",
+                        bodyColor: "#e0e0e0",
                     },
                     legend: {
                         position: "top",
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 8,
+                            padding: 15,
+                            font: {
+                                size: 12,
+                                weight: "500",
+                            },
+                        },
                     },
                 },
                 scales: {
                     y: {
+                        grid: {
+                            color: "rgba(0, 0, 0, 0.05)",
+                            drawBorder: false,
+                        },
                         ticks: {
                             callback: (value) => {
-                                return formatCurrency(value);
+                                return formatRupiah(value);
+                            },
+                            font: {
+                                size: 11,
+                            },
+                        },
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                        },
+                        ticks: {
+                            font: {
+                                size: 11,
+                                weight: "500",
                             },
                         },
                     },
@@ -205,443 +297,605 @@ watch(
 onMounted(() => {
     initChart();
 });
+
+onUnmounted(() => {
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+});
 </script>
+
 <template>
     <Container>
         <template #header>
-            <PageHeader title="Dashboard"></PageHeader>
+            <div
+                style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    width: 100%;
+                "
+            >
+                <PageHeader title="Dashboard" />
+                <n-date-picker
+                    v-model:value="timestamp"
+                    type="month"
+                    clearable
+                    @update:value="handleMonthChange"
+                />
+            </div>
         </template>
-        <template #content>
-            <div class="finance-dashboard">
-                <!-- Header
-        <div class="dashboard-header">
-            <n-text class="page-title" strong>Dashboard Finance</n-text>
-            <n-date-picker
-                :value="current_month"
-                type="month"
-                placeholder="Pilih Bulan"
-                clearable
-                @update:value="handleMonthChange"
-                style="width: 200px"
-            />
-        </div> -->
 
+        <template #content>
+            <!-- Loading Overlay -->
+            <div
+                v-if="isLoading"
+                class="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center transition-all duration-300"
+            >
+                <div
+                    class="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-4"
+                >
+                    <div
+                        class="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"
+                    ></div>
+                    <p class="text-gray-600 text-sm font-medium">Loading...</p>
+                </div>
+            </div>
+
+            <div
+                class="min-h-screen"
+                :class="{ 'opacity-50 pointer-events-none': isLoading }"
+            >
                 <!-- Statistik Cards -->
                 <div
                     class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
                 >
                     <!-- Total Pengajuan -->
-                    <n-card class="stat-card total-card" :bordered="false">
+                    <div class="w-full">
+                        <!-- Tambahkan wrapper dengan w-full -->
                         <div
-                            class="stat-header flex justify-between items-center"
+                            class="group rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fadeInUp h-full"
+                            style="animation-delay: 0.1s"
                         >
-                            <n-text depth="2" class="stat-title">
-                                Total Pengajuan Bulan
-                            </n-text>
-                            <n-icon :size="24" color="white">
-                                <TrendingUpOutline />
-                            </n-icon>
+                            <div
+                                class="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 text-white h-full"
+                            >
+                                <div
+                                    class="flex justify-between items-start mb-3"
+                                >
+                                    <span
+                                        class="text-xs font-medium uppercase tracking-wider opacity-90"
+                                        >Total Pengajuan Bulan</span
+                                    >
+                                    <div
+                                        class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+                                    >
+                                        <n-icon :size="20" color="white">
+                                            <TrendingUpOutline />
+                                        </n-icon>
+                                    </div>
+                                </div>
+                                <div class="text-2xl font-bold mb-3">
+                                    {{ formatRupiah(stats.total_pengajuan) }}
+                                </div>
+                                <div
+                                    class="inline-flex items-center gap-1 text-xs bg-white/20 rounded-full px-2 py-0.5"
+                                >
+                                    <n-icon :size="15" color="white">
+                                        <ArrowUpOutline />
+                                    </n-icon>
+                                    <span
+                                        >{{ stats.percentage_change }}% vs bulan
+                                        lalu</span
+                                    >
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="stat-value">
-                            {{ formatCurrency(stats.total_pengajuan) }}
-                        </div>
-
-                        <div
-                            class="stat-trend positive flex items-center gap-1"
-                        >
-                            <n-icon :size="14"><ArrowUpOutline /></n-icon>
-                            {{ stats.percentage_change }}% vs bulan lalu
-                        </div>
-                    </n-card>
+                    </div>
 
                     <!-- Sudah Dicairkan -->
-                    <n-card class="stat-card disbursed-card" :bordered="false">
+                    <div class="w-full">
                         <div
-                            class="stat-header flex justify-between items-center"
+                            class="group rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fadeInUp h-full"
+                            style="animation-delay: 0.2s"
                         >
-                            <n-text depth="2" class="stat-title">
-                                Sudah Dicairkan
-                            </n-text>
-                            <n-icon :size="24" color="white">
-                                <CheckmarkCircleOutline />
-                            </n-icon>
+                            <div
+                                class="bg-gradient-to-br from-teal-500 to-green-600 p-4 text-white h-full"
+                            >
+                                <div
+                                    class="flex justify-between items-start mb-3"
+                                >
+                                    <span
+                                        class="text-xs font-medium uppercase tracking-wider opacity-90"
+                                        >Sudah Dicairkan</span
+                                    >
+                                    <div
+                                        class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+                                    >
+                                        <n-icon :size="20" color="white">
+                                            <CheckmarkCircleOutline />
+                                        </n-icon>
+                                    </div>
+                                </div>
+                                <div class="text-2xl font-bold mb-3">
+                                    {{ formatRupiah(stats.total_dicairkan) }}
+                                </div>
+                                <div class="text-xs opacity-90">
+                                    {{ stats.transaction_count }} transaksi
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="stat-value">
-                            {{ formatCurrency(stats.total_dicairkan) }}
-                        </div>
-
-                        <div class="stat-subtitle">
-                            {{ stats.transaction_count }} transaksi
-                        </div>
-                    </n-card>
+                    </div>
 
                     <!-- Pending -->
-                    <n-card class="stat-card pending-card" :bordered="false">
+                    <div class="w-full">
                         <div
-                            class="stat-header flex justify-between items-center"
+                            class="group rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fadeInUp h-full"
+                            style="animation-delay: 0.3s"
                         >
-                            <n-text depth="2" class="stat-title">
-                                Pending Persetujuan
-                            </n-text>
-                            <n-icon :size="24" color="white">
-                                <TimeOutline />
-                            </n-icon>
+                            <div
+                                class="bg-gradient-to-br from-amber-500 to-orange-600 p-4 text-white h-full"
+                            >
+                                <div
+                                    class="flex justify-between items-start mb-3"
+                                >
+                                    <span
+                                        class="text-xs font-medium uppercase tracking-wider opacity-90"
+                                        >Pending Persetujuan</span
+                                    >
+                                    <div
+                                        class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+                                    >
+                                        <n-icon :size="20" color="white">
+                                            <TimeOutline />
+                                        </n-icon>
+                                    </div>
+                                </div>
+                                <div class="text-2xl font-bold mb-3">
+                                    {{ formatRupiah(stats.pending_amount) }}
+                                </div>
+                                <div class="text-xs opacity-90">
+                                    {{ stats.pending_count }} pengajuan menunggu
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="stat-value">
-                            {{ formatCurrency(stats.pending_amount) }}
-                        </div>
-
-                        <div class="stat-subtitle">
-                            {{ stats.pending_count }} pengajuan menunggu
-                        </div>
-                    </n-card>
+                    </div>
 
                     <!-- Belum Dipertanggungjawabkan -->
-                    <n-card class="stat-card overdue-card" :bordered="false">
+                    <div class="w-full">
                         <div
-                            class="stat-header flex justify-between items-center"
+                            class="group rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fadeInUp h-full"
+                            style="animation-delay: 0.4s"
                         >
-                            <n-text depth="2" class="stat-title">
-                                Belum Dipertanggungjawabkan
-                            </n-text>
-                            <n-icon :size="24" color="white">
-                                <WarningOutline />
-                            </n-icon>
-                        </div>
+                            <div
+                                class="bg-gradient-to-br from-red-500 to-pink-600 p-4 text-white h-full"
+                            >
+                                <div
+                                    class="flex justify-between items-start mb-3"
+                                >
+                                    <span
+                                        class="text-xs font-medium uppercase tracking-wider opacity-90"
+                                        >Belum Dipertanggungjawabkan</span
+                                    >
+                                    <div
+                                        class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+                                    >
+                                        <n-icon :size="20" color="white">
+                                            <WarningOutline />
+                                        </n-icon>
+                                    </div>
+                                </div>
+                                <div class="text-2xl font-bold mb-3">
+                                    {{ formatRupiah(stats.unaccounted_amount) }}
+                                </div>
 
-                        <div class="stat-value">
-                            {{ formatCurrency(stats.unaccounted_amount) }}
-                        </div>
+                                <!-- <div
+                                    class="inline-flex items-center gap-1 text-xs bg-white/20 rounded-full px-2 py-0.5"
+                                >
+                                    <n-icon :size="15" color="white">
+                                        <ArrowUpOutline />
+                                    </n-icon>
+                                    <span
+                                        >{{ stats.percentage_change }}% vs bulan
+                                        lalu</span
+                                    >
+                                </div -->
 
-                        <div class="stat-trend warning flex items-center gap-1">
-                            <n-icon :size="14"><AlertOutline /></n-icon>
-                            perlu perhatian
+                                <div
+                                    class="inline-flex items-center gap-1 text-xs bg-white/20 rounded-full px-2 py-0.5"
+                                >
+                                    <n-icon :size="15" color="white">
+                                        <AlertOutline />
+                                    </n-icon>
+                                    <span>perlu perhatian</span>
+                                </div>
+                            </div>
                         </div>
-                    </n-card>
+                    </div>
                 </div>
 
+                <!-- Grid 2 Kolom -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
                     <!-- Pengajuan per Departemen -->
-                    <n-card
-                        title="Pengajuan per Departemen"
-                        :bordered="false"
-                        class="border rounded-lg border-slate-100 bg-slate-50/60"
+                    <div
+                        class="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300"
                     >
-                        <div class="space-y-3">
+                        <div
+                            class="border-b border-gray-100 px-4 py-3 flex justify-between items-center"
+                        >
+                            <h3 class="text-sm font-semibold text-gray-700">
+                                Pengajuan per Departemen
+                            </h3>
                             <div
-                                v-for="dept in per_departemen"
-                                :key="dept.name"
-                                class="flex justify-between items-center"
+                                class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-2 py-1 rounded-full text-[10px] font-semibold"
                             >
-                                <div class="flex items-center gap-2">
-                                    <n-icon
-                                        :size="20"
-                                        :color="dept.color || '#18a058'"
-                                    >
-                                        <component :is="getIcon(dept.icon)" />
-                                    </n-icon>
-
-                                    <n-text>{{ dept.name }}</n-text>
-
-                                    <n-text depth="3" size="small">
-                                        ({{ dept.total_requests }} pengajuan)
-                                    </n-text>
-                                </div>
-
-                                <n-text strong style="color: #18a058">
-                                    {{ formatCurrency(dept.amount) }}
-                                </n-text>
+                                Bulan Ini
                             </div>
                         </div>
-                    </n-card>
+                        <div class="p-4">
+                            <div class="space-y-3">
+                                <div
+                                    v-for="(dept, index) in per_departemen"
+                                    :key="dept.name"
+                                    class="group flex justify-between items-center p-2 rounded-lg transition-all duration-300 hover:bg-gray-50 hover:translate-x-1 animate-slideInLeft"
+                                    :style="{
+                                        animationDelay: `${index * 0.05}s`,
+                                    }"
+                                >
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                                            :style="{
+                                                backgroundColor:
+                                                    (dept.color || '#18a058') +
+                                                    '20',
+                                            }"
+                                        >
+                                            <n-icon
+                                                :size="18"
+                                                :color="dept.color || '#18a058'"
+                                            >
+                                                <component
+                                                    :is="getIcon(dept.icon)"
+                                                />
+                                            </n-icon>
+                                        </div>
+                                        <div>
+                                            <div
+                                                class="text-sm font-semibold text-gray-700"
+                                            >
+                                                {{ dept.name }}
+                                            </div>
+                                            <div class="text-xs text-gray-400">
+                                                {{ dept.total_requests }}
+                                                pengajuan
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="relative text-right min-w-[120px]"
+                                    >
+                                        <div
+                                            class="text-sm font-bold relative z-10"
+                                            :style="{
+                                                color: dept.color || '#18a058',
+                                            }"
+                                        >
+                                            {{ formatRupiah(dept.amount) }}
+                                        </div>
+                                        <div
+                                            class="absolute -bottom-1 right-0 h-0.5 rounded-full transition-all duration-500 group-hover:h-1"
+                                            :style="{
+                                                width: `${(dept.amount / per_departemen[0]?.amount) * 100}%`,
+                                                backgroundColor:
+                                                    dept.color || '#18a058',
+                                            }"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Status Pengajuan -->
-                    <n-card title="Status Pengajuan" :bordered="false">
-                        <div class="space-y-4">
-                            <!-- Dicairkan -->
-                            <div>
+                    <div
+                        class="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300"
+                    >
+                        <div class="border-b border-gray-100 px-4 py-3">
+                            <h3 class="text-sm font-semibold text-gray-700">
+                                Status Pengajuan
+                            </h3>
+                        </div>
+                        <div class="p-4">
+                            <div class="space-y-4">
+                                <!-- Dicairkan -->
                                 <div
-                                    class="flex justify-between items-center mb-1"
+                                    class="animate-fadeIn"
+                                    style="animation-delay: 0.1s"
                                 >
-                                    <div class="flex items-center gap-2">
-                                        <n-tag
-                                            type="success"
-                                            size="small"
-                                            round
+                                    <div
+                                        class="flex justify-between items-center mb-1"
+                                    >
+                                        <div class="flex items-center gap-2">
+                                            <NTag
+                                                type="success"
+                                                size="small"
+                                                round
+                                                class="cursor-pointer transition-transform hover:scale-105"
+                                            >
+                                                Dicairkan
+                                            </NTag>
+                                            <span
+                                                class="text-sm font-semibold text-gray-700"
+                                                >{{
+                                                    status_counts.disbursed
+                                                }}</span
+                                            >
+                                        </div>
+                                        <span
+                                            class="text-xs font-semibold text-gray-500"
                                         >
-                                            Dicairkan
-                                        </n-tag>
-                                        <n-text>{{
-                                            status_counts.disbursed
-                                        }}</n-text>
+                                            {{
+                                                getPercentage(
+                                                    status_counts.disbursed,
+                                                    totalStatus,
+                                                ).toFixed(0)
+                                            }}%
+                                        </span>
+                                    </div>
+                                    <div
+                                        class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"
+                                    >
+                                        <div
+                                            class="bg-green-500 h-full rounded-full transition-all duration-1000"
+                                            :style="{
+                                                width: `${getPercentage(status_counts.disbursed, totalStatus)}%`,
+                                            }"
+                                        ></div>
                                     </div>
                                 </div>
 
-                                <n-progress
-                                    type="line"
-                                    :percentage="
-                                        getPercentage(
-                                            status_counts.disbursed,
-                                            totalStatus,
-                                        )
-                                    "
-                                    :color="'#18a058'"
-                                    :show-indicator="false"
-                                    :height="8"
-                                />
-                            </div>
-
-                            <!-- Disetujui -->
-                            <div>
+                                <!-- Disetujui -->
                                 <div
-                                    class="flex justify-between items-center mb-1"
+                                    class="animate-fadeIn"
+                                    style="animation-delay: 0.2s"
                                 >
-                                    <div class="flex items-center gap-2">
-                                        <n-tag type="info" size="small" round>
-                                            Disetujui
-                                        </n-tag>
-                                        <n-text>{{
-                                            status_counts.approved
-                                        }}</n-text>
-                                    </div>
-                                </div>
-
-                                <n-progress
-                                    type="line"
-                                    :percentage="
-                                        getPercentage(
-                                            status_counts.approved,
-                                            totalStatus,
-                                        )
-                                    "
-                                    :color="'#2080f0'"
-                                    :show-indicator="false"
-                                    :height="8"
-                                />
-                            </div>
-
-                            <!-- Pending -->
-                            <div>
-                                <div
-                                    class="flex justify-between items-center mb-1"
-                                >
-                                    <div class="flex items-center gap-2">
-                                        <n-tag
-                                            type="warning"
-                                            size="small"
-                                            round
+                                    <div
+                                        class="flex justify-between items-center mb-1"
+                                    >
+                                        <div class="flex items-center gap-2">
+                                            <NTag
+                                                type="info"
+                                                size="small"
+                                                round
+                                                class="cursor-pointer transition-transform hover:scale-105"
+                                            >
+                                                Disetujui
+                                            </NTag>
+                                            <span
+                                                class="text-sm font-semibold text-gray-700"
+                                                >{{
+                                                    status_counts.approved
+                                                }}</span
+                                            >
+                                        </div>
+                                        <span
+                                            class="text-xs font-semibold text-gray-500"
                                         >
-                                            Pending
-                                        </n-tag>
-                                        <n-text>{{
-                                            status_counts.pending
-                                        }}</n-text>
+                                            {{
+                                                getPercentage(
+                                                    status_counts.approved,
+                                                    totalStatus,
+                                                ).toFixed(0)
+                                            }}%
+                                        </span>
+                                    </div>
+                                    <div
+                                        class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"
+                                    >
+                                        <div
+                                            class="bg-blue-500 h-full rounded-full transition-all duration-1000"
+                                            :style="{
+                                                width: `${getPercentage(status_counts.approved, totalStatus)}%`,
+                                            }"
+                                        ></div>
                                     </div>
                                 </div>
 
-                                <n-progress
-                                    type="line"
-                                    :percentage="
-                                        getPercentage(
-                                            status_counts.pending,
-                                            totalStatus,
-                                        )
-                                    "
-                                    :color="'#f0a020'"
-                                    :show-indicator="false"
-                                    :height="8"
-                                />
-                            </div>
-
-                            <!-- Ditolak -->
-                            <div>
+                                <!-- Pending -->
                                 <div
-                                    class="flex justify-between items-center mb-1"
+                                    class="animate-fadeIn"
+                                    style="animation-delay: 0.3s"
                                 >
-                                    <div class="flex items-center gap-2">
-                                        <n-tag type="error" size="small" round>
-                                            Ditolak
-                                        </n-tag>
-                                        <n-text>{{
-                                            status_counts.rejected
-                                        }}</n-text>
+                                    <div
+                                        class="flex justify-between items-center mb-1"
+                                    >
+                                        <div class="flex items-center gap-2">
+                                            <NTag
+                                                type="warning"
+                                                size="small"
+                                                round
+                                                class="cursor-pointer transition-transform hover:scale-105"
+                                            >
+                                                Pending
+                                            </NTag>
+                                            <span
+                                                class="text-sm font-semibold text-gray-700"
+                                                >{{
+                                                    status_counts.pending
+                                                }}</span
+                                            >
+                                        </div>
+                                        <span
+                                            class="text-xs font-semibold text-gray-500"
+                                        >
+                                            {{
+                                                getPercentage(
+                                                    status_counts.pending,
+                                                    totalStatus,
+                                                ).toFixed(0)
+                                            }}%
+                                        </span>
+                                    </div>
+                                    <div
+                                        class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"
+                                    >
+                                        <div
+                                            class="bg-amber-500 h-full rounded-full transition-all duration-1000"
+                                            :style="{
+                                                width: `${getPercentage(status_counts.pending, totalStatus)}%`,
+                                            }"
+                                        ></div>
                                     </div>
                                 </div>
 
-                                <n-progress
-                                    type="line"
-                                    :percentage="
-                                        getPercentage(
-                                            status_counts.rejected,
-                                            totalStatus,
-                                        )
-                                    "
-                                    :color="'#d03050'"
-                                    :show-indicator="false"
-                                    :height="8"
-                                />
+                                <!-- Ditolak -->
+                                <div
+                                    class="animate-fadeIn"
+                                    style="animation-delay: 0.4s"
+                                >
+                                    <div
+                                        class="flex justify-between items-center mb-1"
+                                    >
+                                        <div class="flex items-center gap-2">
+                                            <NTag
+                                                type="error"
+                                                size="small"
+                                                round
+                                                class="cursor-pointer transition-transform hover:scale-105"
+                                            >
+                                                Ditolak
+                                            </NTag>
+                                            <span
+                                                class="text-sm font-semibold text-gray-700"
+                                                >{{
+                                                    status_counts.rejected
+                                                }}</span
+                                            >
+                                        </div>
+                                        <span
+                                            class="text-xs font-semibold text-gray-500"
+                                        >
+                                            {{
+                                                getPercentage(
+                                                    status_counts.rejected,
+                                                    totalStatus,
+                                                ).toFixed(0)
+                                            }}%
+                                        </span>
+                                    </div>
+                                    <div
+                                        class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"
+                                    >
+                                        <div
+                                            class="bg-red-500 h-full rounded-full transition-all duration-1000"
+                                            :style="{
+                                                width: `${getPercentage(status_counts.rejected, totalStatus)}%`,
+                                            }"
+                                        ></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </n-card>
+                    </div>
                 </div>
 
-                <!-- Row 3: Trend Chart -->
-                <n-grid :cols="1" :x-gap="16" :y-gap="16" class="mt-4">
-                    <n-grid-item>
-                        <n-card
-                            title="Trend Pengajuan 6 Bulan Terakhir"
-                            :bordered="false"
+                <!-- Trend Chart -->
+                <div class="mt-4">
+                    <div
+                        class="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300"
+                    >
+                        <div
+                            class="border-b border-gray-100 px-4 py-3 flex justify-between items-center"
                         >
-                            <div style="height: 300px">
+                            <h3 class="text-sm font-semibold text-gray-700">
+                                Trend Pengajuan 6 Bulan Terakhir
+                            </h3>
+                            <div
+                                class="flex items-center gap-2 text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full"
+                            >
+                                <BarChartOutline :size="14" />
+                                <span>Interactive Chart</span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="h-80">
                                 <canvas ref="trendChart"></canvas>
                             </div>
-                        </n-card>
-                    </n-grid-item>
-                </n-grid>
+                        </div>
+                    </div>
+                </div>
             </div>
         </template>
     </Container>
 </template>
 
 <style scoped>
-.finance-dashboard {
-    /* padding: 24px; */
-    /* background: #f5f7fa; */
-    min-height: 100vh;
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
-.page-title {
-    font-size: 24px;
-    font-weight: 600;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-/* Stat Cards */
-.stat-card {
-    border-radius: 12px;
-    transition: all 0.3s ease;
+.animate-fadeInUp {
+    animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
 }
 
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.animate-slideInLeft {
+    animation: slideInLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
 }
 
-.total-card {
-    background: linear-gradient(135deg, #76abf1 0%, #6088e4 100%);
+.animate-fadeIn {
+    animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
 }
 
-.disbursed-card {
-    background: linear-gradient(135deg, #96f3e4 0%, #2fd1c0 100%);
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
-.pending-card {
-    background: linear-gradient(135deg, #f0eb93 0%, #dace64 100%);
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
 }
 
-.overdue-card {
-    background: linear-gradient(135deg, #f45f4b 0%, #d38373 100%);
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
 }
 
-.total-card .stat-title,
-.total-card .stat-value,
-.total-card .stat-trend,
-.disbursed-card .stat-title,
-.disbursed-card .stat-value,
-.disbursed-card .stat-subtitle,
-.pending-card .stat-title,
-.pending-card .stat-value,
-.pending-card .stat-subtitle,
-.overdue-card .stat-title,
-.overdue-card .stat-value,
-.overdue-card .stat-trend {
-    color: white;
-}
-
-.stat-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.stat-title {
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.stat-value {
-    font-size: 26px;
-    font-weight: 600;
-}
-
-.stat-subtitle {
-    font-size: 12px;
-    opacity: 0.9;
-}
-
-.stat-trend {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-}
-
-/* Department List */
-/* .department-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-} */
-
-.department-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.department-item:last-child {
-    border-bottom: none;
-}
-
-.department-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-/* Status List */
-.status-list {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.status-item {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.status-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-/* Margin utilities */
-.mt-4 {
-    margin-top: 16px;
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 </style>

@@ -23,120 +23,6 @@ class ApprovalController extends Controller
         $userRole = $user->role->name;
         $departmentId = $user->department_id;
 
-        // $query = Approval::with([
-        //     'cashAdvance.user.department',
-        //     'user.department',
-        //     'approvalStep.approvalStepRoles.role.users'
-        // ]);
-
-        // // Filter berdasarkan pencarian
-        // if ($request->search) {
-        //     $searchTerm = '%' . $request->search . '%';
-
-        //     $query->where(function ($q) use ($searchTerm) {
-        //         // Search di user name
-        //         $q->whereHas('cashAdvance.user', function ($subQuery) use ($searchTerm) {
-        //             $subQuery->where('name', 'like', $searchTerm);
-        //         })
-        //             // Search di purpose
-        //             ->orWhereHas('cashAdvance', function ($subQuery) use ($searchTerm) {
-        //                 $subQuery->where('purpose', 'like', $searchTerm);
-        //             })
-        //             // Search di amount (konversi ke string)
-        //             ->orWhereHas('cashAdvance', function ($subQuery) use ($searchTerm) {
-        //                 $subQuery->whereRaw("CAST(amount AS CHAR) like ?", [$searchTerm]);
-        //             })
-        //             // Search di status approval
-        //             ->orWhere('approvals.status', 'like', $searchTerm);
-        //     });
-        // }
-        // // Filter berdasarkan departemen
-        // if ($request->department) {
-        //     $query->whereHas('cashAdvance.user', function ($subQuery) use ($request) {
-        //         $subQuery->where('department_id', $request->department);
-        //     });
-        // }
-
-        // // Filter berdasarkan status
-        // if ($request->status) {
-        //     $query->where('status', $request->status);
-        // }
-
-        // // Sorting - Gunakan subquery untuk menghindari join dan DISTINCT
-        // if ($request->sort && $request->order) {
-        //     $allowedSorts = ['request_date', 'purpose', 'amount', 'status', 'cash_advance.amount'];
-
-        //     if (in_array($request->sort, $allowedSorts)) {
-        //         switch ($request->sort) {
-        //             case 'cash_advance.amount':
-        //             case 'amount':
-        //                 // Gunakan subquery untuk sorting amount
-        //                 $query->orderBy(
-        //                     CashAdvance::select('amount')
-        //                         ->whereColumn('cash_advances.id', 'approvals.cash_advance_id'),
-        //                     $request->order
-        //                 );
-        //                 break;
-
-        //             case 'request_date':
-        //                 $query->orderBy(
-        //                     CashAdvance::select('request_date')
-        //                         ->whereColumn('cash_advances.id', 'approvals.cash_advance_id'),
-        //                     $request->order
-        //                 );
-        //                 break;
-
-        //             case 'purpose':
-        //                 $query->orderBy(
-        //                     CashAdvance::select('purpose')
-        //                         ->whereColumn('cash_advances.id', 'approvals.cash_advance_id'),
-        //                     $request->order
-        //                 );
-        //                 break;
-
-        //             case 'status':
-        //                 $query->orderBy('approvals.status', $request->order);
-        //                 break;
-        //         }
-        //     }
-        // }
-
-        // // Filter berdasarkan role
-        // switch ($userRole) {
-        //     case 'Admin':
-        //     case 'Super Admin':
-        //         break;
-
-        //     case 'Employee':
-        //     case 'Supervisor':
-        //     case 'Manager':
-        //         $query->whereHas('cashAdvance.user', function ($q) use ($departmentId) {
-        //             $q->where('department_id', $departmentId);
-        //         })->whereHas('approvalStep.approvalStepRoles', function ($q) use ($user) {
-        //             $q->where('role_id', $user->role_id);
-        //         });
-        //         break;
-
-        //     case 'General Manager':
-        //     case 'Manager Accounting':
-        //     case 'Finance':
-        //         $query->whereIn('approvals.status', ['pending', 'approved', 'rejected'])
-        //             ->whereHas('approvalStep.approvalStepRoles', function ($q) use ($user) {
-        //                 $q->where('role_id', $user->role_id);
-        //             });
-        //         break;
-
-        //     default:
-        //         $query->whereRaw('1 = 0');
-        //         break;
-        // }
-
-
-        // // Urutkan dan paginasi
-        // $approval = $query->latest('approvals.created_at')
-        //     ->paginate($perPage)
-        //     ->withQueryString();
-
         $query = CashAdvance::with([
             'user.department',
             'approvals.approvalStep.approvalStepRoles.role.users'
@@ -147,15 +33,14 @@ class ApprovalController extends Controller
             $searchTerm = '%' . $request->search . '%';
 
             $query->where(function ($q) use ($searchTerm) {
-                $q->whereHas('user', function ($subQuery) use ($searchTerm) {
-                    $subQuery->where('name', 'like', $searchTerm);
-                })
-                    ->orWhereHas('cashAdvance', function ($subQuery) use ($searchTerm) {
-                        $subQuery->where('purpose', 'like', $searchTerm);
+                $q->where('purpose', 'like', $searchTerm)
+                    ->orWhereHas('user', function ($subQuery) use ($searchTerm) {
+                        $subQuery->where('name', 'like', $searchTerm);
                     })
-                    ->orWhereHas('cashAdvance', function ($subQuery) use ($searchTerm) {
-                        $subQuery->whereRaw("CAST(amount AS CHAR) LIKE ?", [$searchTerm]);
+                    ->orWhereHas('user.department', function ($subQuery) use ($searchTerm) {
+                        $subQuery->where('name', 'like', $searchTerm);
                     })
+                    ->orWhereRaw("CAST(amount AS CHAR) LIKE ?", [$searchTerm])
                     ->orWhereHas('approvals', function ($subQuery) use ($searchTerm) {
                         $subQuery->where('status', 'like', $searchTerm);
                     });
@@ -171,8 +56,16 @@ class ApprovalController extends Controller
 
         // Filter berdasarkan status
         if ($request->filled('status')) {
-            $query->whereHas('approvals', function ($subQuery) use ($request) {
+            $query->whereHas('approvals', function ($subQuery) use ($request, $user) {
                 $subQuery->where('status', $request->status);
+
+                if ($user) {
+                    $userRoleId = $user->role_id;
+
+                    $subQuery->whereHas('approvalStep.approvalStepRoles', function ($roleQuery) use ($userRoleId) {
+                        $roleQuery->where('role_id', $userRoleId);
+                    });
+                }
             });
         }
 
@@ -189,16 +82,13 @@ class ApprovalController extends Controller
                     $q->whereHas('user', function ($subQuery) use ($departmentId) {
                         $subQuery->where('department_id', $departmentId);
                     });
-                    $q->orWhereHas('approvals.approvalStep.approvalStepRoles', function ($subQuery) use ($user) {
-                        $subQuery->where('role_id', $user->role_id);
-                    });
                 });
                 break;
 
             case 'General Manager':
             case 'Manager Accounting':
             case 'Finance':
-                // PERBAIKAN: Gunakan whereHas untuk filter status
+
                 $query->where(function ($q) use ($user) {
                     $q->whereHas('approvals', function ($subQuery) {
                         $subQuery->whereIn('status', ['pending', 'approved', 'rejected']);

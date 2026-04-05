@@ -160,14 +160,14 @@ onMounted(() => {
                     :class="sidebarCollapsed ? 'ml-[64px]' : 'ml-[230px]'"
                     :native-scrollbar="false"
                 >
-                    <div class="mx-auto pt-12 px-5">
+                    <div class="mx-auto pt-12 px-5 bg-slate-50">
                         <slot />
                     </div>
                 </n-layout-content>
 
                 <n-layout-footer
                     bordered
-                    class="px-6 py-4 text-center text-sm text-gray-500 bg-white dark:bg-gray-800"
+                    class="px-6 py-4 text-right text-sm text-gray-500 bg-white dark:bg-gray-800"
                 >
                     © 2024 Cash Advance
                 </n-layout-footer>

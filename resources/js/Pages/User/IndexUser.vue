@@ -27,9 +27,6 @@ const props = defineProps({
     statData: Object,
 });
 
-// console.log(props.departments);
-console.log(props.roles);
-
 // Composables initialization
 const page = usePage();
 

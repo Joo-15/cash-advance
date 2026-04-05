@@ -22,11 +22,12 @@ const emit = defineEmits(["add", "download"]);
             {{ title }}
         </h1>
 
-        <n-space wrap>
+        <div class="flex flex-col gap-2 w-full md:flex-row md:w-auto">
             <n-button
                 v-if="showDownload"
                 ghost
                 type="primary"
+                class="!w-full md:!w-auto"
                 @click="$emit('download')"
             >
                 <template #icon>
@@ -35,12 +36,17 @@ const emit = defineEmits(["add", "download"]);
                 {{ downloadButtonText }}
             </n-button>
 
-            <n-button v-if="showAdd" color="#8a2be2" @click="$emit('add')">
+            <n-button
+                v-if="showAdd"
+                color="#8a2be2"
+                class="!w-full md:!w-auto"
+                @click="$emit('add')"
+            >
                 <template #icon>
                     <n-icon><Add /></n-icon>
                 </template>
                 {{ addButtonText }}
             </n-button>
-        </n-space>
+        </div>
     </div>
 </template>

@@ -29,7 +29,7 @@ const props = defineProps({
     closeModal: Function,
     submit: Function,
 });
-console.log(props.rolesOptions);
+
 const emit = defineEmits(["update:showModal", "updated"]);
 
 /*

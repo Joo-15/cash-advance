@@ -27,10 +27,30 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
 });
 
-console.log("approval", props.approval.data);
-
 // Composables initialization
 const page = usePage();
+// Animation states
+const isPageLoaded = ref(false);
+const animatedCards = ref(false);
+const animatedFilters = ref(false);
+const animatedTable = ref(false);
+
+// Trigger animations on mount
+onMounted(() => {
+    setTimeout(() => {
+        isPageLoaded.value = true;
+    }, 50);
+    setTimeout(() => {
+        animatedCards.value = true;
+    }, 100);
+    setTimeout(() => {
+        animatedFilters.value = true;
+    }, 100);
+    setTimeout(() => {
+        animatedTable.value = true;
+    }, 100);
+});
+
 // Refs
 const formRef = ref(null);
 
@@ -100,8 +120,6 @@ const rows = computed(() =>
     props.approval.data.map((row) => ({ ...row, detail: true })),
 );
 
-// console.log("role", roleName.value);
-
 // Column configuration
 const columnConfig = computed(() => {
     const columns = [
@@ -128,6 +146,7 @@ const columnConfig = computed(() => {
         {
             title: "Tujuan",
             key: "purpose",
+            width: 200,
             sorter: false,
             visible: true,
         },
@@ -151,9 +170,9 @@ const columnConfig = computed(() => {
             visible: true,
         },
         {
-            title: "Status",
+            title: "Stage",
             key: "approvals.status",
-            width: 200,
+            width: 80,
             align: "center",
             sorter: true,
             visible: true,
@@ -508,6 +527,133 @@ const columnConfig = computed(() => {
             },
         },
         {
+            title: "Status",
+            key: "approvals.status",
+            width: 200,
+            align: "center",
+            sorter: true,
+            visible: true,
+            render: (row) => {
+                if (!row.approvals || row.approvals.length === 0) {
+                    return h(
+                        NTag,
+                        {
+                            type: "default",
+                            size: "small",
+                            round: true,
+                            bordered: false,
+                        },
+                        { default: () => "No Data" },
+                    );
+                }
+
+                // Urutkan approvals berdasarkan step_order
+                const sortedApprovals = [...row.approvals].sort(
+                    (a, b) =>
+                        (a.approval_step?.step_order || 0) -
+                        (b.approval_step?.step_order || 0),
+                );
+
+                // Dapatkan role user yang login
+                const currentUserRoleId = roleId.value;
+
+                // Helper untuk cek apakah user termasuk dalam step ini
+                const isUserInStep = (approval) => {
+                    if (!approval?.approval_step?.approval_step_roles)
+                        return false;
+                    return approval.approval_step.approval_step_roles.some(
+                        (stepRole) =>
+                            String(stepRole.role_id) ===
+                            String(currentUserRoleId),
+                    );
+                };
+
+                // Cek apakah user sudah approved di step miliknya
+                const userStepApproval = sortedApprovals.find((approval) =>
+                    isUserInStep(approval),
+                );
+                const isUserAlreadyApproved =
+                    userStepApproval?.status === "approved";
+
+                // Cari status yang ada
+                const rejectedStep = sortedApprovals.find(
+                    (a) => a.status === "rejected",
+                );
+                const pendingStep = sortedApprovals.find(
+                    (a) => a.status === "pending",
+                );
+                const allApproved = sortedApprovals.every(
+                    (a) => a.status === "approved",
+                );
+
+                // Jika user sudah approved, tampilkan "Approved"
+                if (isUserAlreadyApproved) {
+                    return h(
+                        NTag,
+                        {
+                            type: "success",
+                            size: "small",
+                            round: true,
+                            bordered: false,
+                        },
+                        { default: () => "Approved" },
+                    );
+                }
+
+                // Tampilkan status ASLI dengan highlight berdasarkan role user
+                if (rejectedStep) {
+                    return h(
+                        NTag,
+                        {
+                            type: "error",
+                            size: "small",
+                            round: true,
+                            bordered: false,
+                        },
+                        { default: () => rejectedStep.status },
+                    );
+                }
+
+                if (allApproved) {
+                    return h(
+                        NTag,
+                        {
+                            type: "success",
+                            size: "small",
+                            round: true,
+                            bordered: false,
+                        },
+                        { default: () => "Approved" },
+                    );
+                }
+
+                if (pendingStep) {
+                    return h(
+                        NTag,
+                        {
+                            type: "warning",
+                            size: "small",
+                            round: true,
+                            bordered: false,
+                        },
+                        { default: () => pendingStep.status },
+                    );
+                }
+
+                // Fallback: tampilkan status dari row
+                return h(
+                    NTag,
+                    {
+                        type: "default",
+                        size: "small",
+                        round: true,
+                        bordered: false,
+                    },
+                    { default: () => row.status || "pending" },
+                );
+            },
+        },
+        {
             title: "Aksi",
             key: "actions",
             type: "action",
@@ -575,43 +721,53 @@ const tableColumns = computed(() => createColumns(columnConfig.value, actions));
             ></Filters>
         </template>
         <template #content>
-            <BaseTable
-                :columns="tableColumns"
-                :data-ref="rows"
-                :meta="approval"
-                :filters="filters"
-                :select-options="STATUS_OPTIONS"
-                :page-size="filters.pageSize"
-                :loading-ref="loadingSearch || loadingTable"
-                :has-active-sort-fn="hasActiveSort"
-                :reset-sort-fn="handleResetSort"
-                @update:page="handlePageChange"
-                @update:pageSize="handlePageSizeChange"
-                @update:sorter="handleSortChange"
-                @clear-filter="handleClear"
-            />
-            <ModalForm
-                v-model:show-modal="modalForm"
-                detail-title="Detail Persetujuan"
-                :is-detail-mode="true"
-                :data-edit="selectedRow"
-                :auto-focus="false"
+            <div
+                class="transform transition-all duration-500"
+                :class="
+                    animatedTable
+                        ? 'translate-y-0 opacity-100'
+                        : 'translate-y-10 opacity-0'
+                "
             >
-                <template #form="{ closeModal }">
-                    <FormApproval
-                        v-model:show-modal="modalForm"
-                        :data-detail="selectedApproval"
-                        :approval-step="approvalStep"
-                        :loading="loadingButton"
-                        :role-name="roleName"
-                        :user-name="userName"
-                        :department-name="departmentName"
-                        :close-modal="closeModal"
-                        :submit="submit"
-                        @updated="refresh"
-                    />
-                </template>
-            </ModalForm>
+                <BaseTable
+                    :columns="tableColumns"
+                    :data-ref="rows"
+                    :meta="approval"
+                    :filters="filters"
+                    :select-options="STATUS_OPTIONS"
+                    :page-size="filters.pageSize"
+                    :loading-ref="loadingSearch || loadingTable"
+                    :has-active-sort-fn="hasActiveSort"
+                    :reset-sort-fn="handleResetSort"
+                    @update:page="handlePageChange"
+                    @update:pageSize="handlePageSizeChange"
+                    @update:sorter="handleSortChange"
+                    @clear-filter="handleClear"
+                    class="transition-all duration-300"
+                />
+                <ModalForm
+                    v-model:show-modal="modalForm"
+                    detail-title="Detail Persetujuan"
+                    :is-detail-mode="true"
+                    :data-edit="selectedRow"
+                    :auto-focus="false"
+                >
+                    <template #form="{ closeModal }">
+                        <FormApproval
+                            v-model:show-modal="modalForm"
+                            :data-detail="selectedApproval"
+                            :approval-step="approvalStep"
+                            :loading="loadingButton"
+                            :role-name="roleName"
+                            :user-name="userName"
+                            :department-name="departmentName"
+                            :close-modal="closeModal"
+                            :submit="submit"
+                            @updated="refresh"
+                        />
+                    </template>
+                </ModalForm>
+            </div>
         </template>
     </Container>
 </template>

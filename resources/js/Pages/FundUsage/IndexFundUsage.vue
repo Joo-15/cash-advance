@@ -25,7 +25,6 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
 });
 
-console.log("penggunaan dana", props.fundUsage);
 // Refs
 const formRef = ref(null);
 
@@ -135,10 +134,6 @@ const actions = {
 
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));
-
-const handleDownload = () => {
-    console.log("Download Excel");
-};
 </script>
 
 <template>

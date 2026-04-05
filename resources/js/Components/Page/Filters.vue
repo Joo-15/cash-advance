@@ -22,7 +22,8 @@ const emit = defineEmits([
 </script>
 <template>
     <div class="mb-4">
-        <div class="flex items-center gap-4">
+        <!-- Desktop Layout (horizontal) -->
+        <div class="hidden md:flex items-center gap-4">
             <!-- Search Input -->
             <div class="flex-1" v-if="showSearch">
                 <n-input
@@ -36,14 +37,6 @@ const emit = defineEmits([
 
             <!-- Department Select -->
             <div v-if="showDepartment" class="w-56">
-                <!-- ✅ Tampilkan skeleton saat loading -->
-                <!-- <n-skeleton
-                    v-if="loadingOptions"
-                    width="100%"
-                    height="40px"
-                    sharp
-                /> -->
-                <!-- ✅ Tampilkan select jika data sudah siap -->
                 <n-select
                     :value="filters.department"
                     :options="departmentOptions"
@@ -55,6 +48,40 @@ const emit = defineEmits([
 
             <!-- Status Select -->
             <div v-if="showStatus" class="w-40">
+                <n-select
+                    :value="filters.status"
+                    :options="statusOptions"
+                    placeholder="Pilih Status"
+                    clearable
+                    @update:value="$emit('update:status', $event)"
+                />
+            </div>
+        </div>
+
+        <!-- Mobile Layout (vertical with grid) -->
+        <div class="md:hidden space-y-3">
+            <!-- Search Input - Full width on mobile -->
+            <div v-if="showSearch" class="w-full">
+                <n-input
+                    :value="filters.search"
+                    :placeholder="placeholder"
+                    clearable
+                    :loading="loadingSearch"
+                    @update:value="$emit('update:search', $event)"
+                />
+            </div>
+
+            <div v-if="showDepartment" class="w-full">
+                <n-select
+                    :value="filters.department"
+                    :options="departmentOptions"
+                    placeholder="Pilih Departemen"
+                    clearable
+                    @update:value="$emit('update:department', $event)"
+                />
+            </div>
+
+            <div v-if="showStatus" class="w-full">
                 <n-select
                     :value="filters.status"
                     :options="statusOptions"

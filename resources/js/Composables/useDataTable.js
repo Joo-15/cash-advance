@@ -199,6 +199,7 @@ export function useDataTable({
     };
 
     const renderAttachment = (value) => {
+        // Cek kosong
         if (!value || (typeof value === "string" && value.trim() === "")) {
             return h(
                 NTag,
@@ -212,9 +213,9 @@ export function useDataTable({
             );
         }
 
-        const fullUrl = value.startsWith("http")
-            ? value
-            : `/storage/${value.replace(/^\/+/, "")}`;
+        // Sudah ada attachment
+        const fileName = value.split("/").pop();
+        const fullUrl = `/storage/${value}`; // Sesuaikan dengan URL storage Anda
 
         return h(
             NTag,
@@ -225,11 +226,36 @@ export function useDataTable({
                 bordered: false,
                 style: { cursor: "pointer" },
                 onClick: () => {
-                    window.open(fullUrl, "_blank");
+                    // Buka modal dengan PDF
+                    dialog.create({
+                        title: "Lampiran Bukti",
+                        content: () =>
+                            h(
+                                "div",
+                                { style: { width: "100%", height: "80vh" } },
+                                [
+                                    h("iframe", {
+                                        src: fullUrl,
+                                        style: {
+                                            width: "100%",
+                                            height: "100%",
+                                            border: "none",
+                                        },
+                                        frameborder: "0",
+                                    }),
+                                ],
+                            ),
+                        style: {
+                            width: "70%",
+                            maxWidth: "1200px",
+                        },
+                        positiveText: "Tutup",
+                        showIcon: false,
+                    });
                 },
             },
             {
-                default: () => "Lihat Lampiran",
+                default: () => "Lampiran Bukti",
                 icon: () =>
                     h(NIcon, { size: 18 }, { default: () => h(AttachOutline) }),
             },
@@ -261,9 +287,9 @@ export function useDataTable({
                     default: () => label,
                     ...(icon
                         ? {
-                              icon: () =>
-                                  h(NIcon, null, { default: () => h(icon) }),
-                          }
+                            icon: () =>
+                                h(NIcon, null, { default: () => h(icon) }),
+                        }
                         : {}),
                 },
             );
@@ -454,10 +480,10 @@ export function useDataTable({
 
         return buttons.length
             ? h(
-                  NSpace,
-                  { align: "center", justify: placement, size: 4 },
-                  { default: () => buttons },
-              )
+                NSpace,
+                { align: "center", justify: placement, size: 4 },
+                { default: () => buttons },
+            )
             : null;
     };
 

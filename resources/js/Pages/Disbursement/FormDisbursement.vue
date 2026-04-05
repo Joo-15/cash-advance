@@ -52,8 +52,6 @@ const displayData = computed(() => {
     };
 });
 
-console.log("display data", displayData);
-
 const emit = defineEmits(["update:showModal", "updated"]);
 
 /*
@@ -70,7 +68,6 @@ const { handleSubmit, errors, defineField, setValues, resetForm } = useForm({
 });
 
 const submitForm = handleSubmit(async (values) => {
-    console.log(values);
     await props.submit({
         values,
         method: "post",
@@ -88,30 +85,11 @@ const submitForm = handleSubmit(async (values) => {
 */
 const [amount] = defineField("amount");
 const [disbursed_at] = defineField("disbursed_at");
-
-// watch(
-//     () => props.dataSelected,
-//     (val) => {
-//         console.log("test", val);
-//         if (val?.id) {
-//             setValues({
-//                 ...val,
-//                 request_date: val.request_date
-//                     ? new Date(val.request_date).getTime()
-//                     : null,
-//                 amount: val.amount ? Number(val.amount) : null,
-//             });
-//         } else {
-//             resetForm();
-//         }
-//     },
-//     { immediate: true, deep: true },
-// );
 </script>
 
 <template>
     <div>
-        <n-card class="disbursement-card">
+        <n-card>
             <!-- Informasi Peminjam -->
             <div class="info-section">
                 <div class="info-row">

@@ -23,7 +23,7 @@ class CashAdvanceController extends Controller
         $departmentName = $user->department?->name;
         $isSuperAdmin = $user->role === 'super_admin'; // sesuaikan dengan sistemmu
 
-        $perPage = (int) $request->input('per_page', 10);
+        $perPage = (int) $request->input('per_page', 5);
 
         // Base query dengan eager loading
         $query = CashAdvance::with([

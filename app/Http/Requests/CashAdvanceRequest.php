@@ -87,7 +87,7 @@ class CashAdvanceRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        // dd($this->request_date);
+        // dd($this->request_date); // 1775174346675
 
         if (!empty($this->request_date) && is_numeric($this->request_date)) {
             // Debug: lihat nilai asli

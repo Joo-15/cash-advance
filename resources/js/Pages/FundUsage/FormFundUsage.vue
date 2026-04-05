@@ -65,8 +65,6 @@ const displayData = computed(() => {
     };
 });
 
-console.log("selected row", props.dataSelected);
-
 const fileList = ref([]);
 const pdfUrl = ref(null);
 
@@ -149,8 +147,6 @@ const submitForm = () => {
         onSuccess: () => {},
     });
 };
-
-console.log("pdf", pdfUrl.value);
 
 onMounted(() => {
     initializePdf();

@@ -14,6 +14,9 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+
+        // Debug 2: Lihat parameter specific
+        // dd($request->month);
         // ========== CEK HAK AKSES ==========
         $user = Auth::user();
 
@@ -35,6 +38,8 @@ class DashboardController extends Controller
         $month = $request->get('month', now()->format('Y-m'));
         $year = substr($month, 0, 4);
         $monthNum = substr($month, 5, 2);
+
+        // dd($monthNum);
 
         // Base query dengan filter role
         $cashAdvanceQuery = CashAdvance::query();

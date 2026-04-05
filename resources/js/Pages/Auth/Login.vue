@@ -42,7 +42,7 @@ const handleForgotPassword = () => {
     <div class="min-h-screen flex">
         <!-- Bagian Kiri: Informasi Perusahaan & Branding -->
         <div
-            class="hidden lg:flex lg:w-[60%] bg-gradient-to-br from-blue-700 to-indigo-900 relative overflow-hidden"
+            class="hidden lg:flex lg:w-[70%] bg-gradient-to-br from-blue-700 to-indigo-900 relative overflow-hidden"
         >
             <!-- Background Image dengan Overlay -->
             <div class="absolute inset-0">
@@ -130,31 +130,31 @@ const handleForgotPassword = () => {
 
         <!-- Bagian Kanan: Form Login -->
         <div
-            class="w-full lg:w-[40%] h-screen flex items-center justify-center p-6 bg-gray-100"
+            class="w-full lg:w-[30%] h-screen flex items-center justify-center bg-gray-100"
         >
-            <div class="w-full max-w-lg h-full">
+            <div class="w-full h-full">
                 <!-- Mobile Logo -->
-                <div class="lg:hidden text-center mb-8">
+                <!-- <div class="lg:hidden text-center mb-8">
                     <div class="flex justify-center mb-3">
                         <div
                             class="h-14 w-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-md"
-                        >
-                            <!-- icon -->
-                        </div>
+                        > -->
+                <!-- icon -->
+                <!-- </div>
                     </div>
                     <h2 class="text-2xl font-bold text-gray-800">
                         CashAdvance Pro
                     </h2>
                     <p class="text-gray-500 text-sm mt-1">Masuk ke akun Anda</p>
-                </div>
+                </div> -->
 
                 <!-- Card Login -->
                 <div
-                    class="bg-white rounded-2xl shadow-xl p-12 h-full flex items-center justify-center"
+                    class="bg-white rounded-2xl shadow-xl p-10 h-full flex items-center justify-center"
                 >
                     <div class="w-full">
                         <!-- Desktop Header -->
-                        <div class="hidden lg:block text-center mb-8">
+                        <div class="lg:block text-center mb-8">
                             <h2 class="text-2xl font-bold text-gray-800">
                                 Selamat Datang Kembali
                             </h2>

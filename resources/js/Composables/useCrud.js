@@ -54,8 +54,6 @@ export function useCrud(options = {}) {
 
     // Method CRUD
     const tambah = (formType, mode = 'create') => {
-        console.log('Tambah dipanggil:', { formType, mode });
-
         currentFormType.value = formType;
         modalMode.value = mode;
         selectedRow.value = null;
@@ -121,8 +119,6 @@ export function useCrud(options = {}) {
     };
 
     const proses = async (formType, mode = 'bayar', id) => {
-        console.log('Tambah dipanggil:', { formType, mode });
-
         currentFormType.value = formType;
         modalMode.value = mode;
 
@@ -135,7 +131,6 @@ export function useCrud(options = {}) {
             // Cek response
             if (response.data.success) {
                 selectedRow.value = response.data.data
-                console.log('data response proses', selectedRow)
                 modalForm.value = true // Buka modal setelah data didapat
 
             } else {
@@ -162,8 +157,6 @@ export function useCrud(options = {}) {
 
     // FUNGSI DETAIL MENGGUNAKAN AXIOS
     const fetchDetail = async (formType, mode = 'create', id) => {
-        console.log('Tambah dipanggil:', { formType, mode });
-
         currentFormType.value = formType;
         modalMode.value = mode;
 
@@ -179,7 +172,6 @@ export function useCrud(options = {}) {
                 approvalStep.value = response.data.approvalStep
 
                 modalForm.value = true // Buka modal setelah data didapat
-                console.log('test', selectedApproval.value);
             } else {
                 message.error('Gagal mengambil data detail')
             }
@@ -221,8 +213,6 @@ export function useCrud(options = {}) {
             }
 
             const currentFilters = getCurrentFilters();
-
-            console.log("📦 values:", values);
 
             let submitData;
 

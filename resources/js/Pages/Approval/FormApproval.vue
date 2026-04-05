@@ -72,32 +72,14 @@ const getTimelineType = (status) => {
 };
 
 // Inisialisasi composable dengan reactive approvals
-const { getByStepId, getPrevious, getNext, getStatus, canApprove, allSteps } =
+const { getByStepId, getPrevious, getNext, getStatus, canApprove } =
     useApprovalSteps(computed(() => approvals));
 
 // Contoh penggunaan di computed
 const currentStep = computed(() => getByStepId(props.approvalStep));
-const previousStep = computed(() => getPrevious(props.approvalStep));
-const nextStep = computed(() => getNext(props.approvalStep));
 const currentStatus = computed(() => getStatus(props.approvalStep));
 const canApproveCurrent = computed(() => canApprove(props.approvalStep));
 
-// Untuk mendapatkan semua steps yang sudah diformat
-const steps = computed(() => allSteps.value);
-
-// Contoh untuk step tertentu
-const step1Status = computed(() => getStatus(1));
-const step2CanApprove = computed(() => canApprove(2));
-
-// Debug
-console.log("Current step:", currentStep.value);
-console.log("Previous step:", previousStep.value);
-console.log("Current status:", currentStatus.value);
-console.log("Next step:", nextStep.value);
-console.log("Can approve:", canApproveCurrent.value);
-console.log("All steps:", steps.value);
-
-console.log("approvals", approvals);
 const approvalSteps = computed(() => {
     if (!approvals || !Array.isArray(approvals)) return [];
 
@@ -170,7 +152,6 @@ const approvalSteps = computed(() => {
     return [manualFirstStep, ...mappedSteps];
 });
 
-console.log("approved_step", approvalSteps);
 // Cari semua step pending
 const pendingSteps = computed(() => {
     return approvals?.filter((a) => a.status === "pending") || [];
@@ -194,8 +175,6 @@ const beforeStepPending = approvalSteps.value.find(
         Number(stepPanding.step_order) ===
         lastPendingStep?.value?.approval_step_id,
 );
-
-console.log("last pending", lastPendingStep.value);
 
 const items = [
     {
@@ -250,218 +229,214 @@ const handleReject = () => {
 </script>
 
 <template>
-    <n-card class="approval-card">
-        <!-- HEADER -->
-        <div class="header">
-            <div class="user flex items-center gap-2">
-                <h3 class="text-base font-semibold leading-none">
-                    {{ requestName }}
-                </h3>
+    <!-- HEADER -->
+    <div class="header">
+        <div class="user flex items-center gap-2">
+            <h3 class="text-base font-semibold leading-none">
+                {{ requestName }}
+            </h3>
 
-                <n-tag size="medium" type="info" bordered>
-                    {{ departmentName }}
-                </n-tag>
-            </div>
-
-            <div class="meta" v-if="props.roleName !== 'Employee'">
-                <n-tag
-                    :type="getTimelineType(statusMap[currentStatus?.status])"
-                    round
-                    >{{ statusMap[currentStatus?.status] }}</n-tag
-                >
-            </div>
+            <n-tag size="medium" type="info" bordered>
+                {{ departmentName }}
+            </n-tag>
         </div>
 
-        <!-- DETAIL -->
-        <n-grid :cols="4" :x-gap="16" :y-gap="12" class="details">
-            <n-grid-item
-                v-for="item in items"
-                :key="item.label"
-                :span="item.span || 1"
+        <div class="meta" v-if="props.roleName !== 'Employee'">
+            <n-tag
+                :type="getTimelineType(statusMap[currentStatus?.status])"
+                round
+                >{{ statusMap[currentStatus?.status] }}</n-tag
             >
-                <div class="detail-item">
-                    <div v-if="item.label" class="detail-label">
-                        {{ item.label }}
-                    </div>
+        </div>
+    </div>
 
-                    <div
-                        :class="['detail-value', { highlight: item.highlight }]"
-                    >
-                        {{ item.value || "-" }}
-                    </div>
+    <!-- DETAIL -->
+    <n-grid :cols="4" :x-gap="16" :y-gap="12" class="details">
+        <n-grid-item
+            v-for="item in items"
+            :key="item.label"
+            :span="item.span || 1"
+        >
+            <div class="detail-item">
+                <div v-if="item.label" class="detail-label">
+                    {{ item.label }}
                 </div>
+
+                <div :class="['detail-value', { highlight: item.highlight }]">
+                    {{ item.value || "-" }}
+                </div>
+            </div>
+        </n-grid-item>
+    </n-grid>
+
+    <!-- APPROVAL -->
+    <n-grid :cols="2" x-gap="16" class="approval-grid">
+        <!-- TIMELINE -->
+        <n-gi>
+            <div class="card-section">
+                <h3>Alur Persetujuan</h3>
+
+                <n-timeline>
+                    <n-timeline-item
+                        v-for="(step, i) in approvalSteps"
+                        :key="i"
+                        :type="getTimelineType(step.status)"
+                        :title="step.title ?? null"
+                        :time="step.date"
+                    >
+                        <template #default>
+                            <n-space vertical size="small">
+                                <!-- Status Tag dan Approved By dalam satu baris -->
+                                <div class="status-row">
+                                    <n-tag
+                                        :type="getTimelineType(step.status)"
+                                        size="small"
+                                        round
+                                    >
+                                        {{ step.status ?? "Pengajuan" }}
+                                    </n-tag>
+
+                                    <!-- Approved By di sebelah kiri status -->
+                                    <div
+                                        v-if="step.approved_by"
+                                        class="approved-by"
+                                    >
+                                        <n-icon size="14" :depth="3">
+                                            <person-outline />
+                                        </n-icon>
+                                        <span>{{ step.approved_by }}</span>
+                                    </div>
+                                </div>
+                            </n-space>
+                        </template>
+                    </n-timeline-item>
+                </n-timeline>
+            </div>
+        </n-gi>
+
+        <!-- REVIEW NOTES -->
+        <n-gi>
+            <n-collapse default-expanded-names="1" accordion>
+                <n-collapse-item title="Catatan" name="1">
+                    <div class="card-section notes">
+                        <n-list class="notes-list">
+                            <n-list-item
+                                class="no-space"
+                                v-for="(note, i) in approvalSteps.slice(1)"
+                                :key="i"
+                            >
+                                <div class="note-item">
+                                    <div class="note-header">
+                                        <div class="note-title">
+                                            {{ note.title }}
+                                        </div>
+                                    </div>
+
+                                    <div class="note-status">
+                                        {{ note.notes || "-" }}
+                                    </div>
+                                </div>
+                            </n-list-item>
+                        </n-list>
+                    </div>
+                </n-collapse-item>
+            </n-collapse>
+        </n-gi>
+    </n-grid>
+    <n-form v-if="canApproveCurrent && props.roleName !== 'Employee'">
+        <!-- NOTES -->
+        <n-grid :cols="1" x-gap="16" class="approval-grid">
+            <n-grid-item>
+                <n-form-item label="Catatan Persetujuan">
+                    <n-input
+                        v-model:value="value"
+                        placeholder="Masukkan catatan"
+                        type="textarea"
+                        :rows="3"
+                        :disabled="!canApproveCurrent"
+                    />
+                </n-form-item>
             </n-grid-item>
         </n-grid>
 
-        <!-- APPROVAL -->
-        <n-grid :cols="2" x-gap="16" class="approval-grid">
-            <!-- TIMELINE -->
-            <n-gi>
-                <div class="card-section">
-                    <h3>Alur Persetujuan</h3>
-
-                    <n-timeline>
-                        <n-timeline-item
-                            v-for="(step, i) in approvalSteps"
-                            :key="i"
-                            :type="getTimelineType(step.status)"
-                            :title="step.title ?? null"
-                            :time="step.date"
-                        >
-                            <template #default>
-                                <n-space vertical size="small">
-                                    <!-- Status Tag dan Approved By dalam satu baris -->
-                                    <div class="status-row">
-                                        <n-tag
-                                            :type="getTimelineType(step.status)"
-                                            size="small"
-                                            round
-                                        >
-                                            {{ step.status ?? "Pengajuan" }}
-                                        </n-tag>
-
-                                        <!-- Approved By di sebelah kiri status -->
-                                        <div
-                                            v-if="step.approved_by"
-                                            class="approved-by"
-                                        >
-                                            <n-icon size="14" :depth="3">
-                                                <person-outline />
-                                            </n-icon>
-                                            <span>{{ step.approved_by }}</span>
-                                        </div>
-                                    </div>
-                                </n-space>
-                            </template>
-                        </n-timeline-item>
-                    </n-timeline>
-                </div>
-            </n-gi>
-
-            <!-- REVIEW NOTES -->
-            <n-gi>
-                <n-collapse default-expanded-names="1" accordion>
-                    <n-collapse-item title="Catatan" name="1">
-                        <div class="card-section notes">
-                            <n-list class="notes-list">
-                                <n-list-item
-                                    class="no-space"
-                                    v-for="(note, i) in approvalSteps.slice(1)"
-                                    :key="i"
-                                >
-                                    <div class="note-item">
-                                        <div class="note-header">
-                                            <div class="note-title">
-                                                {{ note.title }}
-                                            </div>
-                                        </div>
-
-                                        <div class="note-status">
-                                            {{ note.notes || "-" }}
-                                        </div>
-                                    </div>
-                                </n-list-item>
-                            </n-list>
-                        </div>
-                    </n-collapse-item>
-                </n-collapse>
-            </n-gi>
+        <!-- BUTTON ACTIONS -->
+        <n-grid :cols="2" x-gap="12" class="button-grid">
+            <n-grid-item>
+                <n-button
+                    type="error"
+                    size="large"
+                    block
+                    :loading="loading"
+                    :disabled="loading"
+                    @click="handleReject"
+                >
+                    <template #icon>
+                        <n-icon><close-circle-outline /></n-icon>
+                    </template>
+                    Tolak
+                </n-button>
+            </n-grid-item>
+            <n-grid-item>
+                <n-button
+                    type="success"
+                    size="large"
+                    block
+                    :loading="loading"
+                    :disabled="loading"
+                    @click="handleApprove"
+                >
+                    <template #icon>
+                        <n-icon><checkmark-circle-outline /></n-icon>
+                    </template>
+                    Setujui
+                </n-button>
+            </n-grid-item>
         </n-grid>
-        <n-form v-if="canApproveCurrent && props.roleName !== 'Employee'">
-            <!-- NOTES -->
-            <n-grid :cols="1" x-gap="16" class="approval-grid">
-                <n-grid-item>
-                    <n-form-item label="Catatan Persetujuan">
-                        <n-input
-                            v-model:value="value"
-                            placeholder="Masukkan catatan"
-                            type="textarea"
-                            :rows="3"
-                            :disabled="!canApproveCurrent"
-                        />
-                    </n-form-item>
-                </n-grid-item>
-            </n-grid>
+    </n-form>
+    <!-- PESAN jika form tidak tampil -->
 
-            <!-- BUTTON ACTIONS -->
-            <n-grid :cols="2" x-gap="12" class="button-grid">
-                <n-grid-item>
-                    <n-button
-                        type="error"
-                        size="large"
-                        block
-                        :loading="loading"
-                        :disabled="loading"
-                        @click="handleReject"
-                    >
-                        <template #icon>
-                            <n-icon><close-circle-outline /></n-icon>
-                        </template>
-                        Tolak
-                    </n-button>
-                </n-grid-item>
-                <n-grid-item>
-                    <n-button
-                        type="success"
-                        size="large"
-                        block
-                        :loading="loading"
-                        :disabled="loading"
-                        @click="handleApprove"
-                    >
-                        <template #icon>
-                            <n-icon><checkmark-circle-outline /></n-icon>
-                        </template>
-                        Setujui
-                    </n-button>
-                </n-grid-item>
-            </n-grid>
-        </n-form>
-        <!-- PESAN jika form tidak tampil -->
-
-        <n-alert
-            class="mt-5"
+    <n-alert
+        class="mt-5"
+        v-if="
+            (lastPendingStep?.status != null &&
+                !canApproveCurrent &&
+                currentStep?.status !== 'rejected') ||
+            props.roleName === 'Employee'
+        "
+        :type="Number(approvalStep) === 1 ? 'info' : 'warning'"
+        :show-icon="true"
+    >
+        <span
             v-if="
-                (lastPendingStep?.status != null &&
-                    !canApproveCurrent &&
-                    currentStep?.status !== 'rejected') ||
-                props.roleName === 'Employee'
+                lastPendingStep?.status == null &&
+                props.roleName === 'Employee' &&
+                getStatusRequest === 'disbursed'
             "
-            :type="Number(approvalStep) === 1 ? 'info' : 'warning'"
-            :show-icon="true"
         >
-            <span
-                v-if="
-                    lastPendingStep?.status == null &&
-                    props.roleName === 'Employee' &&
-                    getStatusRequest === 'disbursed'
-                "
-            >
-                Dana sudah di serahkan <b>{{ requestName }}</b>
-            </span>
-            <span
-                v-else-if="
-                    lastPendingStep?.status == null &&
-                    props.roleName === 'Employee' &&
-                    getLastStatus?.status === 'approved'
-                "
-            >
-                Dana bisa diambil di <b>Finance</b>
-            </span>
-            <span
-                v-if="
-                    lastPendingStep?.status == null &&
-                    props.roleName === 'Employee' &&
-                    getLastStatus?.status === 'rejected'
-                "
-            >
-                Pengajuan anda ditolak.
-            </span>
-            <span v-else-if="lastPendingStep?.status == 'pending'">
-                Menunggu persetujuan <b>{{ beforeStepPending?.title }}</b>
-            </span>
-        </n-alert>
-    </n-card>
+            Dana sudah di serahkan <b>{{ requestName }}</b>
+        </span>
+        <span
+            v-else-if="
+                lastPendingStep?.status == null &&
+                props.roleName === 'Employee' &&
+                getLastStatus?.status === 'approved'
+            "
+        >
+            Dana bisa diambil di <b>Finance</b>
+        </span>
+        <span
+            v-if="
+                lastPendingStep?.status == null &&
+                props.roleName === 'Employee' &&
+                getLastStatus?.status === 'rejected'
+            "
+        >
+            Pengajuan anda ditolak.
+        </span>
+        <span v-else-if="lastPendingStep?.status == 'pending'">
+            Menunggu persetujuan <b>{{ beforeStepPending?.title }}</b>
+        </span>
+    </n-alert>
 </template>
 
 <style scoped>
@@ -471,11 +446,6 @@ const handleReject = () => {
 :deep(.n-list-item) {
     padding: 0 !important;
     margin: 0 !important;
-}
-
-.approval-card {
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .status-row {

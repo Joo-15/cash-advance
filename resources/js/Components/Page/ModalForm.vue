@@ -18,7 +18,7 @@ const props = defineProps({
         default: "Tambah Data",
     },
 });
-console.log(props.isDetailMode);
+
 const emit = defineEmits(["update:showModal"]);
 
 const closeModal = () => {
@@ -46,7 +46,7 @@ const modalTitle = computed(() => {
     <n-modal
         :show="showModal"
         preset="card"
-        class="max-w-2xl w-full rounded-2xl p-2"
+        class="w-full h-full lg:max-w-2xl lg:rounded-2xl"
         :mask-closable="false"
         :title="modalTitle"
         @update:show="closeModal"

@@ -48,16 +48,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('pengajuan-pinjaman', CashAdvanceController::class);
     });
 
+
+
     // ============================================
     // MANAGER, ADMIN, SUPER ADMIN
     // ============================================
     Route::middleware(['role:Super Admin,Admin,Supervisor,Chef,Manager,General Manager,Manager Accounting,Finance'])->group(function () {
         // Approvals
         Route::resource('approvals', ApprovalController::class);
-        Route::get('/approvals/{id}/detail', [ApprovalController::class, 'getDetail'])->name('approvals.detail');
         Route::put('/approvals/{approval}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
         Route::put('/approvals/{approval}/reject', [ApprovalController::class, 'reject'])->name('approvals.reject');
     });
+    Route::get('/approvals/{id}/detail', [ApprovalController::class, 'getDetail'])->name('approvals.detail');
+
 
     // ============================================
     // FINANCE

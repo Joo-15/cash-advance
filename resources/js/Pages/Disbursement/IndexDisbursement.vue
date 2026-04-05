@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 // Composables
 import { useDataTable } from "@/Composables/useDataTable";
@@ -27,23 +27,14 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
 });
 
-console.log("disbursement", props.disbursement);
 // Refs
 const formRef = ref(null);
 
-const {
-    userName,
-    userAvatar,
-    greeting,
-    fullNameWithTitle,
-    departmentName,
-    roleName,
-    isAdmin,
-    isSupervisor,
-    isEmployee,
-    hasRole,
-    inDepartmentName,
-} = useAuth();
+// Animation states
+const isPageLoaded = ref(false);
+const animatedCards = ref(false);
+const animatedFilters = ref(false);
+const animatedTable = ref(false);
 
 const {
     loadingButton,
@@ -190,22 +181,38 @@ const actions = {
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));
 
-const handleDownload = () => {
-    console.log("Download Excel");
-};
+// Trigger animations on mount
+onMounted(() => {
+    setTimeout(() => {
+        isPageLoaded.value = true;
+    }, 100);
+    setTimeout(() => {
+        animatedFilters.value = true;
+    }, 0);
+    setTimeout(() => {
+        animatedTable.value = true;
+    }, 0);
+});
 </script>
 
 <template>
     <Container>
         <template #header>
-            <PageHeader
-                add-button-text="Ajukan Pinjaman"
-                title="Pencairan Dana"
-                :show-add="false"
-                :show-download="true"
-                @add="tambah('cash-advance', 'create')"
-                @download="handleDownload"
-            ></PageHeader>
+            <div
+                class="transform transition-all duration-1000"
+                :class="
+                    isPageLoaded
+                        ? 'translate-y-0 opacity-100'
+                        : 'translate-y-[-20px] opacity-0'
+                "
+            >
+                <PageHeader
+                    add-button-text="Ajukan Pinjaman"
+                    title="Pencairan Dana"
+                    :show-add="false"
+                    @add="tambah('cash-advance', 'create')"
+                ></PageHeader>
+            </div>
         </template>
         <template #filters>
             <Filters

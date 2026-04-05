@@ -36,9 +36,6 @@ const userRole = computed(
     () => user.value?.role?.name || user.value?.role || "employee",
 );
 const department = computed(() => page.props.auth?.user?.department?.name);
-console.log("page", userRole.value);
-
-// const department = computed(() => page.)
 
 /* =====================
    HELPERS
@@ -379,7 +376,7 @@ watch(
         show-trigger="arrow-circle"
         bordered
         :native-scrollbar="false"
-        class="bg-slate-100 dark:bg-gray-900 fixed left-0 z-40 min-h-screen"
+        class="bg-white dark:bg-gray-900 fixed left-0 z-40 min-h-screen"
     >
         <!-- LOGO AREA -->
         <div class="py-4 px-3 border-b border-gray-200 dark:border-gray-700">

@@ -37,8 +37,6 @@ export function useInertiaDataTable({
             params.order = filters.order;
         }
 
-        // console.log("🚀 Fetching with params:", params);
-
         router.get(route, params, {
             preserveState: true,
             preserveScroll: true,
@@ -109,17 +107,12 @@ export function useInertiaDataTable({
             // Reset sorting
             filters.sort = null;
             filters.order = null;
-            // console.log("📊 Sort reset - filters after:", filters);
+
         } else {
             // InertiaDataTable mengirim format: { field: 'tanggal', order: 'asc'/'desc' }
             filters.sort = sortOptions.field;
             filters.order = sortOptions.order; // Langsung pakai 'asc' atau 'desc'
 
-            // console.log("📊 Sort updated:", {
-            //     field: sortOptions.field,
-            //     order: sortOptions.order,
-            //     filters: filters
-            // });
         }
 
 
@@ -127,14 +120,6 @@ export function useInertiaDataTable({
 
     // ============ CLEAR FILTERS ============
     const handleClear = () => {
-        // console.log("🧹 useInertiaDataTable - Clearing all filters");
-        // console.log("Before clear:", {
-        //     sort: filters.sort,
-        //     order: filters.order,
-        //     search: filters.search,
-        //     status: filters.status
-        // });
-
         loadingTable.value = true;
 
         // Reset semua filters
@@ -142,13 +127,6 @@ export function useInertiaDataTable({
         filters.status = null;
         filters.sort = null;
         filters.order = null;
-
-        // console.log("After clear:", {
-        //     sort: filters.sort,
-        //     order: filters.order,
-        //     search: filters.search,
-        //     status: filters.status
-        // });
 
         debouncedFetch();
     };

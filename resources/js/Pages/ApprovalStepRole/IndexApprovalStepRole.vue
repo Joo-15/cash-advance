@@ -120,10 +120,6 @@ const actions = {
 
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));
-
-const handleDownload = () => {
-    console.log("Download Excel");
-};
 </script>
 
 <template>

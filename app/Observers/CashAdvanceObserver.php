@@ -14,8 +14,6 @@ class CashAdvanceObserver
      */
     public function creating(CashAdvance $cashAdvance): void
     {
-        // Konversi tanggal jika dari frontend (timestamp milidetik)
-        // Set user_id dari user yang login
         if (empty($cashAdvance->user_id)) {
             $cashAdvance->user_id = Auth::id();
         }
