@@ -20,6 +20,7 @@ import FormCashAdvance from "./FormDisbursement.vue";
 import FormApproval from "../Approval/FormApproval.vue";
 import { useAuth } from "@/Composables/useAuth";
 import FormDisbursement from "./FormDisbursement.vue";
+import { Head } from "@inertiajs/vue3";
 
 // Props definition
 const props = defineProps({
@@ -196,6 +197,7 @@ onMounted(() => {
 </script>
 
 <template>
+    <Head title="Pencairan Dana" />
     <Container>
         <template #header>
             <div

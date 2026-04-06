@@ -1,6 +1,6 @@
 <script setup>
 import { computed, h, onMounted, ref } from "vue";
-import { usePage } from "@inertiajs/vue3";
+import { Head, usePage } from "@inertiajs/vue3";
 
 // Composables
 import { useDataTable } from "@/Composables/useDataTable";
@@ -699,6 +699,7 @@ onMounted(() => {
 </script>
 
 <template>
+    <Head title="Persetujuan" />
     <Container>
         <template #header>
             <div

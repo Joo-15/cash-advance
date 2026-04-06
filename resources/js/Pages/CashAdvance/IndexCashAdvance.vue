@@ -20,6 +20,7 @@ import ModalForm from "@/Components/Page/ModalForm.vue";
 import FormCashAdvance from "./FormCashAdvance.vue";
 import FormApproval from "../Approval/FormApproval.vue";
 import { useAuth } from "@/Composables/useAuth";
+import { Head } from "@inertiajs/vue3";
 
 // Props definition
 const props = defineProps({
@@ -240,6 +241,7 @@ const modalTitle = computed(() => {
 </script>
 
 <template>
+    <Head title="Pengajuan Baru" />
     <Container>
         <template #header>
             <div
@@ -295,7 +297,6 @@ const modalTitle = computed(() => {
                     :loading-search="loadingSearch"
                     @update:search="filters.search = $event"
                     @update:status="filters.status = $event"
-                    class="transition-all duration-150"
                 ></Filters>
             </div>
         </template>
@@ -464,16 +465,6 @@ const modalTitle = computed(() => {
     transform: scale(1.1);
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-}
-
-/* Input focus animations */
-:deep(.n-input) {
-    transition: all 0.2s ease;
-}
-
-:deep(.n-input:focus-within) {
-    transform: scale(1.02);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 /* Select dropdown animation */

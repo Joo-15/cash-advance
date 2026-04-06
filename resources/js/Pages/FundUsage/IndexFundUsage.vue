@@ -18,6 +18,7 @@ import ModalForm from "@/Components/Page/ModalForm.vue";
 import { useAuth } from "@/Composables/useAuth";
 
 import FormFundUsage from "./FormFundUsage.vue";
+import { Head } from "@inertiajs/vue3";
 
 // Props definition
 const props = defineProps({
@@ -156,6 +157,7 @@ onMounted(() => {
 </script>
 
 <template>
+    <Head title="Penggunaan Dana" />
     <Container>
         <template #header>
             <div

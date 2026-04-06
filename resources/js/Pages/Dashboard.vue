@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from "vue";
-import { router } from "@inertiajs/vue3";
+import { Head, router } from "@inertiajs/vue3";
 import {
     NCard,
     NGrid,
@@ -306,6 +306,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+    <Head title="Dashboard" />
     <Container>
         <template #header>
             <div
