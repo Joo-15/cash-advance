@@ -261,7 +261,7 @@ const modalTitle = computed(() => {
             </div>
         </template>
 
-        <template #statCards v-if="!collapsed">
+        <template #statCards>
             <div
                 class="transform transition-all duration-300"
                 :class="

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 // Composables
 import { useDataTable } from "@/Composables/useDataTable";
@@ -27,6 +27,12 @@ const props = defineProps({
 
 // Refs
 const formRef = ref(null);
+
+// Animation states
+const isPageLoaded = ref(false);
+const animatedCards = ref(false);
+const animatedFilters = ref(false);
+const animatedTable = ref(false);
 
 const {
     loadingButton,
@@ -134,40 +140,80 @@ const actions = {
 
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));
+
+// Trigger animations on mount
+onMounted(() => {
+    setTimeout(() => {
+        isPageLoaded.value = true;
+    }, 100);
+    setTimeout(() => {
+        animatedFilters.value = true;
+    }, 0);
+    setTimeout(() => {
+        animatedTable.value = true;
+    }, 0);
+});
 </script>
 
 <template>
     <Container>
         <template #header>
-            <PageHeader title="Penggunaan Dana"></PageHeader>
+            <div
+                class="transform transition-all duration-1000"
+                :class="
+                    isPageLoaded
+                        ? 'translate-y-0 opacity-100'
+                        : 'translate-y-[-20px] opacity-0'
+                "
+            >
+                <PageHeader title="Penggunaan Dana"></PageHeader>
+            </div>
         </template>
         <template #filters>
-            <Filters
-                :filters="filters"
-                :show-search="true"
-                :show-select="true"
-                :select-options="STATUS_OPTIONS_PENCAIRAN"
-                :loading-search="loadingSearch"
-                @update:search="filters.search = $event"
-                @update:status="filters.status = $event"
-            ></Filters>
+            <div
+                class="transform transition-all duration-500"
+                :class="
+                    animatedFilters
+                        ? 'translate-y-0 opacity-100'
+                        : 'translate-y-10 opacity-0'
+                "
+            >
+                <Filters
+                    :filters="filters"
+                    :show-search="true"
+                    :show-select="true"
+                    :select-options="STATUS_OPTIONS_PENCAIRAN"
+                    :loading-search="loadingSearch"
+                    @update:search="filters.search = $event"
+                    @update:status="filters.status = $event"
+                ></Filters>
+            </div>
         </template>
         <template #content>
-            <BaseTable
-                :columns="tableColumns"
-                :data-ref="rows"
-                :meta="fundUsage"
-                :filters="filters"
-                :select-options="STATUS_OPTIONS_PENCAIRAN"
-                :page-size="filters.pageSize"
-                :loading-ref="loadingSearch || loadingTable"
-                :has-active-sort-fn="hasActiveSort"
-                :reset-sort-fn="handleResetSort"
-                @update:page="handlePageChange"
-                @update:pageSize="handlePageSizeChange"
-                @update:sorter="handleSortChange"
-                @clear-filter="handleClear"
-            />
+            <div
+                class="transform transition-all duration-500"
+                :class="
+                    animatedTable
+                        ? 'translate-y-0 opacity-100'
+                        : 'translate-y-10 opacity-0'
+                "
+            >
+                <BaseTable
+                    :columns="tableColumns"
+                    :data-ref="rows"
+                    :meta="fundUsage"
+                    :filters="filters"
+                    :select-options="STATUS_OPTIONS_PENCAIRAN"
+                    :page-size="filters.pageSize"
+                    :loading-ref="loadingSearch || loadingTable"
+                    :has-active-sort-fn="hasActiveSort"
+                    :reset-sort-fn="handleResetSort"
+                    @update:page="handlePageChange"
+                    @update:pageSize="handlePageSizeChange"
+                    @update:sorter="handleSortChange"
+                    @clear-filter="handleClear"
+                />
+            </div>
             <ModalForm
                 v-model:show-modal="modalForm"
                 create-title="Upload Bukti"

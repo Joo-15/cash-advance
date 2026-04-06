@@ -46,7 +46,7 @@ const modalTitle = computed(() => {
     <n-modal
         :show="showModal"
         preset="card"
-        class="w-full h-full lg:max-w-2xl lg:rounded-2xl"
+        class="w-full h-full lg:max-w-2xl lg:rounded-2xl px-4"
         :mask-closable="false"
         :title="modalTitle"
         @update:show="closeModal"

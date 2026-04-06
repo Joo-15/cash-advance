@@ -230,13 +230,39 @@ const handleReject = () => {
 
 <template>
     <!-- HEADER -->
-    <div class="header">
-        <div class="user flex items-center gap-2">
-            <h3 class="text-base font-semibold leading-none">
-                {{ requestName }}
-            </h3>
+    <div
+        class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-gray-100"
+    >
+        <div class="flex items-center gap-3">
+            <!-- Icon Avatar -->
+            <div
+                class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-md"
+            >
+                <svg
+                    class="w-5 h-5 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    ></path>
+                </svg>
+            </div>
 
-            <n-tag size="medium" type="info" bordered>
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800 leading-tight">
+                    {{ requestName }}
+                </h3>
+                <p class="text-xs text-gray-400 mt-0.5">
+                    Pengajuan Cash Advance
+                </p>
+            </div>
+
+            <n-tag size="medium" type="info" bordered class="ml-1">
                 {{ departmentName }}
             </n-tag>
         </div>
@@ -245,29 +271,41 @@ const handleReject = () => {
             <n-tag
                 :type="getTimelineType(statusMap[currentStatus?.status])"
                 round
-                >{{ statusMap[currentStatus?.status] }}</n-tag
+                size="large"
+                class="shadow-sm"
             >
+                {{ statusMap[currentStatus?.status] }}
+            </n-tag>
         </div>
     </div>
 
-    <!-- DETAIL -->
-    <n-grid :cols="4" :x-gap="16" :y-gap="12" class="details">
-        <n-grid-item
+    <!-- DETAIL - Simple Clean -->
+    <div
+        class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-xl"
+    >
+        <div
             v-for="item in items"
             :key="item.label"
-            :span="item.span || 1"
+            :class="[item.span === 2 ? 'col-span-2' : '']"
         >
-            <div class="detail-item">
-                <div v-if="item.label" class="detail-label">
-                    {{ item.label }}
-                </div>
-
-                <div :class="['detail-value', { highlight: item.highlight }]">
-                    {{ item.value || "-" }}
-                </div>
+            <div
+                v-if="item.label"
+                class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1"
+            >
+                {{ item.label }}
             </div>
-        </n-grid-item>
-    </n-grid>
+            <div
+                :class="[
+                    'text-gray-800',
+                    item.highlight
+                        ? 'text-lg font-bold text-green-600'
+                        : 'text-sm font-medium',
+                ]"
+            >
+                {{ item.value || "-" }}
+            </div>
+        </div>
+    </div>
 
     <!-- APPROVAL -->
     <n-grid :cols="2" x-gap="16" class="approval-grid">

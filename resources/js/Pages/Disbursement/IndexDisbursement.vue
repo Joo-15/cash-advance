@@ -215,32 +215,50 @@ onMounted(() => {
             </div>
         </template>
         <template #filters>
-            <Filters
-                :filters="filters"
-                :show-search="true"
-                :show-select="true"
-                :select-options="STATUS_OPTIONS_PENCAIRAN"
-                :loading-search="loadingSearch"
-                @update:search="filters.search = $event"
-                @update:status="filters.status = $event"
-            ></Filters>
+            <div
+                class="transform transition-all duration-500"
+                :class="
+                    animatedFilters
+                        ? 'translate-y-0 opacity-100'
+                        : 'translate-y-10 opacity-0'
+                "
+            >
+                <Filters
+                    :filters="filters"
+                    :show-search="true"
+                    :show-select="true"
+                    :select-options="STATUS_OPTIONS_PENCAIRAN"
+                    :loading-search="loadingSearch"
+                    @update:search="filters.search = $event"
+                    @update:status="filters.status = $event"
+                ></Filters>
+            </div>
         </template>
         <template #content>
-            <BaseTable
-                :columns="tableColumns"
-                :data-ref="rows"
-                :meta="disbursement"
-                :filters="filters"
-                :select-options="STATUS_OPTIONS_PENCAIRAN"
-                :page-size="filters.pageSize"
-                :loading-ref="loadingSearch || loadingTable"
-                :has-active-sort-fn="hasActiveSort"
-                :reset-sort-fn="handleResetSort"
-                @update:page="handlePageChange"
-                @update:pageSize="handlePageSizeChange"
-                @update:sorter="handleSortChange"
-                @clear-filter="handleClear"
-            />
+            <div
+                class="transform transition-all duration-500"
+                :class="
+                    animatedTable
+                        ? 'translate-y-0 opacity-100'
+                        : 'translate-y-10 opacity-0'
+                "
+            >
+                <BaseTable
+                    :columns="tableColumns"
+                    :data-ref="rows"
+                    :meta="disbursement"
+                    :filters="filters"
+                    :select-options="STATUS_OPTIONS_PENCAIRAN"
+                    :page-size="filters.pageSize"
+                    :loading-ref="loadingSearch || loadingTable"
+                    :has-active-sort-fn="hasActiveSort"
+                    :reset-sort-fn="handleResetSort"
+                    @update:page="handlePageChange"
+                    @update:pageSize="handlePageSizeChange"
+                    @update:sorter="handleSortChange"
+                    @clear-filter="handleClear"
+                />
+            </div>
             <ModalForm
                 v-model:show-modal="modalForm"
                 create-title="Pencairan Dana"
