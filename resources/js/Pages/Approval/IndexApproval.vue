@@ -30,12 +30,6 @@ const props = defineProps({
 // Composables initialization
 const page = usePage();
 
-// Animation states
-const isPageLoaded = ref(false);
-const animatedCards = ref(false);
-const animatedFilters = ref(false);
-const animatedTable = ref(false);
-
 // Refs
 const formRef = ref(null);
 
@@ -101,17 +95,33 @@ const { loading: loadingDepartments, departments } = useDepartment({});
 const departmentOptions = computed(() => departments.value || []);
 
 // Table data transformation
-const rows = computed(() =>
-    props.approval.data.map((row) => ({ ...row, detail: true })),
-);
+const rows = computed(() => {
+    const currentPage = props.approval.current_page || 1;
+    const perPage = props.approval.per_page || 10;
+    const startIndex = (currentPage - 1) * perPage;
+
+    return props.approval.data.map((row, idx) => ({
+        ...row,
+        detail: true,
+        rowNumber: startIndex + idx + 1,
+    }));
+});
 
 // Column configuration
 const columnConfig = computed(() => {
     const columns = [
         {
+            title: "No",
+            key: "rowNumber", // Gunakan key dari data
+            width: 80,
+            align: "center",
+            sorter: false,
+            visible: true,
+        },
+        {
             title: "Pemohon",
             key: "user.name",
-            width: 150,
+            width: 200,
             sorter: false,
             visible: true,
         },
@@ -131,7 +141,7 @@ const columnConfig = computed(() => {
         {
             title: "Tujuan",
             key: "purpose",
-            width: 200,
+            // width: 200,
             sorter: false,
             visible: true,
         },
@@ -157,7 +167,7 @@ const columnConfig = computed(() => {
         {
             title: "Stage",
             key: "approvals.status",
-            width: 80,
+            width: 220,
             align: "center",
             sorter: true,
             visible: true,
@@ -680,114 +690,71 @@ const actions = {
 
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig.value, actions));
-
-// Trigger animations on mount
-onMounted(() => {
-    setTimeout(() => {
-        isPageLoaded.value = true;
-    }, 100);
-    setTimeout(() => {
-        animatedCards.value = true;
-    }, 0);
-    setTimeout(() => {
-        animatedFilters.value = true;
-    }, 0);
-    setTimeout(() => {
-        animatedTable.value = true;
-    }, 0);
-});
 </script>
 
 <template>
     <Head title="Persetujuan" />
     <Container>
         <template #header>
-            <div
-                class="transform transition-all duration-1000"
-                :class="
-                    isPageLoaded
-                        ? 'translate-y-0 opacity-100'
-                        : 'translate-y-[-20px] opacity-0'
-                "
-            >
-                <PageHeader
-                    add-button-text="Tambah"
-                    :title="page.props.pageHeader ?? 'Cash Advance'"
-                ></PageHeader>
-            </div>
+            <PageHeader
+                add-button-text="Tambah"
+                :title="page.props.pageHeader ?? 'Cash Advance'"
+            ></PageHeader>
         </template>
         <template #filters>
-            <div
-                class="transform transition-all duration-500"
-                :class="
-                    animatedFilters
-                        ? 'translate-y-0 opacity-100'
-                        : 'translate-y-10 opacity-0'
-                "
-            >
-                <Filters
-                    :loading-options="loadingDepartments"
-                    :filters="filters"
-                    :show-search="true"
-                    :show-status="true"
-                    :show-department="true"
-                    :department-options="departmentOptions"
-                    :status-options="STATUS_OPTIONS"
-                    :loading-search="loadingSearch"
-                    @update:search="filters.search = $event"
-                    @update:department="filters.department = $event"
-                    @update:status="filters.status = $event"
-                ></Filters>
-            </div>
+            <Filters
+                :loading-options="loadingDepartments"
+                :filters="filters"
+                :show-search="true"
+                :show-status="true"
+                :show-department="true"
+                :department-options="departmentOptions"
+                :status-options="STATUS_OPTIONS"
+                :loading-search="loadingSearch"
+                @update:search="filters.search = $event"
+                @update:department="filters.department = $event"
+                @update:status="filters.status = $event"
+            ></Filters>
         </template>
         <template #content>
-            <div
-                class="transform transition-all duration-500"
-                :class="
-                    animatedTable
-                        ? 'translate-y-0 opacity-100'
-                        : 'translate-y-10 opacity-0'
-                "
+            <BaseTable
+                :columns="tableColumns"
+                :data-ref="rows"
+                :meta="approval"
+                :filters="filters"
+                :select-options="STATUS_OPTIONS"
+                :page-size="filters.pageSize"
+                :loading-ref="loadingSearch || loadingTable"
+                :has-active-sort-fn="hasActiveSort"
+                :reset-sort-fn="handleResetSort"
+                @update:page="handlePageChange"
+                @update:pageSize="handlePageSizeChange"
+                @update:sorter="handleSortChange"
+                @clear-filter="handleClear"
+                class="transition-all duration-300"
+            />
+            <ModalForm
+                v-model:show-modal="modalForm"
+                detail-title="Detail Persetujuan"
+                :is-detail-mode="true"
+                :data-edit="selectedRow"
+                :auto-focus="false"
             >
-                <BaseTable
-                    :columns="tableColumns"
-                    :data-ref="rows"
-                    :meta="approval"
-                    :filters="filters"
-                    :select-options="STATUS_OPTIONS"
-                    :page-size="filters.pageSize"
-                    :loading-ref="loadingSearch || loadingTable"
-                    :has-active-sort-fn="hasActiveSort"
-                    :reset-sort-fn="handleResetSort"
-                    @update:page="handlePageChange"
-                    @update:pageSize="handlePageSizeChange"
-                    @update:sorter="handleSortChange"
-                    @clear-filter="handleClear"
-                    class="transition-all duration-300"
-                />
-                <ModalForm
-                    v-model:show-modal="modalForm"
-                    detail-title="Detail Persetujuan"
-                    :is-detail-mode="true"
-                    :data-edit="selectedRow"
-                    :auto-focus="false"
-                >
-                    <template #form="{ closeModal }">
-                        <FormApproval
-                            v-model:show-modal="modalForm"
-                            :data-detail="selectedApproval"
-                            :approval-step="approvalStep"
-                            :loading="loadingButton"
-                            :role-name="roleName"
-                            :user-name="userName"
-                            :department-name="departmentName"
-                            :close-modal="closeModal"
-                            :submit="submit"
-                            @updated="refresh"
-                        />
-                    </template>
-                </ModalForm>
-            </div>
+                <template #form="{ closeModal }">
+                    <FormApproval
+                        v-model:show-modal="modalForm"
+                        :data-detail="selectedApproval"
+                        :approval-step="approvalStep"
+                        :loading="loadingButton"
+                        :role-name="roleName"
+                        :user-name="userName"
+                        :department-name="departmentName"
+                        :close-modal="closeModal"
+                        :submit="submit"
+                        @updated="refresh"
+                    />
+                </template>
+            </ModalForm>
         </template>
     </Container>
 </template>

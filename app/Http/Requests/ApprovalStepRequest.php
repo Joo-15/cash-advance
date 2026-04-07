@@ -23,15 +23,15 @@ class ApprovalStepRequest extends FormRequest
     {
         // create
         if ($this->isMethod('post')) {
-            // Store - required
+
             $rules = [
                 'step_order' => [
                     'required',
                     'numeric',
                     'min:0',
-                    'max:100'
+                    'max:100',
+                    'unique:approval_steps,step_order'
                 ],
-                'name' => ['required', 'string', 'min:3', 'max:255'],
 
 
             ];
@@ -43,10 +43,10 @@ class ApprovalStepRequest extends FormRequest
                     'required',
                     'numeric',
                     'min:0',
-                    'max:100'
-                ],
-                'name' => ['sometimes', 'required', 'string', 'min:3'],
+                    'max:100',
+                    'unique:approval_steps,step_order'
 
+                ],
 
             ];
         }
@@ -61,9 +61,7 @@ class ApprovalStepRequest extends FormRequest
             'step_order.numeric' => 'Urutan langkah harus berupa angka.',
             'step_order.min' => 'Urutan langkah minimal :min.',
             'step_order.max' => 'Urutan langkah maksimal :max.',
-
-            'name.required' => 'Username harus diisi',
-            'name.min' => 'Username minimal 3 karakter',
+            'step_order.unique' => 'Urutan langkah sudah digunakan.',
         ];
     }
 

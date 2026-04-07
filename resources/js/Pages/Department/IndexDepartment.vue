@@ -134,7 +134,6 @@ const modalTitle = computed(() => {
 
     return "Tambah Departemen";
 });
-console.log("selectedRow", selectedRow);
 
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));

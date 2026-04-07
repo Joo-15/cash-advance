@@ -83,44 +83,59 @@ const { loading: loadingDepartments, departments } = useDepartment({});
 const departmentOptions = computed(() => departments.value || []);
 
 // Table data transformation
-const rows = computed(() =>
-    props.users.data.map((row) => ({ ...row, detail: true })),
-);
+const rows = computed(() => {
+    const currentPage = props.users.current_page || 1;
+    const perPage = props.users.per_page || 10;
+    const startIndex = (currentPage - 1) * perPage;
+
+    return props.users.data.map((row, idx) => ({
+        ...row,
+        detail: true,
+        rowNumber: startIndex + idx + 1,
+    }));
+});
 
 // Column configuration
 const columnConfig = [
     {
+        title: "No",
+        key: "rowNumber", // Gunakan key dari data
+        width: 80,
+        align: "center",
+        sorter: false,
+    },
+    {
         title: "Nama Lengkap",
         key: "name",
-        width: 120,
+        width: 200,
         align: "left",
         sorter: false,
     },
     {
         title: "Username",
         key: "username",
-        width: 120,
+        width: 150,
         align: "center",
         sorter: false,
     },
     {
         title: "Email",
         key: "email",
-        width: 120,
+        width: 200,
         align: "left",
         sorter: false,
     },
     {
         title: "Department",
         key: "department.name",
-        width: 120,
+        // width: 120,
         align: "center",
         sorter: false, // Aktifkan sorting
     },
     {
         title: "Role",
         key: "role.name",
-        width: 120,
+        width: 150,
         align: "center",
         sorter: false, // Aktifkan sorting
     },

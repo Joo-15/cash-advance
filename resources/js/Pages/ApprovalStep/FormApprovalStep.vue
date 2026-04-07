@@ -40,7 +40,6 @@ const { handleSubmit, errors, defineField, setValues, resetForm } = useForm({
     initialValues: {
         id: null,
         step_order: null,
-        name: "",
     },
 });
 
@@ -49,7 +48,6 @@ const { handleSubmit, errors, defineField, setValues, resetForm } = useForm({
 */
 
 const [step_order] = defineField("step_order");
-const [name] = defineField("name");
 
 const isEditMode = computed(() => !!props.dataEdit?.id);
 
@@ -95,7 +93,7 @@ watch(
     <n-form @submit.prevent="submitForm">
         <div>
             <n-form-item
-                label="Peran"
+                label="Level"
                 :validation-status="errors.step_order ? 'error' : null"
                 :feedback="errors.step_order"
                 required
@@ -105,17 +103,6 @@ watch(
                     min="1"
                     placeholder="Pilih Urutan Persetujuan"
                     clearable
-                />
-            </n-form-item>
-            <n-form-item
-                label="Persetujuan"
-                :validation-status="errors.name ? 'error' : null"
-                :feedback="errors.name"
-                required
-            >
-                <n-input
-                    v-model:value="name"
-                    placeholder="Masukkan Persetujuan"
                 />
             </n-form-item>
         </div>

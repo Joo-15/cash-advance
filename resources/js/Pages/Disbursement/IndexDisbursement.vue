@@ -31,12 +31,6 @@ const props = defineProps({
 // Refs
 const formRef = ref(null);
 
-// Animation states
-const isPageLoaded = ref(false);
-const animatedCards = ref(false);
-const animatedFilters = ref(false);
-const animatedTable = ref(false);
-
 const {
     loadingButton,
     modalForm,
@@ -90,16 +84,31 @@ const {
 });
 
 // Table data transformation
-const rows = computed(() =>
-    props.disbursement.data.map((row) => ({ ...row, detail: true })),
-);
+const rows = computed(() => {
+    const currentPage = props.disbursement.current_page || 1;
+    const perPage = props.disbursement.per_page || 10;
+    const startIndex = (currentPage - 1) * perPage;
+
+    return props.disbursement.data.map((row, idx) => ({
+        ...row,
+        detail: true,
+        rowNumber: startIndex + idx + 1,
+    }));
+});
 
 // Column configuration
 const columnConfig = [
     {
+        title: "No",
+        key: "rowNumber", // Gunakan key dari data
+        width: 80,
+        align: "center",
+        sorter: false,
+    },
+    {
         title: "Pemohon",
         key: "user.name",
-        width: 120,
+        width: 200,
         // sorter: true,
     },
     {
@@ -112,7 +121,7 @@ const columnConfig = [
     {
         title: "Tujuan",
         key: "purpose",
-        width: 200,
+        // width: 200,
         ellipsis: { tooltip: true },
         sorter: true, // Tambahkan sorter jika perlu
     },
@@ -145,7 +154,7 @@ const columnConfig = [
         title: "Status",
         key: "status",
         type: "status",
-        width: 80,
+        width: 120,
         align: "center",
         sorter: true, // Aktifkan sorting
         statusMap: {
@@ -181,86 +190,46 @@ const actions = {
 
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));
-
-// Trigger animations on mount
-onMounted(() => {
-    setTimeout(() => {
-        isPageLoaded.value = true;
-    }, 100);
-    setTimeout(() => {
-        animatedFilters.value = true;
-    }, 0);
-    setTimeout(() => {
-        animatedTable.value = true;
-    }, 0);
-});
 </script>
 
 <template>
     <Head title="Pencairan Dana" />
     <Container>
         <template #header>
-            <div
-                class="transform transition-all duration-1000"
-                :class="
-                    isPageLoaded
-                        ? 'translate-y-0 opacity-100'
-                        : 'translate-y-[-20px] opacity-0'
-                "
-            >
-                <PageHeader
-                    add-button-text="Ajukan Pinjaman"
-                    title="Pencairan Dana"
-                    :show-add="false"
-                    @add="tambah('cash-advance', 'create')"
-                ></PageHeader>
-            </div>
+            <PageHeader
+                add-button-text="Ajukan Pinjaman"
+                title="Pencairan Dana"
+                :show-add="false"
+                @add="tambah('cash-advance', 'create')"
+            ></PageHeader>
         </template>
         <template #filters>
-            <div
-                class="transform transition-all duration-500"
-                :class="
-                    animatedFilters
-                        ? 'translate-y-0 opacity-100'
-                        : 'translate-y-10 opacity-0'
-                "
-            >
-                <Filters
-                    :filters="filters"
-                    :show-search="true"
-                    :show-select="true"
-                    :select-options="STATUS_OPTIONS_PENCAIRAN"
-                    :loading-search="loadingSearch"
-                    @update:search="filters.search = $event"
-                    @update:status="filters.status = $event"
-                ></Filters>
-            </div>
+            <Filters
+                :filters="filters"
+                :show-search="true"
+                :show-select="true"
+                :select-options="STATUS_OPTIONS_PENCAIRAN"
+                :loading-search="loadingSearch"
+                @update:search="filters.search = $event"
+                @update:status="filters.status = $event"
+            ></Filters>
         </template>
         <template #content>
-            <div
-                class="transform transition-all duration-500"
-                :class="
-                    animatedTable
-                        ? 'translate-y-0 opacity-100'
-                        : 'translate-y-10 opacity-0'
-                "
-            >
-                <BaseTable
-                    :columns="tableColumns"
-                    :data-ref="rows"
-                    :meta="disbursement"
-                    :filters="filters"
-                    :select-options="STATUS_OPTIONS_PENCAIRAN"
-                    :page-size="filters.pageSize"
-                    :loading-ref="loadingSearch || loadingTable"
-                    :has-active-sort-fn="hasActiveSort"
-                    :reset-sort-fn="handleResetSort"
-                    @update:page="handlePageChange"
-                    @update:pageSize="handlePageSizeChange"
-                    @update:sorter="handleSortChange"
-                    @clear-filter="handleClear"
-                />
-            </div>
+            <BaseTable
+                :columns="tableColumns"
+                :data-ref="rows"
+                :meta="disbursement"
+                :filters="filters"
+                :select-options="STATUS_OPTIONS_PENCAIRAN"
+                :page-size="filters.pageSize"
+                :loading-ref="loadingSearch || loadingTable"
+                :has-active-sort-fn="hasActiveSort"
+                :reset-sort-fn="handleResetSort"
+                @update:page="handlePageChange"
+                @update:pageSize="handlePageSizeChange"
+                @update:sorter="handleSortChange"
+                @clear-filter="handleClear"
+            />
             <ModalForm
                 v-model:show-modal="modalForm"
                 create-title="Pencairan Dana"

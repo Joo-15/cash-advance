@@ -31,6 +31,9 @@ class CashAdvanceController extends Controller
             'user.department'
         ]);
 
+
+        $query->whereIn('status', ['pending', 'approved', 'rejected']);
+
         // Filter search
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';

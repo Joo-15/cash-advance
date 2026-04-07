@@ -37,7 +37,6 @@ export const userSchema = yup.object({
 
 export const approvalStepSchema = yup.object({
     step_order: yup.string().required("Urutan harus dipilih"),
-    name: yup.string().required("Persetujuan harus diisi"),
 });
 
 export const approvalStepRoleSchema = yup.object({

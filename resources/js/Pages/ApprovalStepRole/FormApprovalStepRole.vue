@@ -34,8 +34,6 @@ const props = defineProps({
     submit: Function,
 });
 
-console.log("dd", props.dataEdit);
-
 const emit = defineEmits(["update:showModal", "updated"]);
 
 /*
@@ -114,7 +112,7 @@ watch(
                 />
             </n-form-item>
             <n-form-item
-                label="Role"
+                label="Urutan"
                 :validation-status="errors.approval_step_id ? 'error' : null"
                 :feedback="errors.approval_step_id"
                 required

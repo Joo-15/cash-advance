@@ -32,6 +32,8 @@ const props = defineProps({
     submit: Function,
 });
 
+console.log("dd", props.dataEdit);
+
 const emit = defineEmits(["update:showModal", "updated"]);
 
 /*

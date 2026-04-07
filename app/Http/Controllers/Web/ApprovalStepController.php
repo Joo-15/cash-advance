@@ -69,14 +69,6 @@ class ApprovalStepController extends Controller
         }
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
     public function update(ApprovalStepRequest $request, ApprovalStep $approvalStep)
     {
         try {

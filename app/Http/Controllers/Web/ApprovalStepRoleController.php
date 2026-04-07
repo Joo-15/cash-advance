@@ -71,7 +71,7 @@ class ApprovalStepRoleController extends Controller
 
             return redirect()
                 ->back()
-                ->with('success', "Departemen {$approval_step_role->role->name} berhasil diperbarui");
+                ->with('success', "{$approval_step_role->role->name} berhasil diperbarui");
         } catch (\Exception $e) {
             Log::error('Update departemen failed', [
                 'approval_step_role_id' => $approval_step_role->id,
@@ -84,11 +84,32 @@ class ApprovalStepRoleController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(ApprovalStepRole $approval_step_role)  // Langsung dapat model
     {
-        //
+        try {
+            $dataApprovalStepRole = [
+                'id' => $approval_step_role->id,
+                'approval_step_id' => $approval_step_role->approval_step_id,
+                'role_id' => $approval_step_role->role_id,
+            ];
+
+            Log::info('Approval step roles deleted', [
+                'deleted_approval_step_role' => $dataApprovalStepRole,
+                'deleted_by' => Auth::id()
+            ]);
+
+            $approval_step_role->delete();
+
+            return redirect()
+                ->back()
+                ->with('success', "{$approval_step_role->role->name} berhasil dihapus");
+        } catch (\Exception $e) {
+            Log::error('Delete failed', [
+                'approval_step_role_id' => $approval_step_role->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->with('error', 'Gagal menghapus');
+        }
     }
 }

@@ -31,6 +31,8 @@ const formRef = ref(null);
 const {
     loadingButton,
     modalForm,
+    currentFormType,
+    modalMode,
     selectedRow,
     tambah,
     edit,
@@ -77,16 +79,31 @@ const {
 });
 
 // Table data transformation
-const rows = computed(() =>
-    props.approvalStep.data.map((row) => ({ ...row, detail: true })),
-);
+const rows = computed(() => {
+    const currentPage = props.approvalStep.current_page || 1;
+    const perPage = props.approvalStep.per_page || 10;
+    const startIndex = (currentPage - 1) * perPage;
+
+    return props.approvalStep.data.map((row, idx) => ({
+        ...row,
+        rowNumber: startIndex + idx + 1,
+        detail: true,
+    }));
+});
 
 // Column configuration
 const columnConfig = [
     {
+        title: "No",
+        key: "rowNumber",
+        width: 80,
+        align: "center",
+        sorter: false,
+    },
+    {
         title: "Level",
         key: "step_order",
-        width: 120,
+        // width: 300,
         sorter: false,
     },
     {
@@ -108,9 +125,17 @@ const columnConfig = [
 
 // Actions configuration
 const actions = {
-    onEdit: edit,
+    onEdit: (row) => edit("level-persetujuan", "edit", row),
     onDelete: hapus,
 };
+
+const modalTitle = computed(() => {
+    if (modalMode.value === "edit") {
+        return "Edit Level Persetujuan";
+    }
+
+    return "Tambah Level Persetujuan";
+});
 
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));
@@ -120,12 +145,11 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
     <Container>
         <template #header>
             <PageHeader
-                add-button-text="Tambah"
-                :title="page.props.pageHeader ?? 'Cash Advance'"
+                add-button-text="Level Persetujuan"
+                title="Level Persetujuan"
                 :show-add="true"
-                :show-download="true"
-                @add="tambah"
-                @download="handleDownload"
+                :show-download="false"
+                @add="tambah('level-persetujuan', 'create')"
             ></PageHeader>
         </template>
         <template #filters>
@@ -156,12 +180,14 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
             />
             <ModalForm
                 v-model:show-modal="modalForm"
-                edit-title="Edit Urutan Persetujuan"
-                create-title="Tambah Urutan Persetujuan"
+                :title="modalTitle"
+                :is-detail-mode="currentFormType === 'level-persetujuan'"
                 :data-edit="selectedRow"
+                :auto-focus="false"
             >
                 <template #form="{ closeModal }">
                     <FormApprovalStep
+                        v-if="currentFormType === 'level-persetujuan'"
                         v-model:show-modal="modalForm"
                         :loading="loadingButton"
                         :data-edit="selectedRow"

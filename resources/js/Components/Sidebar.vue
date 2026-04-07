@@ -234,13 +234,13 @@ const allMenuOptions = [
                 roleAccess: ["Super Admin", "Admin"],
             },
             {
-                label: "Level Persetujuan",
+                label: "Pengaturan Level",
                 key: "/data-master/approval-step-roles",
                 icon: renderIcon(SettingsOutline),
                 roleAccess: ["Super Admin", "Admin"],
             },
             {
-                label: "Pengaturan Level",
+                label: "Level Persetujuan",
                 key: "/data-master/approval-steps",
                 icon: renderIcon(SettingsOutline),
                 roleAccess: ["Super Admin", "Admin"],

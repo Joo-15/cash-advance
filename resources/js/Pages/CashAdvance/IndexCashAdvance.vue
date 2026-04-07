@@ -31,39 +31,6 @@ const props = defineProps({
 
 const collapsed = inject("sidebarCollapsed");
 
-// Animation states
-const isPageLoaded = ref(false);
-const animatedCards = ref(false);
-const animatedFilters = ref(false);
-const animatedTable = ref(false);
-
-// Trigger animations on mount
-onMounted(() => {
-    setTimeout(() => {
-        isPageLoaded.value = true;
-    }, 100);
-    setTimeout(() => {
-        animatedCards.value = true;
-    }, 0);
-    setTimeout(() => {
-        animatedFilters.value = true;
-    }, 0);
-    setTimeout(() => {
-        animatedTable.value = true;
-    }, 0);
-});
-
-// Watch for statData changes to re-animate cards
-watch(
-    () => props.statData,
-    () => {
-        animatedCards.value = false;
-        setTimeout(() => {
-            animatedCards.value = true;
-        }, 50);
-    },
-);
-
 // Refs
 const formRef = ref(null);
 
@@ -139,26 +106,43 @@ const {
 });
 
 // Table data transformation
-const rows = computed(() =>
-    props.cashadvance.data.map((row) => ({ ...row, detail: true })),
-);
+const rows = computed(() => {
+    const currentPage = props.cashadvance.current_page || 1;
+    const perPage = props.cashadvance.per_page || 10;
+    const startIndex = (currentPage - 1) * perPage;
+
+    return props.cashadvance.data.map((row, idx) => ({
+        ...row,
+        detail: true,
+        rowNumber: startIndex + idx + 1,
+    }));
+});
 
 // Column configuration
 
 const columnConfig = computed(() => {
     const columns = [
         {
+            title: "No",
+            key: "rowNumber",
+            width: 80,
+            align: "center",
+            sorter: false,
+            visible: true,
+        },
+        {
             title: "Tgl. Pengajuan",
             key: "request_date",
             type: "date",
-            width: 120,
+            width: 170,
+            align: "center",
             sorter: true,
             visible: true,
         },
         {
             title: "Keperluan",
             key: "purpose",
-            width: 200,
+            // width: 200,
             // ellipsis: { tooltip: true },
             sorter: true,
             visible: true,
@@ -170,14 +154,14 @@ const columnConfig = computed(() => {
             currency: "IDR",
             align: "right",
             sorter: true,
-            width: 150,
+            width: 200,
             visible: true,
         },
         {
             title: "Status",
             key: "status",
             type: "status",
-            width: 80,
+            width: 150,
             align: "center",
             sorter: true,
             statusMap: {
@@ -244,121 +228,82 @@ const modalTitle = computed(() => {
     <Head title="Pengajuan Baru" />
     <Container>
         <template #header>
-            <div
-                class="transform transition-all duration-1000"
-                :class="
-                    isPageLoaded
-                        ? 'translate-y-0 opacity-100'
-                        : 'translate-y-[-20px] opacity-0'
-                "
-            >
-                <PageHeader
-                    add-button-text="Ajukan Pinjaman"
-                    title="Pengajuan Pinjaman"
-                    :show-add="true"
-                    :show-download="true"
-                    @add="tambah('cash-advance', 'create')"
-                    @download="handleDownload"
-                />
-            </div>
+            <PageHeader
+                add-button-text="Ajukan Pinjaman"
+                title="Pengajuan Pinjaman"
+                :show-add="true"
+                :show-download="true"
+                @add="tambah('cash-advance', 'create')"
+                @download="handleDownload"
+            />
         </template>
-
         <template #statCards>
-            <div
-                class="transform transition-all duration-300"
-                :class="
-                    animatedCards
-                        ? 'translate-y-0 opacity-100 scale-100'
-                        : 'translate-y-10 opacity-0 scale-95'
-                "
-            >
-                <StatCards
-                    :stats="CASH_ADVANCE_STATS"
-                    :stat-data="statData"
-                    class="transition-all duration-150"
-                />
-            </div>
+            <StatCards
+                :stats="CASH_ADVANCE_STATS"
+                :stat-data="statData"
+                class="transition-all duration-150"
+            />
         </template>
-
         <template #filters>
-            <div
-                class="transform transition-all duration-500"
-                :class="
-                    animatedFilters
-                        ? 'translate-y-0 opacity-100'
-                        : 'translate-y-10 opacity-0'
-                "
-            >
-                <Filters
-                    :filters="filters"
-                    :show-search="true"
-                    :show-status="true"
-                    :status-options="STATUS_OPTIONS"
-                    :loading-search="loadingSearch"
-                    @update:search="filters.search = $event"
-                    @update:status="filters.status = $event"
-                ></Filters>
-            </div>
+            <Filters
+                :filters="filters"
+                :show-search="true"
+                :show-status="true"
+                :status-options="STATUS_OPTIONS"
+                :loading-search="loadingSearch"
+                @update:search="filters.search = $event"
+                @update:status="filters.status = $event"
+            ></Filters>
         </template>
 
         <template #content>
-            <div
-                class="transform transition-all duration-500"
-                :class="
-                    animatedTable
-                        ? 'translate-y-0 opacity-100'
-                        : 'translate-y-10 opacity-0'
-                "
+            <BaseTable
+                :columns="tableColumns"
+                :data-ref="rows"
+                :meta="cashadvance"
+                :filters="filters"
+                :select-options="STATUS_OPTIONS"
+                :page-size="filters.pageSize"
+                :loading-ref="loadingSearch || loadingTable"
+                :has-active-sort-fn="hasActiveSort"
+                :reset-sort-fn="handleResetSort"
+                @update:page="handlePageChange"
+                @update:pageSize="handlePageSizeChange"
+                @update:sorter="handleSortChange"
+                @clear-filter="handleClear"
+                class="transition-all duration-300"
+            />
+            <ModalForm
+                v-model:show-modal="modalForm"
+                :title="modalTitle"
+                :is-detail-mode="currentFormType === 'approval'"
+                :data-edit="selectedRow"
+                :auto-focus="false"
             >
-                <BaseTable
-                    :columns="tableColumns"
-                    :data-ref="rows"
-                    :meta="cashadvance"
-                    :filters="filters"
-                    :select-options="STATUS_OPTIONS"
-                    :page-size="filters.pageSize"
-                    :loading-ref="loadingSearch || loadingTable"
-                    :has-active-sort-fn="hasActiveSort"
-                    :reset-sort-fn="handleResetSort"
-                    @update:page="handlePageChange"
-                    @update:pageSize="handlePageSizeChange"
-                    @update:sorter="handleSortChange"
-                    @clear-filter="handleClear"
-                    class="transition-all duration-300"
-                />
-
-                <ModalForm
-                    v-model:show-modal="modalForm"
-                    :title="modalTitle"
-                    :is-detail-mode="currentFormType === 'approval'"
-                    :data-edit="selectedRow"
-                    :auto-focus="false"
-                >
-                    <template #form="{ closeModal }">
-                        <FormCashAdvance
-                            v-if="currentFormType === 'cash-advance'"
-                            :modal-mode="modalMode"
-                            :loading="loadingButton"
-                            :data-edit="selectedRow"
-                            :close-modal="closeModal"
-                            :submit="submit"
-                            @updated="refresh"
-                        />
-                        <FormApproval
-                            v-else-if="currentFormType === 'approval'"
-                            :data-detail="selectedApproval"
-                            :approval-step="approvalStep"
-                            :loading="loadingButton"
-                            :role-name="roleName"
-                            :user-name="userName"
-                            :department-name="departmentName"
-                            :close-modal="closeModal"
-                            :submit="submit"
-                            @updated="refresh"
-                        />
-                    </template>
-                </ModalForm>
-            </div>
+                <template #form="{ closeModal }">
+                    <FormCashAdvance
+                        v-if="currentFormType === 'cash-advance'"
+                        :modal-mode="modalMode"
+                        :loading="loadingButton"
+                        :data-edit="selectedRow"
+                        :close-modal="closeModal"
+                        :submit="submit"
+                        @updated="refresh"
+                    />
+                    <FormApproval
+                        v-else-if="currentFormType === 'approval'"
+                        :data-detail="selectedApproval"
+                        :approval-step="approvalStep"
+                        :loading="loadingButton"
+                        :role-name="roleName"
+                        :user-name="userName"
+                        :department-name="departmentName"
+                        :close-modal="closeModal"
+                        :submit="submit"
+                        @updated="refresh"
+                    />
+                </template>
+            </ModalForm>
         </template>
     </Container>
 </template>
@@ -383,57 +328,6 @@ const modalTitle = computed(() => {
 .stat-card-enter-from {
     opacity: 0;
     transform: translateY(20px);
-}
-
-/* Table row hover animation */
-:deep(.n-data-table tr) {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-:deep(.n-data-table tr:hover) {
-    background: linear-gradient(
-        90deg,
-        rgba(59, 130, 246, 0.05) 0%,
-        rgba(147, 51, 234, 0.05) 100%
-    );
-    transform: translateX(4px);
-}
-
-/* Button hover animations */
-:deep(.n-button) {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-:deep(.n-button:hover) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-:deep(.n-button:active) {
-    transform: translateY(0);
-}
-
-/* Ripple effect on buttons */
-:deep(.n-button::after) {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    transform: translate(-50%, -50%);
-    transition:
-        width 0.4s,
-        height 0.4s;
-}
-
-:deep(.n-button:active::after) {
-    width: 100%;
-    height: 100%;
 }
 
 /* Card hover effects */
@@ -484,13 +378,6 @@ const modalTitle = computed(() => {
     }
 }
 
-/* Loading skeleton shimmer */
-:deep(.n-skeleton) {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 1000px 100%;
-    animation: shimmer 2s infinite;
-}
-
 @keyframes shimmer {
     0% {
         background-position: -1000px 0;
@@ -527,11 +414,6 @@ const modalTitle = computed(() => {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
-}
-
-/* Notification animations */
-:deep(.n-notification) {
-    animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes slideInRight {

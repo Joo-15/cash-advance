@@ -87,6 +87,7 @@ const rows = computed(() => {
     return props.approvalStepRole.data.map((row, idx) => ({
         ...row,
         rowNumber: startIndex + idx + 1,
+        detail: true,
     }));
 });
 
@@ -107,7 +108,6 @@ const columnConfig = [
     {
         title: "Persetujuan",
         key: "approval_step_id",
-
         sorter: false,
     },
     {
@@ -140,7 +140,7 @@ const modalTitle = computed(() => {
 
     return "Tambah Persetujuan";
 });
-console.log("selectedRow", selectedRow);
+
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));
 </script>
