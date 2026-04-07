@@ -11,6 +11,11 @@ import {
     BookOutline,
     CashOutline,
     DocumentTextOutline,
+    PersonOutline,
+    PersonSharp,
+    BusinessSharp,
+    BusinessOutline,
+    CubeSharp,
 } from "@vicons/ionicons5";
 
 /* =====================
@@ -206,51 +211,38 @@ const allMenuOptions = [
         roleAccess: ["Super Admin", "Admin", "Employee"],
     },
     {
-        label: "Data Master",
-        key: "/data-master",
-        icon: renderIcon(CubeOutline),
-        roleAccess: ["Super Admin", "Admin"],
-        children: [
-            {
-                type: "divider",
-                key: "divider-1",
-            },
-            {
-                label: "Data Departemen",
-                key: "/data-master/departemen",
-                roleAccess: ["Super Admin", "Admin"],
-            },
-            {
-                label: "Pengaturan Persetujuan",
-                key: "/data-master/approval-steps",
-                roleAccess: ["Super Admin", "Admin"],
-            },
-        ],
-    },
-    {
         label: "Manajemen User",
         key: "/users",
-        icon: renderIcon(SettingsOutline),
+        icon: renderIcon(PersonOutline),
         roleAccess: ["Super Admin"], // Hanya Super Admin
     },
     {
-        label: "Pengaturan",
-        key: "/settings",
-        icon: renderIcon(SettingsOutline),
+        label: "Data Master",
+        key: "/data-master",
+        icon: renderIcon(CubeSharp),
         roleAccess: ["Super Admin", "Admin"],
         children: [
             {
                 type: "divider",
                 key: "divider-1",
             },
+
+            {
+                label: "Data Departemen",
+                key: "/data-master/departments",
+                icon: renderIcon(BusinessOutline),
+                roleAccess: ["Super Admin", "Admin"],
+            },
             {
                 label: "Level Persetujuan",
-                key: "/approval/approval-step-roles",
+                key: "/data-master/approval-step-roles",
+                icon: renderIcon(SettingsOutline),
                 roleAccess: ["Super Admin", "Admin"],
             },
             {
                 label: "Pengaturan Level",
-                key: "/approval/approval-steps",
+                key: "/data-master/approval-steps",
+                icon: renderIcon(SettingsOutline),
                 roleAccess: ["Super Admin", "Admin"],
             },
         ],
@@ -376,10 +368,10 @@ watch(
         show-trigger="arrow-circle"
         bordered
         :native-scrollbar="false"
-        class="bg-white dark:bg-gray-900 fixed left-0 z-40 min-h-screen"
+        class="bg-white fixed left-0 z-40 min-h-screen"
     >
         <!-- LOGO AREA -->
-        <div class="py-4 px-3 border-b border-gray-200 dark:border-gray-700">
+        <div class="py-4 px-3 border-b border-gray-200">
             <div class="flex items-center justify-center">
                 <div
                     :class="[
@@ -394,7 +386,7 @@ watch(
                 <Transition name="fade" class="ml-4">
                     <div v-if="!collapsed">
                         <h1
-                            class="font-bold text-lg text-gray-800 dark:text-white whitespace-nowrap"
+                            class="font-bold text-lg text-gray-800 whitespace-nowrap"
                         >
                             {{
                                 ![
@@ -407,9 +399,7 @@ watch(
                                     : userRole
                             }}
                         </h1>
-                        <p
-                            class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap"
-                        >
+                        <p class="text-xs text-gray-500 whitespace-nowrap">
                             {{ userRole !== "Super Admin" ? userRole : "" }}
                         </p>
                     </div>

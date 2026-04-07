@@ -1,3 +1,4 @@
+<!-- Pages/CashAdvance/IndexCashAdvance.vue -->
 <script setup>
 import { computed, ref } from "vue";
 import { usePage } from "@inertiajs/vue3";
@@ -14,16 +15,17 @@ import Container from "@/Components/Layout/Container.vue";
 import PageHeader from "@/Components/Page/PageHeader.vue";
 import Filters from "@/Components/Page/Filters.vue";
 import ModalForm from "@/Components/Page/ModalForm.vue";
-import FormApprovalStep from "./FormApprovalStepRole.vue";
-import FormApprovalStepRole from "./FormApprovalStepRole.vue";
+
+import FormDepartment from "./FormDepartment.vue";
 
 // Props definition
 const props = defineProps({
-    approvalStepRole: { type: Object, required: true },
+    departments: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
-    roles: Array,
-    approvalStep: Array,
 });
+
+// Composables initialization
+const page = usePage();
 
 // Refs
 const formRef = ref(null);
@@ -40,7 +42,7 @@ const {
     refresh,
     submit,
 } = useCrud({
-    routePrefix: "approval-step-roles",
+    routePrefix: "departments",
     formRef,
 });
 
@@ -59,33 +61,29 @@ const {
     createColumns,
     hasActiveSort,
 } = useDataTable({
-    route: route("approval-step-roles.index"),
+    route: route("departments.index"),
     filters: {
         search: props.filters.search || "",
-        status: props.filters.status || null,
-        pageSize: Number(props.approvalStepRole.per_page ?? 10),
-        page: Number(props.approvalStepRole.current_page ?? 1),
+        department: props.filters.department
+            ? Number(props.filters.department)
+            : null,
+        pageSize: Number(props.departments.per_page ?? 10),
         sort: props.filters.sort || null,
         order: props.filters.order || null,
     },
-    only: ["approvalStepRole"],
+    only: ["departments"],
     debounceTime: 300, // Tambahkan debounce time
-    tableConfig: {
-        currency: "IDR",
-        dateFormat: "DD-MM-YYYY",
-        actionSize: "small",
-        ellipsisTooltip: true,
-    },
 });
 
 // Table data transformation
 const rows = computed(() => {
-    const currentPage = props.approvalStepRole.current_page || 1;
-    const perPage = props.approvalStepRole.per_page || 10;
+    const currentPage = props.departments.current_page || 1;
+    const perPage = props.departments.per_page || 10;
     const startIndex = (currentPage - 1) * perPage;
 
-    return props.approvalStepRole.data.map((row, idx) => ({
+    return props.departments.data.map((row, idx) => ({
         ...row,
+        detail: true,
         rowNumber: startIndex + idx + 1,
     }));
 });
@@ -100,27 +98,23 @@ const columnConfig = [
         sorter: false,
     },
     {
-        title: "Role",
-        key: "role.name",
+        title: "Nama Departemen",
+        key: "name",
+        // width: 120,
+        align: "left",
         sorter: false,
     },
-    {
-        title: "Persetujuan",
-        key: "approval_step_id",
 
-        sorter: false,
-    },
     {
         title: "Aksi",
         key: "actions",
         type: "action",
-        width: 120,
+        // width: 120,
         fixed: "right",
         align: "center",
         actionConfig: {
             showEdit: true,
             showDelete: true,
-            showView: true,
             size: "small",
         },
         sorter: false,
@@ -129,18 +123,19 @@ const columnConfig = [
 
 // Actions configuration
 const actions = {
-    onEdit: (row) => edit("persetujuan", "edit", row),
+    onEdit: (row) => edit("department", "edit", row),
     onDelete: hapus,
 };
 
 const modalTitle = computed(() => {
     if (modalMode.value === "edit") {
-        return "Edit Persetujuan";
+        return "Edit Departemen";
     }
 
-    return "Tambah Persetujuan";
+    return "Tambah Departemen";
 });
 console.log("selectedRow", selectedRow);
+
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig, actions));
 </script>
@@ -149,11 +144,11 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
     <Container>
         <template #header>
             <PageHeader
-                add-button-text="Pengaturan Persetujuan"
-                title="Pengaturan Persetujuan"
+                add-button-text="Tambah Departemen"
+                title="Data Departemen"
                 :show-add="true"
                 :show-download="false"
-                @add="tambah('persetujuan', 'create')"
+                @add="tambah('department', 'create')"
             ></PageHeader>
         </template>
         <template #filters>
@@ -168,7 +163,7 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
             <BaseTable
                 :columns="tableColumns"
                 :data-ref="rows"
-                :meta="approvalStepRole"
+                :meta="departments"
                 :filters="filters"
                 :page-size="filters.pageSize"
                 :loading-ref="loadingSearch || loadingTable"
@@ -182,18 +177,17 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
             <ModalForm
                 v-model:show-modal="modalForm"
                 :title="modalTitle"
-                :is-detail-mode="currentFormType === 'persetujuan'"
+                :is-detail-mode="currentFormType === 'department'"
                 :data-edit="selectedRow"
                 :auto-focus="false"
             >
+                <!-- terima closeModal dari slot -->
                 <template #form="{ closeModal }">
-                    <FormApprovalStepRole
-                        v-if="currentFormType === 'persetujuan'"
+                    <FormDepartment
+                        v-if="currentFormType === 'department'"
                         :modal-mode="modalMode"
                         :loading="loadingButton"
                         :data-edit="selectedRow"
-                        :roles-options="roles"
-                        :approval-step="approvalStep"
                         :close-modal="closeModal"
                         :submit="submit"
                         @updated="refresh"

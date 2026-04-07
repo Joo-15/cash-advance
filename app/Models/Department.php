@@ -8,7 +8,6 @@ class Department extends Model
 {
     protected $fillable = [
         'name',
-        'code',
     ];
 
     public static function getSelectOptions()

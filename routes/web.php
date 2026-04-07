@@ -1,12 +1,13 @@
 <?php
 
-use App\Http\Controllers\DepartmentController;
+
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Web\ApprovalController;
 use App\Http\Controllers\Web\ApprovalStepController;
 use App\Http\Controllers\Web\ApprovalStepRoleController;
 use App\Http\Controllers\Web\CashAdvanceController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\DepartmentController;
 use App\Http\Controllers\Web\DisbursementController;
 use App\Http\Controllers\Web\FundUsageController;
 use App\Http\Controllers\Web\UserController;
@@ -74,12 +75,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // SUPER ADMIN ONLY
     // ============================================
     Route::middleware(['role:Super Admin'])->group(function () {
-        Route::resource('approval/approval-steps', ApprovalStepController::class);
-        Route::resource('approval/approval-step-roles', ApprovalStepRoleController::class);
+        Route::resource('data-master/approval-steps', ApprovalStepController::class);
+        Route::resource('data-master/approval-step-roles', ApprovalStepRoleController::class);
     });
 
-    Route::middleware(['role:Super Admin,Admin,Finance'])->group(function () {
+    Route::middleware(['role:Super Admin,Admin'])->group(function () {
         Route::resource('users', UserController::class);
+        Route::resource('data-master/departments', DepartmentController::class);
     });
 });
 

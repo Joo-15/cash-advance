@@ -3,8 +3,13 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ApprovalStepRoleRequest;
+use App\Models\ApprovalStep;
 use App\Models\ApprovalStepRole;
+use App\Models\Role;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ApprovalStepRoleController extends Controller
@@ -21,6 +26,8 @@ class ApprovalStepRoleController extends Controller
         return Inertia::render('ApprovalStepRole/IndexApprovalStepRole', [
             'pageHeader' => 'Pengaturan Persetujuan',
             'approvalStepRole' => $approvalStepRole,
+            'roles' => Role::getSelectOptions(),
+            'approvalStep' => ApprovalStep::getSelectOptions(),
             'filters' => $request->only([
                 'search',
                 'status',
@@ -31,44 +38,50 @@ class ApprovalStepRoleController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function show($id) {}
+
+    public function store(ApprovalStepRoleRequest $request)
     {
-        //
+        try {
+            $validated = $request->validated();
+
+            $ApprovalStepRole = ApprovalStepRole::create($validated);
+
+            return redirect()
+                ->back()
+                ->with('success', "Persetujuan {$ApprovalStepRole->role->name} berhasil ditambahkan");
+        } catch (\Exception $e) {
+            Log::error('Error creating persetujuan', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return redirect()
+                ->back()
+                ->with('error', 'Gagal menambahkan persetujuan. Silakan coba lagi.');
+        }
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function update(ApprovalStepRoleRequest $request, ApprovalStepRole $approval_step_role)
     {
-        //
-    }
+        try {
+            $validated = $request->validated();
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
+            $approval_step_role->update($validated);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
+            return redirect()
+                ->back()
+                ->with('success', "Departemen {$approval_step_role->role->name} berhasil diperbarui");
+        } catch (\Exception $e) {
+            Log::error('Update departemen failed', [
+                'approval_step_role_id' => $approval_step_role->id,
+                'error' => $e->getMessage()
+            ]);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+            return redirect()
+                ->back()
+                ->with('error', 'Gagal memperbarui persetujuan. Silakan coba lagi.');
+        }
     }
 
     /**

@@ -8,8 +8,19 @@ class ApprovalStep extends Model
 {
     protected $fillable = [
         'step_order',
-        'name',
     ];
+
+    public static function getSelectOptions()
+    {
+        return self::orderBy('id')
+            ->get()
+            ->map(function ($approvalStep) {
+                return [
+                    'value' => $approvalStep->id,
+                    'label' => $approvalStep->step_order
+                ];
+            });
+    }
 
     public function approvals()
     {

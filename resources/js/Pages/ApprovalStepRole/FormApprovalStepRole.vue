@@ -16,7 +16,10 @@ import {
 } from "naive-ui";
 
 // Utilities & Validations
-import { approvalStepSchema } from "@/Validations/validationSchemas";
+import {
+    approvalStepRoleSchema,
+    approvalStepSchema,
+} from "@/Validations/validationSchemas";
 
 /*
 | Props & Emits
@@ -26,9 +29,12 @@ const props = defineProps({
     showModal: Boolean,
     dataEdit: Object,
     rolesOptions: Array,
+    approvalStep: Array,
     closeModal: Function,
     submit: Function,
 });
+
+console.log("dd", props.dataEdit);
 
 const emit = defineEmits(["update:showModal", "updated"]);
 
@@ -36,11 +42,11 @@ const emit = defineEmits(["update:showModal", "updated"]);
 | Form Setup (VeeValidate)
 */
 const { handleSubmit, errors, defineField, setValues, resetForm } = useForm({
-    validationSchema: toTypedSchema(approvalStepSchema),
+    validationSchema: toTypedSchema(approvalStepRoleSchema),
     initialValues: {
         id: null,
-        step_order: null,
-        name: "",
+        role_id: null,
+        approval_step_id: null,
     },
 });
 
@@ -48,8 +54,8 @@ const { handleSubmit, errors, defineField, setValues, resetForm } = useForm({
 | Form Fields
 */
 
-const [step_order] = defineField("step_order");
-const [name] = defineField("name");
+const [role_id] = defineField("role_id");
+const [approval_step_id] = defineField("approval_step_id");
 
 const isEditMode = computed(() => !!props.dataEdit?.id);
 
@@ -58,8 +64,8 @@ const submitForm = handleSubmit(async (values) => {
         values,
         method: isEditMode.value ? "put" : "post",
         url: isEditMode.value
-            ? "approval-steps.update"
-            : "approval-steps.store",
+            ? "approval-step-roles.update"
+            : "approval-step-roles.store",
         id: isEditMode.value ? values.id : null,
         onSuccess: () => {
             props.closeModal();
@@ -95,27 +101,29 @@ watch(
     <n-form @submit.prevent="submitForm">
         <div>
             <n-form-item
-                label="Peran"
-                :validation-status="errors.step_order ? 'error' : null"
-                :feedback="errors.step_order"
+                label="Role"
+                :validation-status="errors.role_id ? 'error' : null"
+                :feedback="errors.role_id"
                 required
             >
-                <n-input-number
-                    v-model:value="step_order"
-                    min="1"
-                    placeholder="Pilih Urutan Persetujuan"
+                <n-select
+                    v-model:value="role_id"
+                    :options="rolesOptions"
+                    placeholder="Pilih Role"
                     clearable
                 />
             </n-form-item>
             <n-form-item
-                label="Persetujuan"
-                :validation-status="errors.name ? 'error' : null"
-                :feedback="errors.name"
+                label="Role"
+                :validation-status="errors.approval_step_id ? 'error' : null"
+                :feedback="errors.approval_step_id"
                 required
             >
-                <n-input
-                    v-model:value="name"
-                    placeholder="Masukkan Persetujuan"
+                <n-select
+                    v-model:value="approval_step_id"
+                    :options="approvalStep"
+                    placeholder="Pilih Urutan"
+                    clearable
                 />
             </n-form-item>
         </div>

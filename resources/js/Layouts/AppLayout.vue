@@ -107,7 +107,7 @@ onMounted(() => {
             class="h-14 px-6 flex items-center justify-between bg-gradient-to-r from-green-500 via-green-400 to-green-500 text-white fixed top-0 left-0 right-0 z-50 shadow-md"
         >
             <h2 class="text-lg font-semibold">CASH ADVANCE</h2>
-            <div class="dark:border-gray-800">
+            <div class="">
                 <NDropdown
                     width="150"
                     size="small"
@@ -117,7 +117,7 @@ onMounted(() => {
                     @select="handleUserDropdownSelect"
                 >
                     <div
-                        class="flex items-center gap-2 rounded-lg cursor-pointer dark:hover:bg-gray-800"
+                        class="flex items-center gap-2 rounded-lg cursor-pointer"
                         :class="{ 'justify-center': sidebarCollapsed }"
                     >
                         <!-- <n-tooltip v-if="sidebarCollapsed" placement="right">
@@ -167,7 +167,7 @@ onMounted(() => {
 
                 <n-layout-footer
                     bordered
-                    class="px-6 py-4 text-right text-sm text-gray-500 bg-white dark:bg-gray-800"
+                    class="px-6 py-4 text-right text-sm text-gray-500 bg-white"
                 >
                     © 2024 Cash Advance
                 </n-layout-footer>
