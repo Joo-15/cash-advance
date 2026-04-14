@@ -286,46 +286,59 @@ class ApprovalController extends Controller
 
     public function reject(Request $request, Approval $approval)
     {
-
         $validated = $request->validate([
             'status' => 'required|in:approved,rejected',
             'notes' => 'nullable|string|max:1000',
         ]);
 
+        // Cek apakah approval ini masih pending
+        if ($approval->status !== 'pending') {
+            return redirect()->back()->with('error', 'Approval sudah diproses sebelumnya');
+        }
+
         DB::beginTransaction();
         try {
-            // Update semua approval untuk cash advance tertentu
-            $updatedCount = Approval::where('cash_advance_id', $approval->cash_advance_id)
-                ->where('status', 'pending')
-                ->update([
-                    'status' => $validated['status'],
-                    'notes' => $validated['notes'] ?? null,
-                    'approved_by' => Auth::id(),
-                    'approved_at' => now(),
-                ]);
+            // Update approval yang sedang diproses
+            $approval->update([
+                'status' => $validated['status'],
+                'notes' => $validated['notes'] ?? null,
+                'approved_by' => Auth::id(),
+                'approved_at' => now(),
+            ]);
 
-            // Update status cash advance juga
+            // Jika status rejected, batalkan semua pending approval lainnya
+            if ($validated['status'] === 'rejected') {
+                Approval::where('cash_advance_id', $approval->cash_advance_id)
+                    ->where('id', '!=', $approval->id)
+                    ->where('status', 'pending')
+                    ->update([
+                        'status' => 'rejected',
+                        'notes' => 'Dibatalkan karena ada approval yang ditolak',
+                    ]);
+            }
+
+            // Update status cash advance
             $cashAdvance = CashAdvance::find($approval->cash_advance_id);
-            // dd($cashAdvance);
-
             if ($cashAdvance) {
-                $cashAdvance->update([
-                    'status' => $validated['status'] === 'approved' ? 'approved' : 'rejected'
-                ]);
+                $newStatus = $validated['status'] === 'approved' ? 'approved' : 'rejected';
+                $cashAdvance->update(['status' => $newStatus]);
             }
 
             DB::commit();
 
-            return redirect()->back()->with('success', "{$updatedCount} persetujuan berhasil diproses");
+            $message = $validated['status'] === 'approved'
+                ? "Approval berhasil disetujui"
+                : "Approval ditolak dan semua pending approval dibatalkan";
+
+            return redirect()->back()->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::error('Failed to update approvals by cash advance', [
+            Log::error('Failed to process approval', [
                 'error' => $e->getMessage(),
+                'approval_id' => $approval->id,
                 'cash_advance_id' => $approval->cash_advance_id,
                 'user_id' => Auth::id()
             ]);
-
             return redirect()->back()->with('error', 'Gagal memproses persetujuan: ' . $e->getMessage());
         }
     }

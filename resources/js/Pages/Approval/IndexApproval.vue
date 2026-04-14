@@ -164,367 +164,10 @@ const columnConfig = computed(() => {
             sorter: false,
             visible: true,
         },
-        {
-            title: "Stage",
-            key: "approvals.status",
-            width: 220,
-            align: "center",
-            sorter: true,
-            visible: true,
-            render: (row) => {
-                if (!row.approvals || row.approvals.length === 0) {
-                    return h(
-                        NTag,
-                        {
-                            type: "default",
-                            size: "small",
-                            round: true,
-                            bordered: false,
-                        },
-                        { default: () => "No Data" },
-                    );
-                }
-
-                // Urutkan approvals berdasarkan step_order
-                const sortedApprovals = [...row.approvals].sort(
-                    (a, b) =>
-                        (a.approval_step?.step_order || 0) -
-                        (b.approval_step?.step_order || 0),
-                );
-
-                // Dapatkan role user yang login
-                const currentUserRoleId = roleId.value; // Sesuaikan dengan implementasi Anda
-                const currentUserRoleName = roleName.value; // Sesuaikan dengan implementasi Anda
-
-                // Cari step yang menjadi tanggung jawab user login
-                const userStepIndex = sortedApprovals.findIndex((approval) => {
-                    return approval.approval_step?.approval_step_roles?.some(
-                        (stepRole) =>
-                            String(stepRole.role_id) ===
-                            String(currentUserRoleId),
-                    );
-                });
-
-                // Cari approval yang pending (belum diproses)
-                const currentPending = sortedApprovals.find(
-                    (a) => a.status === "pending",
-                );
-                const currentPendingIndex = sortedApprovals.findIndex(
-                    (a) => a.status === "pending",
-                );
-                const rejectedStep = sortedApprovals.find(
-                    (a) => a.status === "rejected",
-                );
-                const allApproved = sortedApprovals.every(
-                    (a) => a.status === "approved",
-                );
-
-                // Helper untuk mendapatkan nama role
-                const getRoleNames = (approval) => {
-                    if (!approval?.approval_step?.approval_step_roles)
-                        return [];
-                    return approval.approval_step.approval_step_roles.map(
-                        (stepRole) => stepRole.role?.name,
-                    );
-                };
-
-                const formatRoleNames = (roleNames) => {
-                    if (!roleNames || roleNames.length === 0) return "Unknown";
-                    if (roleNames.length === 1) return roleNames[0];
-                    if (roleNames.length === 2)
-                        return `${roleNames[0]} & ${roleNames[1]}`;
-                    return `${roleNames.slice(0, -1).join(", ")}, & ${roleNames[roleNames.length - 1]}`;
-                };
-
-                // 1. Jika ada yang rejected
-                if (rejectedStep) {
-                    const roleNames = getRoleNames(rejectedStep);
-                    const formattedRoles = formatRoleNames(roleNames);
-
-                    return h(
-                        NTooltip,
-                        { placement: "top" },
-                        {
-                            trigger: () =>
-                                h(
-                                    NTag,
-                                    {
-                                        type: "error", // MERAH untuk ditolak
-                                        size: "small",
-                                        round: true,
-                                        bordered: false,
-                                    },
-                                    { default: () => `Ditolak` },
-                                ),
-                            default: () =>
-                                h("div", [
-                                    h("div", `Ditolak oleh: ${formattedRoles}`),
-                                    rejectedStep.notes &&
-                                        h(
-                                            "div",
-                                            `Catatan: ${rejectedStep.notes}`,
-                                        ),
-                                ]),
-                        },
-                    );
-                }
-
-                // 2. Jika semua sudah approved
-                if (allApproved) {
-                    return h(
-                        NTooltip,
-                        { placement: "top" },
-                        {
-                            trigger: () =>
-                                h(
-                                    NTag,
-                                    {
-                                        type: "success", // HIJAU untuk selesai (semua step sudah lewat)
-                                        size: "small",
-                                        round: true,
-                                        bordered: false,
-                                    },
-                                    { default: () => "Selesai" },
-                                ),
-                            default: () =>
-                                h("div", [
-                                    h(
-                                        "div",
-                                        "✓ Semua persetujuan telah selesai",
-                                    ),
-                                    h(
-                                        "div",
-                                        `Total steps: ${sortedApprovals.length}`,
-                                    ),
-                                ]),
-                        },
-                    );
-                }
-
-                // 3. Jika masih ada yang pending
-                if (currentPending && currentPendingIndex !== -1) {
-                    const roleNames = getRoleNames(currentPending);
-                    const formattedRoles = formatRoleNames(roleNames);
-                    const isUserStep = userStepIndex === currentPendingIndex;
-                    const isStepBeforeUser =
-                        userStepIndex !== -1 &&
-                        currentPendingIndex < userStepIndex;
-                    const isStepAfterUser =
-                        userStepIndex !== -1 &&
-                        currentPendingIndex > userStepIndex;
-
-                    // 3a. Step yang sedang pending adalah step role user login (step sekarang)
-                    if (isUserStep) {
-                        return h(
-                            NTooltip,
-                            { placement: "top" },
-                            {
-                                trigger: () =>
-                                    h(
-                                        NTag,
-                                        {
-                                            type: "warning", // HIJAU untuk step yang menjadi tanggung jawab user sekarang
-                                            size: "small",
-                                            round: true,
-                                            bordered: false,
-                                            class: "font-bold text-yellow-800",
-                                        },
-                                        {
-                                            default: () =>
-                                                `Perlu Verifikasi Anda`,
-                                        },
-                                    ),
-                                default: () =>
-                                    h("div", [
-                                        h(
-                                            "div",
-                                            `Menunggu persetujuan dari: ${formattedRoles}`,
-                                        ),
-                                        h(
-                                            "div",
-                                            `Role Anda: ${currentUserRoleName}`,
-                                        ),
-                                        h(
-                                            "div",
-                                            `Step ${currentPending.approval_step?.step_order} dari ${sortedApprovals.length}`,
-                                        ),
-                                        h(
-                                            "div",
-                                            "Klik Aksi untuk memverifikasi",
-                                        ),
-                                    ]),
-                            },
-                        );
-                    }
-
-                    // 3b. Step yang pending adalah step sebelum role user (sudah lewat)
-                    if (isStepBeforeUser) {
-                        return h(
-                            NTooltip,
-                            { placement: "top" },
-                            {
-                                trigger: () =>
-                                    h(
-                                        NTag,
-                                        {
-                                            type: "warning", // KUNING untuk step sebelum role user (masih menunggu step sebelumnya)
-                                            size: "small",
-                                            round: true,
-                                            bordered: false,
-                                        },
-                                        {
-                                            default: () =>
-                                                `Menunggu ${formattedRoles}`,
-                                        },
-                                    ),
-                                default: () =>
-                                    h("div", [
-                                        h(
-                                            "div",
-                                            `Menunggu persetujuan dari: ${formattedRoles}`,
-                                        ),
-                                        h(
-                                            "div",
-                                            `Step ${currentPending.approval_step?.step_order} dari ${sortedApprovals.length}`,
-                                        ),
-                                        h(
-                                            "div",
-                                            "Menunggu verifikasi dari step sebelumnya",
-                                        ),
-                                    ]),
-                            },
-                        );
-                    }
-
-                    // 3c. Step yang pending adalah step setelah role user (sudah lewat dari role user)
-                    if (isStepAfterUser) {
-                        // Cek apakah role user sudah menyetujui atau belum
-                        const userApproval = sortedApprovals[userStepIndex];
-                        const hasUserApproved =
-                            userApproval?.status === "approved";
-
-                        if (hasUserApproved) {
-                            return h(
-                                NTooltip,
-                                { placement: "top" },
-                                {
-                                    trigger: () =>
-                                        h(
-                                            NTag,
-                                            {
-                                                type: "success", // HIJAU jika user sudah approve dan menunggu step berikutnya
-                                                size: "small",
-                                                round: true,
-                                                bordered: false,
-                                            },
-                                            {
-                                                default: () =>
-                                                    `Menunggu ${formattedRoles}`,
-                                            },
-                                        ),
-                                    default: () =>
-                                        h("div", [
-                                            h(
-                                                "div",
-                                                `Menunggu persetujuan dari: ${formattedRoles}`,
-                                            ),
-                                            h(
-                                                "div",
-                                                `Anda telah menyetujui step ${userApproval.approval_step?.step_order}`,
-                                            ),
-                                            h(
-                                                "div",
-                                                `Sekarang menunggu step ${currentPending.approval_step?.step_order}`,
-                                            ),
-                                        ]),
-                                },
-                            );
-                        } else {
-                            return h(
-                                NTooltip,
-                                { placement: "top" },
-                                {
-                                    trigger: () =>
-                                        h(
-                                            NTag,
-                                            {
-                                                type: "warning", // KUNING jika user belum approve dan step setelahnya pending
-                                                size: "small",
-                                                round: true,
-                                                bordered: false,
-                                            },
-                                            {
-                                                default: () =>
-                                                    `Menunggu ${formattedRoles}`,
-                                            },
-                                        ),
-                                    default: () =>
-                                        h("div", [
-                                            h(
-                                                "div",
-                                                `Menunggu persetujuan dari: ${formattedRoles}`,
-                                            ),
-                                            h(
-                                                "div",
-                                                `Anda perlu menyetujui step ${userApproval.approval_step?.step_order} terlebih dahulu`,
-                                            ),
-                                        ]),
-                                },
-                            );
-                        }
-                    }
-
-                    // 3d. Default jika tidak ada role user (misalnya user tidak memiliki role dalam approval ini)
-                    return h(
-                        NTooltip,
-                        { placement: "top" },
-                        {
-                            trigger: () =>
-                                h(
-                                    NTag,
-                                    {
-                                        type: "warning", // KUNING default
-                                        size: "small",
-                                        round: true,
-                                        bordered: false,
-                                    },
-                                    {
-                                        default: () =>
-                                            `Menunggu ${formattedRoles}`,
-                                    },
-                                ),
-                            default: () =>
-                                h("div", [
-                                    h(
-                                        "div",
-                                        `Menunggu persetujuan dari: ${formattedRoles}`,
-                                    ),
-                                    h(
-                                        "div",
-                                        `Step ${currentPending.approval_step?.step_order} dari ${sortedApprovals.length}`,
-                                    ),
-                                ]),
-                        },
-                    );
-                }
-
-                // Fallback
-                return h(
-                    NTag,
-                    {
-                        type: "default",
-                        size: "small",
-                        round: true,
-                        bordered: false,
-                    },
-                    { default: () => row.status || "Unknown" },
-                );
-            },
-        },
         // {
-        //     title: "Status",
+        //     title: "Stage",
         //     key: "approvals.status",
-        //     width: 200,
+        //     width: 220,
         //     align: "center",
         //     sorter: true,
         //     visible: true,
@@ -550,92 +193,322 @@ const columnConfig = computed(() => {
         //         );
 
         //         // Dapatkan role user yang login
-        //         const currentUserRoleId = roleId.value;
+        //         const currentUserRoleId = roleId.value; // Sesuaikan dengan implementasi Anda
+        //         const currentUserRoleName = roleName.value; // Sesuaikan dengan implementasi Anda
 
-        //         // Helper untuk cek apakah user termasuk dalam step ini
-        //         const isUserInStep = (approval) => {
-        //             if (!approval?.approval_step?.approval_step_roles)
-        //                 return false;
-        //             return approval.approval_step.approval_step_roles.some(
+        //         // Cari step yang menjadi tanggung jawab user login
+        //         const userStepIndex = sortedApprovals.findIndex((approval) => {
+        //             return approval.approval_step?.approval_step_roles?.some(
         //                 (stepRole) =>
         //                     String(stepRole.role_id) ===
         //                     String(currentUserRoleId),
         //             );
-        //         };
+        //         });
 
-        //         // Cek apakah user sudah approved di step miliknya
-        //         const userStepApproval = sortedApprovals.find((approval) =>
-        //             isUserInStep(approval),
+        //         // Cari approval yang pending (belum diproses)
+        //         const currentPending = sortedApprovals.find(
+        //             (a) => a.status === "pending",
         //         );
-        //         const isUserAlreadyApproved =
-        //             userStepApproval?.status === "approved";
-
-        //         // Cari status yang ada
+        //         const currentPendingIndex = sortedApprovals.findIndex(
+        //             (a) => a.status === "pending",
+        //         );
         //         const rejectedStep = sortedApprovals.find(
         //             (a) => a.status === "rejected",
-        //         );
-        //         const pendingStep = sortedApprovals.find(
-        //             (a) => a.status === "pending",
         //         );
         //         const allApproved = sortedApprovals.every(
         //             (a) => a.status === "approved",
         //         );
 
-        //         // Jika user sudah approved, tampilkan "Approved"
-        //         if (isUserAlreadyApproved) {
-        //             return h(
-        //                 NTag,
-        //                 {
-        //                     type: "success",
-        //                     size: "small",
-        //                     round: true,
-        //                     bordered: false,
-        //                 },
-        //                 { default: () => "Approved" },
+        //         // Helper untuk mendapatkan nama role
+        //         const getRoleNames = (approval) => {
+        //             if (!approval?.approval_step?.approval_step_roles)
+        //                 return [];
+        //             return approval.approval_step.approval_step_roles.map(
+        //                 (stepRole) => stepRole.role?.name,
         //             );
-        //         }
+        //         };
 
-        //         // Tampilkan status ASLI dengan highlight berdasarkan role user
+        //         const formatRoleNames = (roleNames) => {
+        //             if (!roleNames || roleNames.length === 0) return "Unknown";
+        //             if (roleNames.length === 1) return roleNames[0];
+        //             if (roleNames.length === 2)
+        //                 return `${roleNames[0]} & ${roleNames[1]}`;
+        //             return `${roleNames.slice(0, -1).join(", ")}, & ${roleNames[roleNames.length - 1]}`;
+        //         };
+
+        //         // 1. Jika ada yang rejected
         //         if (rejectedStep) {
+        //             const roleNames = getRoleNames(rejectedStep);
+        //             const formattedRoles = formatRoleNames(roleNames);
+
         //             return h(
-        //                 NTag,
+        //                 NTooltip,
+        //                 { placement: "top" },
         //                 {
-        //                     type: "error",
-        //                     size: "small",
-        //                     round: true,
-        //                     bordered: false,
+        //                     trigger: () =>
+        //                         h(
+        //                             NTag,
+        //                             {
+        //                                 type: "error", // MERAH untuk ditolak
+        //                                 size: "small",
+        //                                 round: true,
+        //                                 bordered: false,
+        //                             },
+        //                             { default: () => `Ditolak` },
+        //                         ),
+        //                     default: () =>
+        //                         h("div", [
+        //                             h("div", `Ditolak oleh: ${formattedRoles}`),
+        //                             rejectedStep.notes &&
+        //                                 h(
+        //                                     "div",
+        //                                     `Catatan: ${rejectedStep.notes}`,
+        //                                 ),
+        //                         ]),
         //                 },
-        //                 { default: () => rejectedStep.status },
         //             );
         //         }
 
+        //         // 2. Jika semua sudah approved
         //         if (allApproved) {
         //             return h(
-        //                 NTag,
+        //                 NTooltip,
+        //                 { placement: "top" },
         //                 {
-        //                     type: "success",
-        //                     size: "small",
-        //                     round: true,
-        //                     bordered: false,
+        //                     trigger: () =>
+        //                         h(
+        //                             NTag,
+        //                             {
+        //                                 type: "success", // HIJAU untuk selesai (semua step sudah lewat)
+        //                                 size: "small",
+        //                                 round: true,
+        //                                 bordered: false,
+        //                             },
+        //                             { default: () => "Selesai" },
+        //                         ),
+        //                     default: () =>
+        //                         h("div", [
+        //                             h(
+        //                                 "div",
+        //                                 "✓ Semua persetujuan telah selesai",
+        //                             ),
+        //                             h(
+        //                                 "div",
+        //                                 `Total steps: ${sortedApprovals.length}`,
+        //                             ),
+        //                         ]),
         //                 },
-        //                 { default: () => "Approved" },
         //             );
         //         }
 
-        //         if (pendingStep) {
+        //         // 3. Jika masih ada yang pending
+        //         if (currentPending && currentPendingIndex !== -1) {
+        //             const roleNames = getRoleNames(currentPending);
+        //             const formattedRoles = formatRoleNames(roleNames);
+        //             const isUserStep = userStepIndex === currentPendingIndex;
+        //             const isStepBeforeUser =
+        //                 userStepIndex !== -1 &&
+        //                 currentPendingIndex < userStepIndex;
+        //             const isStepAfterUser =
+        //                 userStepIndex !== -1 &&
+        //                 currentPendingIndex > userStepIndex;
+
+        //             // 3a. Step yang sedang pending adalah step role user login (step sekarang)
+        //             if (isUserStep) {
+        //                 return h(
+        //                     NTooltip,
+        //                     { placement: "top" },
+        //                     {
+        //                         trigger: () =>
+        //                             h(
+        //                                 NTag,
+        //                                 {
+        //                                     type: "warning", // HIJAU untuk step yang menjadi tanggung jawab user sekarang
+        //                                     size: "small",
+        //                                     round: true,
+        //                                     bordered: false,
+        //                                     class: "font-bold text-yellow-800",
+        //                                 },
+        //                                 {
+        //                                     default: () =>
+        //                                         `Perlu Verifikasi Anda`,
+        //                                 },
+        //                             ),
+        //                         default: () =>
+        //                             h("div", [
+        //                                 h(
+        //                                     "div",
+        //                                     `Menunggu persetujuan dari: ${formattedRoles}`,
+        //                                 ),
+        //                                 h(
+        //                                     "div",
+        //                                     `Role Anda: ${currentUserRoleName}`,
+        //                                 ),
+        //                                 h(
+        //                                     "div",
+        //                                     `Step ${currentPending.approval_step?.step_order} dari ${sortedApprovals.length}`,
+        //                                 ),
+        //                                 h(
+        //                                     "div",
+        //                                     "Klik Aksi untuk memverifikasi",
+        //                                 ),
+        //                             ]),
+        //                     },
+        //                 );
+        //             }
+
+        //             // 3b. Step yang pending adalah step sebelum role user (sudah lewat)
+        //             if (isStepBeforeUser) {
+        //                 return h(
+        //                     NTooltip,
+        //                     { placement: "top" },
+        //                     {
+        //                         trigger: () =>
+        //                             h(
+        //                                 NTag,
+        //                                 {
+        //                                     type: "warning", // KUNING untuk step sebelum role user (masih menunggu step sebelumnya)
+        //                                     size: "small",
+        //                                     round: true,
+        //                                     bordered: false,
+        //                                 },
+        //                                 {
+        //                                     default: () =>
+        //                                         `Menunggu ${formattedRoles}`,
+        //                                 },
+        //                             ),
+        //                         default: () =>
+        //                             h("div", [
+        //                                 h(
+        //                                     "div",
+        //                                     `Menunggu persetujuan dari: ${formattedRoles}`,
+        //                                 ),
+        //                                 h(
+        //                                     "div",
+        //                                     `Step ${currentPending.approval_step?.step_order} dari ${sortedApprovals.length}`,
+        //                                 ),
+        //                                 h(
+        //                                     "div",
+        //                                     "Menunggu verifikasi dari step sebelumnya",
+        //                                 ),
+        //                             ]),
+        //                     },
+        //                 );
+        //             }
+
+        //             // 3c. Step yang pending adalah step setelah role user (sudah lewat dari role user)
+        //             if (isStepAfterUser) {
+        //                 // Cek apakah role user sudah menyetujui atau belum
+        //                 const userApproval = sortedApprovals[userStepIndex];
+        //                 const hasUserApproved =
+        //                     userApproval?.status === "approved";
+
+        //                 if (hasUserApproved) {
+        //                     return h(
+        //                         NTooltip,
+        //                         { placement: "top" },
+        //                         {
+        //                             trigger: () =>
+        //                                 h(
+        //                                     NTag,
+        //                                     {
+        //                                         type: "success", // HIJAU jika user sudah approve dan menunggu step berikutnya
+        //                                         size: "small",
+        //                                         round: true,
+        //                                         bordered: false,
+        //                                     },
+        //                                     {
+        //                                         default: () =>
+        //                                             `Menunggu ${formattedRoles}`,
+        //                                     },
+        //                                 ),
+        //                             default: () =>
+        //                                 h("div", [
+        //                                     h(
+        //                                         "div",
+        //                                         `Menunggu persetujuan dari: ${formattedRoles}`,
+        //                                     ),
+        //                                     h(
+        //                                         "div",
+        //                                         `Anda telah menyetujui step ${userApproval.approval_step?.step_order}`,
+        //                                     ),
+        //                                     h(
+        //                                         "div",
+        //                                         `Sekarang menunggu step ${currentPending.approval_step?.step_order}`,
+        //                                     ),
+        //                                 ]),
+        //                         },
+        //                     );
+        //                 } else {
+        //                     return h(
+        //                         NTooltip,
+        //                         { placement: "top" },
+        //                         {
+        //                             trigger: () =>
+        //                                 h(
+        //                                     NTag,
+        //                                     {
+        //                                         type: "warning", // KUNING jika user belum approve dan step setelahnya pending
+        //                                         size: "small",
+        //                                         round: true,
+        //                                         bordered: false,
+        //                                     },
+        //                                     {
+        //                                         default: () =>
+        //                                             `Menunggu ${formattedRoles}`,
+        //                                     },
+        //                                 ),
+        //                             default: () =>
+        //                                 h("div", [
+        //                                     h(
+        //                                         "div",
+        //                                         `Menunggu persetujuan dari: ${formattedRoles}`,
+        //                                     ),
+        //                                     h(
+        //                                         "div",
+        //                                         `Anda perlu menyetujui step ${userApproval.approval_step?.step_order} terlebih dahulu`,
+        //                                     ),
+        //                                 ]),
+        //                         },
+        //                     );
+        //                 }
+        //             }
+
+        //             // 3d. Default jika tidak ada role user (misalnya user tidak memiliki role dalam approval ini)
         //             return h(
-        //                 NTag,
+        //                 NTooltip,
+        //                 { placement: "top" },
         //                 {
-        //                     type: "warning",
-        //                     size: "small",
-        //                     round: true,
-        //                     bordered: false,
+        //                     trigger: () =>
+        //                         h(
+        //                             NTag,
+        //                             {
+        //                                 type: "warning", // KUNING default
+        //                                 size: "small",
+        //                                 round: true,
+        //                                 bordered: false,
+        //                             },
+        //                             {
+        //                                 default: () =>
+        //                                     `Menunggu ${formattedRoles}`,
+        //                             },
+        //                         ),
+        //                     default: () =>
+        //                         h("div", [
+        //                             h(
+        //                                 "div",
+        //                                 `Menunggu persetujuan dari: ${formattedRoles}`,
+        //                             ),
+        //                             h(
+        //                                 "div",
+        //                                 `Step ${currentPending.approval_step?.step_order} dari ${sortedApprovals.length}`,
+        //                             ),
+        //                         ]),
         //                 },
-        //                 { default: () => pendingStep.status },
         //             );
         //         }
 
-        //         // Fallback: tampilkan status dari row
+        //         // Fallback
         //         return h(
         //             NTag,
         //             {
@@ -644,10 +517,138 @@ const columnConfig = computed(() => {
         //                 round: true,
         //                 bordered: false,
         //             },
-        //             { default: () => row.status || "pending" },
+        //             { default: () => row.status || "Unknown" },
         //         );
         //     },
         // },
+
+        {
+            title: "Status",
+            key: "approvals.status",
+            width: 200,
+            align: "center",
+            sorter: true,
+            visible: true,
+            render: (row) => {
+                if (!row.approvals || row.approvals.length === 0) {
+                    return h(
+                        NTag,
+                        {
+                            type: "default",
+                            size: "small",
+                            round: true,
+                            bordered: false,
+                        },
+                        { default: () => "No Data" },
+                    );
+                }
+
+                // Urutkan approvals berdasarkan step_order
+                const sortedApprovals = [...row.approvals].sort(
+                    (a, b) =>
+                        (a.approval_step?.step_order || 0) -
+                        (b.approval_step?.step_order || 0),
+                );
+
+                // Dapatkan role user yang login
+                const currentUserRoleId = roleId.value;
+
+                // Helper untuk cek apakah user termasuk dalam step ini
+                const isUserInStep = (approval) => {
+                    if (!approval?.approval_step?.approval_step_roles)
+                        return false;
+                    return approval.approval_step.approval_step_roles.some(
+                        (stepRole) =>
+                            String(stepRole.role_id) ===
+                            String(currentUserRoleId),
+                    );
+                };
+
+                // Cek apakah user sudah approved di step miliknya
+                const userStepApproval = sortedApprovals.find((approval) =>
+                    isUserInStep(approval),
+                );
+                const isUserAlreadyApproved =
+                    userStepApproval?.status === "approved";
+
+                // Cari status yang ada
+                const rejectedStep = sortedApprovals.find(
+                    (a) => a.status === "rejected",
+                );
+                const pendingStep = sortedApprovals.find(
+                    (a) => a.status === "pending",
+                );
+                const allApproved = sortedApprovals.every(
+                    (a) => a.status === "approved",
+                );
+
+                // Jika user sudah approved, tampilkan "Approved"
+                if (isUserAlreadyApproved) {
+                    return h(
+                        NTag,
+                        {
+                            type: "success",
+                            size: "small",
+                            round: true,
+                            bordered: false,
+                        },
+                        { default: () => "Disetujui" },
+                    );
+                }
+
+                // Tampilkan status ASLI dengan highlight berdasarkan role user
+                if (rejectedStep) {
+                    return h(
+                        NTag,
+                        {
+                            type: "error",
+                            size: "small",
+                            round: true,
+                            bordered: false,
+                        },
+                        { default: () => rejectedStep.status },
+                    );
+                }
+
+                if (allApproved) {
+                    return h(
+                        NTag,
+                        {
+                            type: "success",
+                            size: "small",
+                            round: true,
+                            bordered: false,
+                        },
+                        { default: () => "Approved" },
+                    );
+                }
+
+                if (pendingStep) {
+                    return h(
+                        NTag,
+                        {
+                            type: "warning",
+                            size: "small",
+                            round: true,
+                            bordered: false,
+                        },
+                        { default: () => "Menunggu" },
+                    );
+                }
+
+                // Fallback: tampilkan status dari row
+                return h(
+                    NTag,
+                    {
+                        type: "default",
+                        size: "small",
+                        round: true,
+                        bordered: false,
+                    },
+                    { default: () => row.status || "Pending" },
+                );
+            },
+        },
         {
             title: "Aksi",
             key: "actions",

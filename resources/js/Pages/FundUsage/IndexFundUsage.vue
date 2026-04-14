@@ -17,15 +17,16 @@ import ModalForm from "@/Components/Page/ModalForm.vue";
 
 import { useAuth } from "@/Composables/useAuth";
 
-import FormFundUsage from "./FormFundUsage.vue";
+// import FormFundUsage from "./FormFundUsage.vue";
 import { Head } from "@inertiajs/vue3";
+import FormFundUsage1 from "./FormFundUsage1.vue";
 
 // Props definition
 const props = defineProps({
     fundUsage: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
 });
-
+console.log("fundusage", props.fundUsage);
 // Refs
 const formRef = ref(null);
 
@@ -124,9 +125,16 @@ const columnConfig = [
         width: 200,
     },
     {
-        title: "Bukti",
+        title: "Laporan",
         key: "attachment",
         type: "attachment",
+        align: "center",
+        width: 200,
+    },
+    {
+        title: "Status",
+        key: "attachment",
+        // type: "attachment",
         align: "center",
         width: 200,
     },
@@ -140,7 +148,7 @@ const columnConfig = [
         actionConfig: {
             showProses: (row) => row?.status === "disbursed",
         },
-        sorter: false, // Aksi tidak perlu sorting
+        sorter: false,
     },
 ];
 
@@ -194,7 +202,7 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
                 :auto-focus="false"
             >
                 <template #form="{ closeModal }">
-                    <FormFundUsage
+                    <FormFundUsage1
                         v-if="currentFormType === 'fundUsage'"
                         :modal-mode="modalMode"
                         :loading="loadingButton"

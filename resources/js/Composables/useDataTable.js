@@ -255,7 +255,7 @@ export function useDataTable({
                 },
             },
             {
-                default: () => "Lampiran Bukti",
+                default: () => "Laporan ",
                 icon: () =>
                     h(NIcon, { size: 18 }, { default: () => h(AttachOutline) }),
             },
@@ -287,9 +287,9 @@ export function useDataTable({
                     default: () => label,
                     ...(icon
                         ? {
-                            icon: () =>
-                                h(NIcon, null, { default: () => h(icon) }),
-                        }
+                              icon: () =>
+                                  h(NIcon, null, { default: () => h(icon) }),
+                          }
                         : {}),
                 },
             );
@@ -480,10 +480,10 @@ export function useDataTable({
 
         return buttons.length
             ? h(
-                NSpace,
-                { align: "center", justify: placement, size: 4 },
-                { default: () => buttons },
-            )
+                  NSpace,
+                  { align: "center", justify: placement, size: 4 },
+                  { default: () => buttons },
+              )
             : null;
     };
 

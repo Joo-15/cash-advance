@@ -53,18 +53,18 @@ const getStatusRequest = props.dataDetail[0]?.cash_advance?.status || "Guest";
 const emit = defineEmits(["update:showModal", "updated"]);
 
 const statusMap = {
-    approved: "Approved",
-    pending: "Pending",
-    rejected: "Rejected",
+    approved: "Disetujui",
+    pending: "Menunggu",
+    rejected: "Ditolak",
 };
 
 const getTimelineType = (status) => {
     switch (status) {
-        case "Approved":
+        case "Disetujui":
             return "success";
-        case "Pending":
+        case "Menunggu":
             return "warning";
-        case "Rejected":
+        case "Ditolak":
             return "error";
         default:
             return "info";
@@ -88,11 +88,11 @@ const approvalSteps = computed(() => {
         // Tentukan status berdasarkan data
         let status = "-";
         if (approval.status === "approved") {
-            status = "Approved";
+            status = "Disetujui";
         } else if (approval.status === "pending") {
-            status = "Pending";
+            status = "Menunggu";
         } else if (approval.status === "rejected") {
-            status = "Rejected";
+            status = "Ditolak";
         }
 
         // Ambil nama-nama role dari approval_step_roles
