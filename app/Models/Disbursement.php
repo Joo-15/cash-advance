@@ -13,7 +13,10 @@ class Disbursement extends Model
         'total_spent',
         'report_notes',
         'report_status',
+        'finance_notes',
         'disbursed_at',
+        'submitted_at',
+        'approved_at'
     ];
 
     public function cashAdvance()

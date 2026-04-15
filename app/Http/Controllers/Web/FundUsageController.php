@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FundUsageRequest;
 use App\Models\CashAdvance;
+use App\Models\Disbursement;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
 class FundUsageController extends Controller
@@ -109,7 +113,6 @@ class FundUsageController extends Controller
      */
     public function update(FundUsageRequest $request, CashAdvance $penggunaan_dana)
     {
-        // dd($penggunaan_dana->disbursement);
 
         try {
 
@@ -140,7 +143,8 @@ class FundUsageController extends Controller
             $penggunaan_dana->disbursement->update([
                 'total_spent' => $request->total_spent,
                 'report_notes' => $request->report_notes,
-                'report_status' => 'submitted'
+                'report_status' => 'submitted',
+                'submitted_at' => now()
             ]);
 
 
@@ -165,6 +169,93 @@ class FundUsageController extends Controller
                 ->with('error', 'Gagal mengupdate data. Silakan coba lagi.');
         }
     }
+
+    public function review(Request $request, CashAdvance $disbursment)
+    {
+        // dd($request->all());
+        $user = Auth::user();
+
+        // Cek role
+        if (!$user || $user->role->name !== "Finance") {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Hanya Finance yang dapat mereview laporan.'
+            ], 403);
+        }
+
+        $request->validate([
+            'report_status' => 'required|in:approved,rejected',
+            'finance_notes' => 'nullable|string|max:500', // Bisa null untuk approved
+        ]);
+
+        // Validasi tambahan: finance_notes wajib jika rejected
+        if ($request->report_status === 'rejected' && empty($request->finance_notes)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Catatan penolakan wajib diisi saat menolak laporan',
+                'errors' => [
+                    'finance_notes' => ['Catatan penolakan harus diisi']
+                ]
+            ], 422);
+        }
+
+
+        $disbursement = $disbursment->disbursement;
+
+        if (!$disbursement) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data pencairan tidak ditemukan untuk cash advance ini'
+            ], 404);
+        }
+
+        // Cek status laporan
+        if ($disbursement->report_status !== 'submitted') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Laporan tidak dapat direview karena status saat ini: ' . $disbursement->report_status
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $updateData = [
+                'finance_notes' => $request->finance_notes,
+                'report_status' => $request->report_status,
+            ];
+
+            // Jika approved, tambahkan approved_at (opsional)
+            if ($request->report_status === 'approved') {
+                $updateData['approved_at'] = now();
+            }
+
+
+            // Update data disbursement
+            $disbursement->update($updateData);
+
+            DB::commit();
+
+
+            return redirect()->back()->with([
+                'success' => $request->report_status === 'approved'
+                    ? 'Laporan berhasil disetujui'
+                    : 'Laporan berhasil ditolak',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Review finance failed', [
+                'cash_advance_id' => $disbursement->id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal submit laporan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     /**
      * Remove the specified resource from storage.

@@ -38,7 +38,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::resource('/penggunaan-dana', FundUsageController::class);
     Route::get('/departments/options', [DepartmentController::class, 'getOptions']);
 
     // ============================================
@@ -69,6 +68,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Disbursement 
         Route::resource('/pencairan-dana', DisbursementController::class);
     });
+    Route::middleware(['role:Super Admin,Admin,Employee,Finance'])->group(function () {
+        Route::resource('/penggunaan-dana', FundUsageController::class);
+        Route::put('/penggunaan-dana/{disbursment}/review', [FundUsageController::class, 'review'])->name('penggunaan-dana.review');
+    });
+
 
     // ============================================
     // SUPER ADMIN ONLY

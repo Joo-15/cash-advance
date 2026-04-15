@@ -107,13 +107,6 @@ const columnConfig = [
         sorter: false,
     },
     {
-        title: "Tanggal Pengajuan",
-        key: "created_at",
-        type: "date",
-        width: 130,
-        align: "center",
-    },
-    {
         title: "Tujuan",
         key: "purpose",
         width: 200,
@@ -144,6 +137,13 @@ const columnConfig = [
         render(row) {
             return row.disbursement?.report_notes || "-";
         },
+    },
+    {
+        title: "Tanggal Pengajuan",
+        key: "created_at",
+        type: "date",
+        width: 130,
+        align: "center",
     },
     // {
     //     title: "Laporan",
@@ -239,7 +239,7 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
             />
             <ModalForm
                 v-model:show-modal="modalForm"
-                create-title="Upload Bukti"
+                create-title="Laporan Penggunaan Dana"
                 :is-detail-mode="false"
                 :data-edit="selectedRow"
                 :auto-focus="false"

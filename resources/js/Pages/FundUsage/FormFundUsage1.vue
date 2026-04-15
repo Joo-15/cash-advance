@@ -15,11 +15,9 @@ import {
     NForm,
     NFormItem,
     NInput,
-    NInputNumber,
     NSpace,
     NDivider,
     NAlert,
-    NSpin,
     useMessage,
     useDialog,
 } from "naive-ui";
@@ -69,13 +67,15 @@ const emit = defineEmits([
 
 const message = useMessage();
 const dialog = useDialog();
-const showPdfModal = ref(false);
 
 // State
+const showPdfModal = ref(false);
 const fileList = ref([]);
 const pdfUrl = ref(null);
 const submitting = ref(false);
 const uploadError = ref("");
+const reviewNotes = ref(""); // Untuk catatan review finance
+const reviewLoading = ref(false);
 
 // Computed
 const selectedItem = computed(() => props.dataSelected?.[0] || {});
@@ -83,7 +83,7 @@ const displayData = computed(() => {
     const item = selectedItem.value;
     const lastApproval = item?.approvals?.slice(-1)[0] || null;
     const disbursement = item?.disbursement || {};
-    // console.log()
+
     return {
         id: item?.id,
         purpose: item?.purpose,
@@ -104,10 +104,12 @@ const displayData = computed(() => {
         reportNotes: disbursement?.report_notes || "",
         financeNotes: disbursement?.finance_notes || "",
         totalSpent: disbursement?.total_spent || null,
+        reviewedBy: disbursement?.reviewed_by || null,
+        reviewedAt: disbursement?.reviewed_at || null,
     };
 });
 
-// console.log("test", displayData.value.reportStatus);
+// Helper Functions
 const getFileName = (attachment) => {
     if (!attachment) return "Dokumen.pdf";
     if (typeof attachment === "string") {
@@ -118,19 +120,15 @@ const getFileName = (attachment) => {
     return "Dokumen Bukti.pdf";
 };
 
-// Get file size
-const getFileSize = (attachment) => {
-    if (!attachment) return "";
-    if (attachment.size) {
-        const bytes = attachment.size;
-        const kilobytes = bytes / 1024;
-        if (kilobytes < 1024) {
-            return `${kilobytes.toFixed(2)} KB`;
-        }
-        return `${(kilobytes / 1024).toFixed(2)} MB`;
-    }
-    return "PDF Document";
+const getPdfUrl = (attachment) => {
+    if (!attachment) return null;
+    return `/storage/${attachment}`;
 };
+
+// Status & Alert Helpers
+const isReportLocked = computed(() => {
+    return ["submitted", "approved"].includes(displayData.value.reportStatus);
+});
 
 const getAlertType = () => {
     const statusMap = {
@@ -162,7 +160,7 @@ const getAlertMessage = () => {
 };
 
 const getSisaDana = () => {
-    const disbursed = displayData.value.disbursedAmount || 0;
+    const disbursed = displayData.value.rawDisbursedAmount || 0;
     const spent = displayData.value.totalSpent || 0;
     return disbursed - spent;
 };
@@ -184,16 +182,6 @@ const getStatusType = () => {
     return statusMap[displayData.value.reportStatus] || "default";
 };
 
-const getStatusLabel = () => {
-    const statusMap = {
-        not_submitted: "Belum Dikirim",
-        submitted: "Menunggu Review",
-        approved: "Disetujui",
-        rejected: "Ditolak",
-    };
-    return statusMap[displayData.value.reportStatus] || "-";
-};
-
 const getReviewStatusType = () => {
     const statusMap = {
         submitted: "warning",
@@ -212,6 +200,7 @@ const getReviewStatusLabel = () => {
     return statusMap[displayData.value.reportStatus] || "-";
 };
 
+// Form Setup
 const {
     handleSubmit,
     errors,
@@ -229,44 +218,20 @@ const {
     },
 });
 
-// Open PDF Modal
-const openPdfModal = () => {
-    showPdfModal.value = true;
-};
+const [total_spent] = defineField("total_spent");
+const [report_notes] = defineField("report_notes");
+const [attachment] = defineField("attachment");
 
-// Methods
-const getPdfUrl = (attachment) => {
-    if (!attachment) return null;
-    return `/storage/${attachment}`;
-};
-
-const initializeData = () => {
-    // Initialize form with existing data
-    // if (displayData.value.totalSpent) {
-    //     reportForm.value.total_spent = displayData.value.totalSpent;
-    //     reportForm.value.report_notes = displayData.value.reportNotes || "";
-    // } else {
-    //     reportForm.value.total_spent = null;
-    //     reportForm.value.report_notes = "";
-    // }
-
-    // Initialize file list
-    if (displayData.value.attachment) {
-        pdfUrl.value = getPdfUrl(displayData.value.attachment);
-    }
-};
-
+// File Upload Methods
 const beforeUpload = (data) => {
     const file = data.file?.file || data.file;
 
-    // Validasi tipe file
     if (file.type !== "application/pdf") {
         uploadError.value = "File harus berupa PDF";
         setFieldError("attachment", "File harus berupa PDF");
         return false;
     }
 
-    // Validasi ukuran file
     if (file.size > 2 * 1024 * 1024) {
         uploadError.value = "Ukuran file maksimal 2MB";
         setFieldError("attachment", "Ukuran file maksimal 2MB");
@@ -277,7 +242,6 @@ const beforeUpload = (data) => {
     return true;
 };
 
-// Handle file change
 const handleChange = async (data) => {
     const fileItem = data.file;
     const file = fileItem?.file;
@@ -289,29 +253,22 @@ const handleChange = async (data) => {
         return;
     }
 
-    // Set nilai ke form
     setFieldValue("attachment", file);
-
-    // Trigger validasi
     await validateField("attachment");
 
-    // Buat URL preview
     if (pdfUrl.value) {
         URL.revokeObjectURL(pdfUrl.value);
     }
     pdfUrl.value = URL.createObjectURL(file);
 
-    // Emit event
     emit("update:attachment", file);
     emit("file-uploaded", file);
 
-    // Clear error jika sukses
     if (!errors.value?.attachment) {
         uploadError.value = "";
     }
 };
 
-// Clear error
 const clearError = () => {
     uploadError.value = "";
     if (errors.value?.attachment) {
@@ -319,36 +276,28 @@ const clearError = () => {
     }
 };
 
-// Remove file
 const removeFile = async () => {
-    // Revoke URL
     if (pdfUrl.value) {
         URL.revokeObjectURL(pdfUrl.value);
     }
 
-    // Clear state
     fileList.value = [];
     pdfUrl.value = "";
     uploadError.value = "";
 
-    // Update form
     setFieldValue("attachment", null);
     await validateField("attachment");
 
-    // Emit event
     emit("update:attachment", null);
     emit("file-removed");
 };
 
-/*
-Form Setup (VeeValidate)
-*/
+// Modal Methods
+const openPdfModal = () => {
+    showPdfModal.value = true;
+};
 
-const [total_spent] = defineField("total_spent");
-const [report_notes] = defineField("report_notes");
-// const [attachment] = defineField("attachment");
-
-// Submit laporan
+// Submit Report
 const submitForm = handleSubmit(async (values) => {
     dialog.info({
         title: "Konfirmasi Submit Laporan",
@@ -374,21 +323,107 @@ const submitForm = handleSubmit(async (values) => {
                 url: "penggunaan-dana.update",
                 id: displayData.value.id,
                 onSuccess: () => {
-                    // submitting.value = false;
-                    // message.success("Laporan berhasil disubmit");
-                    // props.closeModal();
+                    submitting.value = false;
                 },
                 onError: () => {
-                    // submitting.value = false;
+                    submitting.value = false;
                 },
             });
         },
     });
 });
 
-const isReportLocked = computed(() => {
-    return ["submitted", "approved"].includes(displayData.value.reportStatus);
-});
+// // Review Methods (untuk Finance)
+// const openApproveModal = () => {
+//     dialog.info({
+//         title: "Konfirmasi Persetujuan",
+//         content: "Apakah Anda yakin ingin menyetujui laporan ini?",
+//         positiveText: "Ya, Setujui",
+//         negativeText: "Batal",
+//         onPositiveClick: async () => {
+//             reviewLoading.value = true;
+//             // TODO: Implement approve logic
+//             reviewLoading.value = false;
+//         },
+//     });
+// };
+
+// Fungsi untuk menyetujui laporan dengan catatan
+const approveReport = async () => {
+    if (
+        !reviewNotes.value.trim() &&
+        displayData.value.reportStatus === "submitted"
+    ) {
+        dialog.warning({
+            title: "Catatan Kosong",
+            content: "Apakah Anda ingin melanjutkan tanpa catatan?",
+            positiveText: "Ya, Lanjutkan",
+            negativeText: "Batal",
+            onPositiveClick: async () => {
+                await submitReview("approved");
+            },
+        });
+        return;
+    }
+
+    await submitReview("approved");
+};
+
+// Fungsi untuk menolak laporan dengan catatan
+const rejectReport = async () => {
+    if (!reviewNotes.value.trim()) {
+        message.warning(
+            "Mohon isi catatan penolakan untuk memberikan alasan kepada pemohon",
+        );
+        return;
+    }
+
+    await submitReview("rejected");
+};
+
+// Fungsi submit review ke backend
+const submitReview = async (status) => {
+    reviewLoading.value = true;
+
+    const formData = new FormData();
+    formData.append("id", displayData.value.id);
+    formData.append("report_status", status);
+    formData.append("finance_notes", reviewNotes.value);
+
+    try {
+        await props.submit({
+            values: formData,
+            method: "put", // atau "put" sesuai API Anda
+            url: "penggunaan-dana.review", // sesuaikan dengan endpoint API
+            id: displayData.value.id,
+            onSuccess: () => {},
+            onError: (error) => {},
+        });
+    } finally {
+        reviewLoading.value = false;
+    }
+};
+
+const openRejectModal = () => {
+    dialog.info({
+        title: "Konfirmasi Penolakan",
+        content: "Apakah Anda yakin ingin menolak laporan ini?",
+        positiveText: "Ya, Tolak",
+        negativeText: "Batal",
+        onPositiveClick: async () => {
+            reviewLoading.value = true;
+            // TODO: Implement reject logic
+            reviewLoading.value = false;
+        },
+    });
+};
+
+// Initialize Data
+const initializeData = () => {
+    if (displayData.value.attachment) {
+        pdfUrl.value = getPdfUrl(displayData.value.attachment);
+    }
+};
 
 onMounted(() => {
     initializeData();
@@ -397,7 +432,7 @@ onMounted(() => {
 
 <template>
     <div class="report-container">
-        <!-- Alert untuk status sudah submit -->
+        <!-- Alert Status -->
         <NAlert
             v-if="isReportLocked"
             :type="getAlertType()"
@@ -405,33 +440,6 @@ onMounted(() => {
             class="mb-4"
         >
             {{ getAlertMessage() }}
-
-            <!-- Tombol aksi untuk finance -->
-            <template
-                #action
-                v-if="
-                    isReportLocked && displayData.reportStatus === 'submitted'
-                "
-            >
-                <NSpace>
-                    <NButton
-                        size="small"
-                        type="success"
-                        @click="openApproveModal"
-                    >
-                        <template #icon>
-                            <NIcon><CheckmarkCircleOutline /></NIcon>
-                        </template>
-                        Setujui
-                    </NButton>
-                    <NButton size="small" type="error" @click="openRejectModal">
-                        <template #icon>
-                            <NIcon><CloseCircleOutline /></NIcon>
-                        </template>
-                        Tolak
-                    </NButton>
-                </NSpace>
-            </template>
         </NAlert>
 
         <!-- Informasi Cash Advance -->
@@ -493,428 +501,137 @@ onMounted(() => {
             </NGrid>
         </NCard>
 
-        <!-- Form Laporan (hanya jika belum submit) -->
-        <n-form @submit.prevent="submitForm">
-            <div v-if="!isReportLocked">
-                <!-- Form Utama -->
-                <NCard :bordered="false" class="form-card" size="small">
-                    <template #header>
-                        <div class="card-header">
-                            <NIcon size="18" color="#18a058">
-                                <ReceiptOutline />
-                            </NIcon>
-                            <span class="card-title">Detail Pengeluaran</span>
-                        </div>
-                    </template>
-
-                    <n-form-item
-                        label="Total Pengeluaran"
-                        :validation-status="errors.total_spent ? 'error' : null"
-                        :feedback="errors.total_spent"
-                        required
-                    >
-                        <n-input
-                            v-model:value="total_spent"
-                            placeholder="Masukkan total pengeluaran"
-                            type="number"
-                            :disabled="isReportLocked"
-                        />
-                    </n-form-item>
-
-                    <!-- Catatan -->
-                    <n-form-item
-                        label="Catatan Pengeluaran"
-                        :validation-status="
-                            errors.report_notes ? 'error' : null
-                        "
-                        :feedback="errors.report_notes"
-                        required
-                    >
-                        <NInput
-                            v-model:value="report_notes"
-                            type="textarea"
-                            rows="4"
-                            placeholder="Jelaskan rincian penggunaan dana secara detail..."
-                            :maxlength="1000"
-                            show-count
-                            :disabled="isReportLocked"
-                        />
-                    </n-form-item>
-                </NCard>
-
-                <!-- Upload Dokumen Bukti -->
-                <NCard :bordered="false" class="upload-card" size="small">
-                    <template #header>
-                        <div class="card-header">
-                            <NIcon size="18" color="#18a058">
-                                <CloudUploadOutline />
-                            </NIcon>
-                            <span class="card-title">Dokumen Bukti</span>
-                            <span class="card-subtitle">(Wajib diisi)</span>
-                        </div>
-                    </template>
-
-                    <!-- Tampilkan Error Alert -->
-                    <NAlert
-                        v-if="errors?.attachment || uploadError"
-                        type="error"
-                        closable
-                        @close="clearError"
-                        class="error-alert"
-                    >
-                        <template #icon>
-                            <NIcon>
-                                <AlertCircleOutline />
-                            </NIcon>
-                        </template>
-                        {{ errors?.attachment || uploadError }}
-                    </NAlert>
-
-                    <!-- Upload Area -->
-                    <div v-if="!pdfUrl && fileList.length === 0">
-                        <NUpload
-                            v-model:file-list="fileList"
-                            :max="1"
-                            accept=".pdf"
-                            :default-upload="false"
-                            @before-upload="beforeUpload"
-                            @change="handleChange"
-                        >
-                            <NUploadDragger>
-                                <div class="upload-dragger-content">
-                                    <NIcon size="32" color="#18a058">
-                                        <CloudUploadOutline />
-                                    </NIcon>
-                                    <NText depth="3" size="small">
-                                        Klik atau tarik file PDF ke sini
-                                    </NText>
-                                    <NText depth="3" size="tiny">
-                                        Maksimal 2MB · PDF saja
-                                    </NText>
-                                </div>
-                            </NUploadDragger>
-                        </NUpload>
+        <!-- Form Laporan (Belum Submit) -->
+        <n-form
+            @submit.prevent="submitForm"
+            v-if="!isReportLocked && roleName === 'Employee'"
+        >
+            <NCard :bordered="false" class="form-card" size="small">
+                <template #header>
+                    <div class="card-header">
+                        <NIcon size="18" color="#18a058">
+                            <ReceiptOutline />
+                        </NIcon>
+                        <span class="card-title">Detail Pengeluaran</span>
                     </div>
+                </template>
 
-                    <!-- Preview File -->
-                    <div v-else class="file-preview">
-                        <div class="file-info">
-                            <NIcon size="24" color="#18a058">
-                                <DocumentTextOutline />
-                            </NIcon>
-                            <div class="file-details">
-                                <div class="file-name">
-                                    {{
-                                        fileList[0]?.name ||
-                                        (pdfUrl
-                                            ? pdfUrl.split("/").pop()
-                                            : "Bukti Laporan.pdf")
-                                    }}
-                                </div>
-                                <div class="file-size">
-                                    {{
-                                        fileList[0]?.file?.size
-                                            ? (
-                                                  fileList[0].file.size / 1024
-                                              ).toFixed(2) + " KB"
-                                            : "PDF Document"
-                                    }}
-                                </div>
-                            </div>
-                            <div class="file-actions">
-                                <NButton
-                                    size="small"
-                                    quaternary
-                                    @click="removeFile"
-                                    :disabled="isReportLocked"
-                                >
-                                    <template #icon>
-                                        <NIcon><TrashOutline /></NIcon>
-                                    </template>
-                                </NButton>
-                            </div>
-                        </div>
-                    </div>
-                </NCard>
-            </div>
-
-            <!-- View Mode (setelah submit) -->
-            <div v-else>
-                <NCard :bordered="false" class="view-card" size="small">
-                    <template #header>
-                        <div class="card-header">
-                            <NIcon size="18" color="#18a058">
-                                <ReceiptOutline />
-                            </NIcon>
-                            <span class="card-title">Ringkasan Laporan</span>
-                            <div class="status-badge">
-                                <NTag
-                                    :type="getStatusType()"
-                                    size="small"
-                                    :bordered="false"
-                                >
-                                    {{ getStatusLabel() }}
-                                </NTag>
-                            </div>
-                        </div>
-                    </template>
-
-                    <NGrid :cols="2" :x-gap="16" :y-gap="12">
-                        <NGridItem>
-                            <div class="info-item">
-                                <div class="info-label">Total Pengeluaran</div>
-                                <div class="info-value amount">
-                                    {{ formatRupiah(displayData.totalSpent) }}
-                                </div>
-                            </div>
-                        </NGridItem>
-                        <NGridItem>
-                            <div class="info-item">
-                                <div class="info-label">Sisa Dana</div>
-                                <div
-                                    class="info-value"
-                                    :class="getSisaDanaClass()"
-                                >
-                                    {{ formatRupiah(getSisaDana()) }}
-                                </div>
-                            </div>
-                        </NGridItem>
-                        <NGridItem :span="2">
-                            <div class="info-item">
-                                <div class="info-label">
-                                    Catatan Pengeluaran
-                                </div>
-                                <div class="info-value">
-                                    {{ displayData.reportNotes || "-" }}
-                                </div>
-                            </div>
-                        </NGridItem>
-                    </NGrid>
-                </NCard>
-
-                <!-- Review Finance Section (untuk role finance) -->
-                <NCard
-                    v-if="displayData.reportStatus !== 'not_submitted'"
-                    :bordered="false"
-                    class="review-card"
-                    size="small"
+                <n-form-item
+                    label="Total Pengeluaran"
+                    :validation-status="errors.total_spent ? 'error' : null"
+                    :feedback="errors.total_spent"
+                    required
                 >
-                    <template #header>
-                        <div class="card-header">
-                            <NIcon size="18" color="#18a058">
-                                <PeopleOutline />
-                            </NIcon>
-                            <span class="card-title">Review Finance</span>
-                        </div>
+                    <n-input
+                        v-model:value="total_spent"
+                        placeholder="Masukkan total pengeluaran"
+                        type="number"
+                    />
+                </n-form-item>
+
+                <n-form-item
+                    label="Catatan Pengeluaran"
+                    :validation-status="errors.report_notes ? 'error' : null"
+                    :feedback="errors.report_notes"
+                    required
+                >
+                    <NInput
+                        v-model:value="report_notes"
+                        type="textarea"
+                        rows="4"
+                        placeholder="Jelaskan rincian penggunaan dana secara detail..."
+                        :maxlength="1000"
+                        show-count
+                    />
+                </n-form-item>
+            </NCard>
+
+            <!-- Upload Dokumen Bukti -->
+            <NCard :bordered="false" class="upload-card" size="small">
+                <template #header>
+                    <div class="card-header">
+                        <NIcon size="18" color="#18a058">
+                            <CloudUploadOutline />
+                        </NIcon>
+                        <span class="card-title">Dokumen Bukti</span>
+                        <span class="card-subtitle">(Wajib diisi)</span>
+                    </div>
+                </template>
+
+                <NAlert
+                    v-if="errors?.attachment || uploadError"
+                    type="error"
+                    closable
+                    @close="clearError"
+                    class="error-alert"
+                >
+                    <template #icon>
+                        <NIcon><AlertCircleOutline /></NIcon>
                     </template>
+                    {{ errors?.attachment || uploadError }}
+                </NAlert>
 
-                    <!-- Status Review -->
-                    <div class="review-status">
-                        <div class="status-item">
-                            <div class="status-label">Status Review:</div>
-                            <div class="status-value">
-                                <NTag
-                                    :type="getReviewStatusType()"
-                                    size="medium"
-                                >
-                                    {{ getReviewStatusLabel() }}
-                                </NTag>
-                            </div>
-                        </div>
-
-                        <div class="status-item" v-if="displayData.reviewedBy">
-                            <div class="status-label">Direview oleh:</div>
-                            <div class="status-value">
-                                {{ displayData.reviewedBy }}
-                            </div>
-                        </div>
-
-                        <div class="status-item" v-if="displayData.reviewedAt">
-                            <div class="status-label">Tanggal review:</div>
-                            <div class="status-value">
-                                {{ formatDateTime(displayData.reviewedAt) }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Catatan Finance -->
-                    <div
-                        class="finance-notes-section"
-                        v-if="displayData.financeNotes"
+                <div v-if="!pdfUrl && fileList.length === 0">
+                    <NUpload
+                        v-model:file-list="fileList"
+                        :max="1"
+                        accept=".pdf"
+                        :default-upload="false"
+                        @before-upload="beforeUpload"
+                        @change="handleChange"
                     >
-                        <div class="section-title">Catatan Finance</div>
-                        <div class="finance-notes-content">
-                            {{ displayData.financeNotes }}
+                        <NUploadDragger>
+                            <div class="upload-dragger-content">
+                                <NIcon size="32" color="#18a058">
+                                    <CloudUploadOutline />
+                                </NIcon>
+                                <NText depth="3" size="small">
+                                    Klik atau tarik file PDF ke sini
+                                </NText>
+                                <NText depth="3" size="tiny">
+                                    Maksimal 2MB · PDF saja
+                                </NText>
+                            </div>
+                        </NUploadDragger>
+                    </NUpload>
+                </div>
+
+                <div v-else class="file-preview">
+                    <div class="file-info">
+                        <NIcon size="24" color="#18a058">
+                            <DocumentTextOutline />
+                        </NIcon>
+                        <div class="file-details">
+                            <div class="file-name">
+                                {{ fileList[0]?.name || "Bukti Laporan.pdf" }}
+                            </div>
+                            <div class="file-size">
+                                {{
+                                    fileList[0]?.file?.size
+                                        ? (
+                                              fileList[0].file.size / 1024
+                                          ).toFixed(2) + " KB"
+                                        : "PDF Document"
+                                }}
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- Form Review untuk finance -->
-                    <div
-                        v-if="
-                            props.roleName === 'Finance' &&
-                            displayData.reportStatus === 'submitted'
-                        "
-                        class="review-form"
-                    >
-                        <n-divider>Review Laporan</n-divider>
-
-                        <n-form-item label="Catatan Review">
-                            <n-input
-                                v-model:value="reviewNotes"
-                                type="textarea"
-                                rows="3"
-                                placeholder="Masukkan catatan untuk pemohon..."
-                            />
-                        </n-form-item>
-
-                        <div class="review-actions">
+                        <div class="file-actions">
                             <NButton
-                                type="error"
-                                @click="openRejectModal"
-                                :loading="reviewLoading"
+                                size="small"
+                                quaternary
+                                @click="removeFile"
                             >
                                 <template #icon>
-                                    <NIcon><CloseCircleOutline /></NIcon>
+                                    <NIcon><TrashOutline /></NIcon>
                                 </template>
-                                Tolak Laporan
-                            </NButton>
-
-                            <NButton
-                                type="success"
-                                @click="openApproveModal"
-                                :loading="reviewLoading"
-                            >
-                                <template #icon>
-                                    <NIcon><CheckmarkCircleOutline /></NIcon>
-                                </template>
-                                Setujui Laporan
                             </NButton>
                         </div>
                     </div>
-                </NCard>
-
-                <!-- Tampilan status untuk pemohon -->
-                <NCard
-                    v-else-if="displayData.reportStatus !== 'not_submitted'"
-                    :bordered="false"
-                    class="info-card"
-                    size="small"
-                >
-                    <template #header>
-                        <div class="card-header">
-                            <NIcon size="18" color="#18a058">
-                                <InformationCircleOutline />
-                            </NIcon>
-                            <span class="card-title">Status Laporan</span>
-                        </div>
-                    </template>
-
-                    <div class="status-info">
-                        <div class="status-badge-large">
-                            <NTag
-                                :type="getStatusType()"
-                                size="large"
-                                :bordered="false"
-                            >
-                                {{ getStatusLabel() }}
-                            </NTag>
-                        </div>
-
-                        <div
-                            v-if="displayData.financeNotes"
-                            class="finance-feedback"
-                        >
-                            <div class="feedback-title">
-                                Catatan dari Finance:
-                            </div>
-                            <div class="feedback-content">
-                                {{ displayData.financeNotes }}
-                            </div>
-                        </div>
-
-                        <div
-                            v-if="displayData.reportStatus === 'rejected'"
-                            class="rejected-message"
-                        >
-                            <NAlert type="error" title="Laporan Ditolak">
-                                Laporan Anda ditolak. Silakan perbaiki dan
-                                submit ulang.
-                            </NAlert>
-                        </div>
-                    </div>
-                </NCard>
-
-                <!-- Dokumen Bukti dengan Tombol View -->
-                <NCard
-                    v-if="displayData.attachment"
-                    :bordered="false"
-                    class="view-card"
-                    size="small"
-                >
-                    <template #header>
-                        <div class="card-header">
-                            <NIcon size="18" color="#18a058">
-                                <DocumentOutline />
-                            </NIcon>
-                            <span class="card-title">Dokumen Bukti</span>
-                        </div>
-                    </template>
-
-                    <div class="document-info">
-                        <div class="document-details">
-                            <NIcon size="32" color="#18a058">
-                                <DocumentTextOutline />
-                            </NIcon>
-                            <div class="document-meta">
-                                <div class="document-name">
-                                    {{ getFileName(displayData.attachment) }}
-                                </div>
-                                <div class="document-size">
-                                    {{ getFileSize(displayData.attachment) }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <NButton
-                            type="primary"
-                            size="medium"
-                            @click="openPdfModal"
-                        >
-                            <template #icon>
-                                <NIcon><EyeOutline /></NIcon>
-                            </template>
-                            Lihat Dokumen
-                        </NButton>
-                    </div>
-                </NCard>
-
-                <!-- Modal PDF Viewer -->
-                <NModal
-                    v-model:show="showPdfModal"
-                    preset="card"
-                    title="Dokumen Bukti"
-                    style="width: 90%; max-width: 1200px"
-                    :closable="true"
-                >
-                    <template #header-extra>
-                        <NButton size="small" @click="downloadPdf">
-                            <template #icon>
-                                <NIcon><DownloadOutline /></NIcon>
-                            </template>
-                            Download
-                        </NButton>
-                    </template>
-
-                    <iframe
-                        :src="getPdfUrl(displayData.attachment)"
-                        class="pdf-iframe-modal"
-                        frameborder="0"
-                    ></iframe>
-                </NModal>
-            </div>
+                </div>
+            </NCard>
 
             <!-- Action Buttons -->
-            <div class="action-buttons" v-if="!isReportLocked">
+            <div class="action-buttons">
                 <NButton @click="closeModal">
                     <template #icon>
                         <NIcon><CloseOutline /></NIcon>
@@ -936,94 +653,224 @@ onMounted(() => {
             </div>
         </n-form>
 
-        <!-- Catatan Finance untuk Review -->
-        <!-- <NCard
-            v-if="displayData.reportStatus === 'submitted'"
-            :bordered="false"
-            class="finance-review-card"
-            size="small"
-        >
-            <template #header>
-                <div class="card-header">
-                    <NIcon size="18" color="#18a058">
-                        <PeopleOutline />
-                    </NIcon>
-                    <span class="card-title">Review Finance</span>
-                    <NTag type="warning" size="small" :bordered="false">
-                        Menunggu Review
-                    </NTag>
+        <!-- View Mode (Setelah Submit) -->
+        <div v-else>
+            <!-- Ringkasan Laporan -->
+            <NCard :bordered="false" class="view-card" size="small">
+                <template #header>
+                    <div class="card-header">
+                        <NIcon size="18" color="#18a058">
+                            <ReceiptOutline />
+                        </NIcon>
+                        <span class="card-title">Ringkasan Laporan</span>
+                        <!-- <div class="status-badge">
+                            <NTag
+                                :type="getStatusType()"
+                                size="small"
+                                :bordered="false"
+                            >
+                                {{ getStatusLabel() }}
+                            </NTag>
+                        </div> -->
+                    </div>
+                </template>
+
+                <NGrid :cols="2" :x-gap="16" :y-gap="12">
+                    <NGridItem>
+                        <div class="info-item">
+                            <div class="info-label">Total Pengeluaran</div>
+                            <div class="info-value amount">
+                                {{ formatRupiah(displayData.totalSpent) }}
+                            </div>
+                        </div>
+                    </NGridItem>
+                    <NGridItem>
+                        <div class="info-item">
+                            <div class="info-label">Sisa Dana</div>
+                            <div
+                                class="info-value amount"
+                                :class="getSisaDanaClass()"
+                            >
+                                {{ formatRupiah(getSisaDana()) }}
+                            </div>
+                        </div>
+                    </NGridItem>
+                    <NGridItem :span="2">
+                        <div class="info-item bg-slate-50 p-4 rounded-lg">
+                            <div class="info-label">Catatan Pengeluaran</div>
+                            <div class="info-value">
+                                {{ displayData.reportNotes || "-" }}
+                            </div>
+                        </div>
+                    </NGridItem>
+                </NGrid>
+            </NCard>
+
+            <!-- Review Finance Section -->
+            <NCard
+                v-if="displayData.reportStatus !== 'not_submitted'"
+                :bordered="false"
+                class="review-card"
+                size="small"
+            >
+                <template #header>
+                    <div class="card-header">
+                        <NIcon size="18" color="#18a058">
+                            <PeopleOutline />
+                        </NIcon>
+                        <span class="card-title">Review Finance</span>
+                    </div>
+                </template>
+
+                <!-- <div class="review-status">
+                    <div class="status-item">
+                        <div class="status-label">Status Review:</div>
+                        <div class="status-value">
+                            <NTag :type="getReviewStatusType()" size="medium">
+                                {{ getReviewStatusLabel() }}
+                            </NTag>
+                        </div>
+                    </div>
+
+                    <div class="status-item" v-if="displayData.reviewedBy">
+                        <div class="status-label">Direview oleh:</div>
+                        <div class="status-value">
+                            {{ displayData.reviewedBy }}
+                        </div>
+                    </div>
+                </div> -->
+
+                <div
+                    class="finance-notes-section"
+                    v-if="displayData.financeNotes"
+                >
+                    <div class="section-title">Catatan Finance</div>
+                    <div class="finance-notes-content">
+                        {{ displayData.financeNotes }}
+                    </div>
                 </div>
-            </template>
 
-            <n-form-item label="Catatan Finance">
-                <n-input
-                    v-model:value="displayData.financeNotes"
-                    type="textarea"
-                    rows="4"
-                    placeholder="Masukkan catatan untuk pemohon (opsional)..."
-                    :maxlength="500"
-                    show-count
-                />
-            </n-form-item>
-
-            <div class="review-actions">
-                <NButton
-                    type="error"
-                    @click="rejectReport"
-                    :loading="loading"
-                    size="medium"
+                <!-- Form Review untuk Finance -->
+                <div
+                    v-if="
+                        roleName === 'Finance' &&
+                        displayData.reportStatus === 'submitted'
+                    "
+                    class="review-form"
                 >
-                    <template #icon>
-                        <NIcon><CloseCircleOutline /></NIcon>
-                    </template>
-                    Tolak Laporan
-                </NButton>
+                    <n-divider>Review Laporan</n-divider>
 
-                <NButton
-                    type="success"
-                    @click="approveReport"
-                    :loading="loading"
-                    size="medium"
-                >
-                    <template #icon>
-                        <NIcon><CheckmarkCircleOutline /></NIcon>
-                    </template>
-                    Setujui Laporan
-                </NButton>
-            </div>
-        </NCard> -->
+                    <n-form-item label="Catatan Review">
+                        <n-input
+                            v-model:value="reviewNotes"
+                            type="textarea"
+                            rows="3"
+                            placeholder="Masukkan catatan untuk pemohon..."
+                        />
+                    </n-form-item>
 
-        <!-- Alert untuk hasil review -->
-        <NAlert
-            v-if="displayData.reportStatus === 'approved'"
-            type="success"
-            class="review-alert"
-            title="Laporan Disetujui"
+                    <div class="review-actions">
+                        <NButton
+                            type="error"
+                            @click="rejectReport"
+                            :loading="reviewLoading"
+                            :disabled="reviewLoading"
+                        >
+                            <template #icon>
+                                <NIcon><CloseCircleOutline /></NIcon>
+                            </template>
+                            Tolak Laporan
+                        </NButton>
+
+                        <NButton
+                            type="success"
+                            @click="approveReport"
+                            :loading="reviewLoading"
+                            :disabled="reviewLoading"
+                        >
+                            <template #icon>
+                                <NIcon><CheckmarkCircleOutline /></NIcon>
+                            </template>
+                            Setujui Laporan
+                        </NButton>
+                    </div>
+                </div>
+            </NCard>
+
+            <!-- Dokumen Bukti -->
+            <NCard
+                v-if="displayData.attachment"
+                :bordered="false"
+                class="view-card overflow-hidden"
+                size="small"
+            >
+                <template #header>
+                    <div class="flex items-center gap-2">
+                        <NIcon size="20" color="#18a058">
+                            <DocumentOutline />
+                        </NIcon>
+                        <span
+                            class="font-semibold text-gray-700 dark:text-gray-300"
+                        >
+                            Dokumen Laporan
+                        </span>
+                    </div>
+                </template>
+
+                <div class="flex items-center justify-between gap-4 p-2">
+                    <div class="flex items-center gap-4 flex-1 min-w-0">
+                        <div class="flex-shrink-0">
+                            <NIcon size="40" color="#18a058">
+                                <DocumentTextOutline />
+                            </NIcon>
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+                            <div
+                                class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate"
+                            >
+                                {{ getFileName(displayData.attachment) }}
+                            </div>
+                            <div
+                                class="text-xs text-gray-400 dark:text-gray-500 mt-1"
+                            >
+                                File Attachment
+                            </div>
+                        </div>
+                    </div>
+
+                    <NButton
+                        type="primary"
+                        size="medium"
+                        ghost
+                        @click="openPdfModal"
+                        class="flex-shrink-0"
+                    >
+                        <template #icon>
+                            <NIcon><EyeOutline /></NIcon>
+                        </template>
+                        Lihat Dokumen
+                    </NButton>
+                </div>
+            </NCard>
+        </div>
+
+        <!-- Modal PDF Viewer -->
+        <NModal
+            v-model:show="showPdfModal"
+            preset="card"
+            title="Dokumen Bukti"
+            class="!w-[90%] !max-w-[1200px]"
+            :closable="true"
         >
-            <template #icon>
-                <NIcon><CheckmarkCircleOutline /></NIcon>
-            </template>
-            Laporan telah disetujui oleh finance.
-            <div v-if="displayData.financeNotes" class="finance-notes">
-                <strong>Catatan Finance:</strong> {{ displayData.financeNotes }}
+            <div class="w-full h-[70vh]">
+                <iframe
+                    :src="getPdfUrl(displayData.attachment)"
+                    class="w-full h-full"
+                    frameborder="0"
+                ></iframe>
             </div>
-        </NAlert>
-
-        <NAlert
-            v-if="displayData.reportStatus === 'rejected'"
-            type="error"
-            class="review-alert"
-            title="Laporan Ditolak"
-        >
-            <template #icon>
-                <NIcon><CloseCircleOutline /></NIcon>
-            </template>
-            Laporan ditolak. Silakan perbaiki dan submit ulang.
-            <div v-if="displayData.financeNotes" class="finance-notes">
-                <strong>Alasan Penolakan:</strong>
-                {{ displayData.financeNotes }}
-            </div>
-        </NAlert>
+        </NModal>
     </div>
 </template>
 
@@ -1037,7 +884,8 @@ onMounted(() => {
 .info-card,
 .form-card,
 .upload-card,
-.view-card {
+.view-card,
+.review-card {
     margin-bottom: 20px;
     border-radius: 12px;
     background: #ffffff;
@@ -1062,12 +910,8 @@ onMounted(() => {
     margin-left: 4px;
 }
 
-.info-item {
-    padding: 4px 0;
-}
-
 .info-label {
-    font-size: 12px;
+    font-size: 14px;
     color: #8a8f99;
     margin-bottom: 4px;
     letter-spacing: 0.3px;
@@ -1085,104 +929,16 @@ onMounted(() => {
     font-size: 16px;
 }
 
-.info-value.success {
+.text-success {
     color: #18a058;
 }
 
-.info-value.error {
+.text-danger {
     color: #e53935;
 }
 
-.info-value.info {
-    color: #2080f0;
-}
-
-.difference-alert {
-    width: 100%;
-}
-
-.difference-text {
-    font-size: 12px;
-    padding: 4px 8px;
-}
-
-.expense-items-section {
-    margin-bottom: 20px;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.section-title {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #4a5568;
-}
-
-.empty-expense {
-    padding: 24px;
-    text-align: center;
-    background: #fafafc;
-    border-radius: 8px;
-    border: 1px dashed #d9d9d9;
-}
-
-.expense-items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.expense-item {
-    padding: 12px;
-    background: #fafafc;
-    border-radius: 8px;
-    border: 1px solid #f0f0f0;
-}
-
-.expense-item-row {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.expense-description {
-    flex: 2;
-    min-width: 200px;
-}
-
-.expense-amount {
-    width: 160px;
-}
-
-.expense-date {
-    width: 130px;
-}
-
-.expense-action {
-    width: 32px;
-}
-
-.expense-subtotal {
-    text-align: right;
-    padding: 8px 12px;
-    font-size: 13px;
-    border-top: 1px solid #e5e5e5;
-    margin-top: 8px;
-}
-
-.expense-subtotal strong {
-    color: #18a058;
-    margin-left: 8px;
-    font-size: 14px;
+.text-warning {
+    color: #ff9800;
 }
 
 .upload-dragger-content {
@@ -1228,19 +984,6 @@ onMounted(() => {
     gap: 8px;
 }
 
-.pdf-preview {
-    margin-top: 16px;
-    border: 1px solid #e5e5e5;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.pdf-iframe {
-    width: 100%;
-    height: 400px;
-    border: none;
-}
-
 .action-buttons {
     display: flex;
     justify-content: flex-end;
@@ -1248,6 +991,66 @@ onMounted(() => {
     margin-top: 20px;
     padding-top: 16px;
     border-top: 1px solid #f0f0f0;
+}
+
+.review-status {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #4a5568;
+    min-width: 100px;
+}
+
+.status-value {
+    font-size: 14px;
+    color: #1f2d3d;
+}
+
+.finance-notes-section {
+    margin-top: 16px;
+    padding: 12px;
+    background: #fafafc;
+    border-radius: 8px;
+}
+
+.section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 8px;
+}
+
+.finance-notes-content {
+    font-size: 13px;
+    color: #1f2d3d;
+    line-height: 1.5;
+}
+
+.review-form {
+    margin-top: 20px;
+}
+
+.review-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.error-alert {
+    margin-bottom: 16px;
 }
 
 /* Scrollbar styling */
