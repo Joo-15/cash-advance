@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, h, onMounted, ref } from "vue";
 
 // Composables
 import { useDataTable } from "@/Composables/useDataTable";
@@ -20,6 +20,7 @@ import { useAuth } from "@/Composables/useAuth";
 // import FormFundUsage from "./FormFundUsage.vue";
 import { Head } from "@inertiajs/vue3";
 import FormFundUsage1 from "./FormFundUsage1.vue";
+import { NTag } from "naive-ui";
 
 // Props definition
 const props = defineProps({
@@ -29,6 +30,8 @@ const props = defineProps({
 console.log("fundusage", props.fundUsage);
 // Refs
 const formRef = ref(null);
+
+const { roleName } = useAuth();
 
 const {
     loadingButton,
@@ -104,39 +107,79 @@ const columnConfig = [
         sorter: false,
     },
     {
-        title: "Tgl. Pencairan",
-        key: "disbursement.disbursed_at",
+        title: "Tanggal Pengajuan",
+        key: "created_at",
         type: "date",
-        width: 200,
+        width: 130,
         align: "center",
     },
     {
         title: "Tujuan",
         key: "purpose",
-        // width: 200,
+        width: 200,
         ellipsis: { tooltip: true },
     },
     {
-        title: "Jumlah Dicairkan",
+        title: "Jumlah Pengajuan",
         key: "disbursement.amount",
         type: "currency",
         currency: "IDR",
         align: "right",
-        width: 200,
+        width: 150,
     },
     {
-        title: "Laporan",
-        key: "attachment",
-        type: "attachment",
-        align: "center",
-        width: 200,
+        title: "Total Pengeluaran",
+        key: "disbursement.total_spent",
+        type: "currency",
+        currency: "IDR",
+        align: "right",
+        width: 150,
     },
+    {
+        title: "Catatan",
+        key: "disbursement.report_notes",
+        align: "left",
+        width: 200,
+        ellipsis: true,
+        render(row) {
+            return row.disbursement?.report_notes || "-";
+        },
+    },
+    // {
+    //     title: "Laporan",
+    //     key: "attachment",
+    //     type: "attachment",
+    //     align: "center",
+    //     width: 200,
+    // },
     {
         title: "Status",
-        key: "attachment",
-        // type: "attachment",
+        key: "disbursement.report_status",
         align: "center",
         width: 200,
+        render(row) {
+            const statusMap = {
+                not_submitted: { label: "Belum Dikirim", type: "default" },
+                submitted: { label: "Menunggu Review", type: "warning" },
+                approved: { label: "Disetujui", type: "success" },
+                rejected: { label: "Ditolak", type: "error" },
+            };
+
+            const status = row.disbursement?.report_status || "not_submitted";
+            const statusInfo = statusMap[status];
+
+            return h(
+                NTag,
+                {
+                    type: statusInfo.type,
+                    size: "small",
+                    bordered: false,
+                },
+                {
+                    default: () => statusInfo.label,
+                },
+            );
+        },
     },
     {
         title: "Aksi",
@@ -207,6 +250,7 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
                         :modal-mode="modalMode"
                         :loading="loadingButton"
                         :data-selected="selectedRow"
+                        :role-name="roleName"
                         :close-modal="closeModal"
                         :submit="submit"
                         @updated="refresh"

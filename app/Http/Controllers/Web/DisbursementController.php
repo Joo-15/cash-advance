@@ -47,7 +47,7 @@ class DisbursementController extends Controller
                     $query->orderBy($request->sort, $request->order);
                 }
             })
-            ->whereIn('status', ['approved', 'disbursed'])
+            ->whereIn('status', ['approved'])
             ->latest()
             ->paginate($perPage)
             ->withQueryString();

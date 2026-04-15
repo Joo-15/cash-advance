@@ -56,3 +56,23 @@ export const disbursement = yup.object({
 export const departmentSchema = yup.object({
     name: yup.string().required("Nama Departemen harus diisi"),
 });
+
+export const fundUsageSchema = yup.object({
+    total_spent: yup
+        .number()
+        .typeError("Jumlah harus berupa angka")
+        .required("Jumlah wajib diisi")
+        .min(1, "Jumlah minimal 1"),
+    report_notes: yup.string(),
+    attachment: yup
+        .mixed()
+        .required("File wajib diupload")
+        .test("fileType", "File harus berupa PDF", (value) => {
+            if (!value) return false;
+            return value instanceof File && value.type === "application/pdf";
+        })
+        .test("fileSize", "Ukuran file maksimal 5MB", (value) => {
+            if (!value) return false;
+            return value.size <= 5 * 1024 * 1024;
+        }),
+});

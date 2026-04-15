@@ -11,7 +11,6 @@ use App\Http\Controllers\Web\DepartmentController;
 use App\Http\Controllers\Web\DisbursementController;
 use App\Http\Controllers\Web\FundUsageController;
 use App\Http\Controllers\Web\UserController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 

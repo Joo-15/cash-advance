@@ -109,8 +109,12 @@ class FundUsageController extends Controller
      */
     public function update(FundUsageRequest $request, CashAdvance $penggunaan_dana)
     {
+        // dd($penggunaan_dana->disbursement);
+
         try {
-            // Hanya handle file upload
+
+            // Handle file upload (attachment di tabel CashAdvance)
+            $fileUploaded = false;
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
                     // Hapus file lama jika ada
@@ -123,30 +127,42 @@ class FundUsageController extends Controller
                     $fileName = time() . '_' . uniqid() . '_' . $originalName;
                     $filePath = $file->storeAs('uploads/documents', $fileName, 'public');
 
-                    // Update hanya field attachment
+                    // Update field attachment di tabel CashAdvance
                     $penggunaan_dana->update([
-                        'attachment' => $filePath,
-                        'original_name' => $originalName
+                        'attachment' => $filePath
                     ]);
-                }
 
-                $message = "File berhasil diperbarui";
+                    $fileUploaded = true;
+                }
+            }
+
+            // Update existing disbursement
+            $penggunaan_dana->disbursement->update([
+                'total_spent' => $request->total_spent,
+                'report_notes' => $request->report_notes,
+                'report_status' => 'submitted'
+            ]);
+
+
+            // Set message
+            if ($fileUploaded && !empty($updateData)) {
+                $message = "File dan data berhasil diperbarui";
             } else {
-                $message = "Tidak ada file yang diupload";
+                $message = "Tidak ada data yang diupdate";
             }
 
             return redirect()
                 ->back()
                 ->with('success', $message);
         } catch (\Exception $e) {
-            Log::error('Update file failed', [
+            Log::error('Update failed', [
                 'cash_advance_id' => $penggunaan_dana->id,
                 'error' => $e->getMessage()
             ]);
 
             return redirect()
                 ->back()
-                ->with('error', 'Gagal mengupdate file. Silakan coba lagi.');
+                ->with('error', 'Gagal mengupdate data. Silakan coba lagi.');
         }
     }
 

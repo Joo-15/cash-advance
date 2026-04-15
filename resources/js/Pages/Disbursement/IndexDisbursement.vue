@@ -13,12 +13,10 @@ import { CASH_ADVANCE_STATS } from "@/Constants/cashAdvanceStats";
 import BaseTable from "@/Components/DataTable/BaseTable.vue";
 import Container from "@/Components/Layout/Container.vue";
 import PageHeader from "@/Components/Page/PageHeader.vue";
-import StatCards from "@/Components/Page/StatCards.vue";
+
 import Filters from "@/Components/Page/Filters.vue";
 import ModalForm from "@/Components/Page/ModalForm.vue";
-import FormCashAdvance from "./FormDisbursement.vue";
-import FormApproval from "../Approval/FormApproval.vue";
-import { useAuth } from "@/Composables/useAuth";
+
 import FormDisbursement from "./FormDisbursement.vue";
 import { Head } from "@inertiajs/vue3";
 
@@ -143,13 +141,13 @@ const columnConfig = [
         align: "right",
         width: 150,
     },
-    {
-        title: "Bukti",
-        key: "attachment",
-        type: "attachment",
-        align: "center",
-        width: 150,
-    },
+    // {
+    //     title: "Bukti",
+    //     key: "attachment",
+    //     type: "attachment",
+    //     align: "center",
+    //     width: 150,
+    // },
     {
         title: "Status",
         key: "status",

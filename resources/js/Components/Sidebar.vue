@@ -208,7 +208,7 @@ const allMenuOptions = [
         label: "Penggunaan Dana",
         key: "/penggunaan-dana",
         icon: renderIcon(DocumentTextOutline),
-        roleAccess: ["Super Admin", "Admin", "Employee"],
+        roleAccess: ["Super Admin", "Admin", "Employee", "Finance"],
     },
     {
         label: "Manajemen User",

@@ -10,6 +10,9 @@ class Disbursement extends Model
         'cash_advance_id',
         'finance_id',
         'amount',
+        'total_spent',
+        'report_notes',
+        'report_status',
         'disbursed_at',
     ];
 
