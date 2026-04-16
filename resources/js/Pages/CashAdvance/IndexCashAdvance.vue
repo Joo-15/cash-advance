@@ -60,6 +60,7 @@ const {
     edit,
     hapus,
     fetchDetail,
+    printReceipt,
     refresh,
     submit,
 } = useCrud({
@@ -183,6 +184,7 @@ const columnConfig = computed(() => {
             actionConfig: {
                 showEdit: (row) => row?.approvals?.[0].status === "pending",
                 showDelete: (row) => row?.approvals?.[0].status === "pending",
+                showPrint: (row) => row?.approvals?.[0].status === "approved",
                 showDetail: true,
             },
             sorter: false,
@@ -201,6 +203,7 @@ const columnConfig = computed(() => {
 const actions = {
     onEdit: (row) => edit("cash-advance", "edit", row),
     onDelete: hapus,
+    onPrint: (row) => printReceipt("cash-advance", "print", row),
     onDetail: (row) => fetchDetail("approval", "detail", row),
 };
 

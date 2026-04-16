@@ -27,7 +27,7 @@ const props = defineProps({
     fundUsage: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
 });
-console.log("fundusage", props.fundUsage);
+
 // Refs
 const formRef = ref(null);
 

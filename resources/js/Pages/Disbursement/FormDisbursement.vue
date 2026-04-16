@@ -12,6 +12,9 @@ import {
     NDatePicker,
     NInputNumber,
     NDivider,
+    NIcon,
+    NGrid,
+    NGridItem,
 } from "naive-ui";
 import {
     formatDate,
@@ -22,6 +25,7 @@ import {
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/yup";
 import { disbursement } from "@/Validations/validationSchemas";
+import { DocumentOutline } from "@vicons/ionicons5";
 
 // Props & Emits
 const props = defineProps({
@@ -43,6 +47,7 @@ const displayData = computed(() => {
         name: item?.user?.name,
         department: item?.user?.department?.name,
         amount: formatRupiah(item.amount),
+        requestDate: item?.request_date,
         approveDate: lastApproval?.approved_at
             ? lastApproval.approved_at.split(" ")[0]
             : null,
@@ -89,136 +94,78 @@ const [disbursed_at] = defineField("disbursed_at");
 
 <template>
     <div>
-        <!-- Informasi Peminjam -->
-        <div class="space-y-2 mb-6">
-            <!-- PEMINJAM -->
-            <div
-                class="bg-white rounded-lg p-3 hover:bg-gray-50 transition-colors"
-            >
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"
+        <!-- Informasi Cash Advance -->
+        <NCard
+            :bordered="false"
+            class="mb-5 rounded-xl bg-white shadow-md"
+            size="small"
+        >
+            <template #header>
+                <div class="flex items-center gap-2">
+                    <n-icon size="18" color="#18a058">
+                        <document-outline />
+                    </n-icon>
+                    <span class="font-semibold text-[15px] text-[#1f2d3d]"
+                        >Informasi Pengajuan & Pencairan</span
                     >
-                        <svg
-                            class="w-4 h-4 text-blue-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                            ></path>
-                        </svg>
-                    </div>
-                    <div class="flex-1 flex items-center justify-between">
-                        <div class="text-xs text-gray-400">Peminjam</div>
-                        <div class="text-gray-800 text-sm font-medium">
-                            {{ displayData.name }}
-                        </div>
-                    </div>
                 </div>
-            </div>
+            </template>
 
-            <!-- DEPARTEMEN -->
-            <div
-                class="bg-white rounded-lg p-3 hover:bg-gray-50 transition-colors"
-            >
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0"
-                    >
-                        <svg
-                            class="w-4 h-4 text-purple-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                            ></path>
-                        </svg>
-                    </div>
-                    <div class="flex-1 flex items-center justify-between">
-                        <div class="text-xs text-gray-400">Departemen</div>
-                        <div class="text-gray-800 text-sm font-medium">
-                            {{ displayData.department }}
+            <n-grid :cols="2" :x-gap="16" :y-gap="12">
+                <n-grid-item>
+                    <div class="py-1">
+                        <div class="text-sm text-[#8a8f99] mb-1 tracking-wide">
+                            Pemohon
+                        </div>
+                        <div class="text-sm font-medium text-[#1f2d3d]">
+                            {{ displayData.name ?? "-" }}
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- TGL DISETUJUI -->
-            <div
-                class="bg-white rounded-lg p-3 hover:bg-gray-50 transition-colors"
-            >
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0"
-                    >
-                        <svg
-                            class="w-4 h-4 text-green-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            ></path>
-                        </svg>
-                    </div>
-                    <div class="flex-1 flex items-center justify-between">
-                        <div class="text-xs text-gray-400">
-                            Tanggal Disetujui
+                </n-grid-item>
+                <NGridItem>
+                    <div class="py-1">
+                        <div class="text-sm text-[#8a8f99] mb-1 tracking-wide">
+                            Departemen
                         </div>
-                        <div class="text-gray-800 text-sm font-medium">
-                            {{ formatDate(displayData.approveDate) }}
+                        <div class="text-sm font-medium text-[#1f2d3d]">
+                            <NTag :bordered="false" type="info" size="small">
+                                {{ displayData.department ?? "-" }}
+                            </NTag>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- TUJUAN PINJAMAN -->
-            <div
-                class="bg-white rounded-lg p-3 hover:bg-gray-50 transition-colors"
-            >
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0"
-                    >
-                        <svg
-                            class="w-4 h-4 text-orange-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            ></path>
-                        </svg>
-                    </div>
-                    <div class="flex-1 flex items-center justify-between">
-                        <div class="text-xs text-gray-400">Tujuan Pinjaman</div>
-                        <div
-                            class="text-gray-800 text-sm font-medium text-right"
-                        >
-                            {{ displayData.purpose }}
+                </NGridItem>
+                <NGridItem>
+                    <div class="py-1">
+                        <div class="text-sm text-[#8a8f99] mb-1 tracking-wide">
+                            Tanggal Pengajuan
+                        </div>
+                        <div class="text-sm font-medium text-[#1f2d3d]">
+                            {{ formatDate(displayData.requestDate ?? "-") }}
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
+                </NGridItem>
+                <NGridItem>
+                    <div class="py-1">
+                        <div class="text-sm text-[#8a8f99] mb-1 tracking-wide">
+                            Jumlah Diajukan
+                        </div>
+                        <div class="text-base font-semibold text-[#18a058]">
+                            {{ displayData.amount }}
+                        </div>
+                    </div>
+                </NGridItem>
+                <NGridItem :span="2">
+                    <div class="py-1">
+                        <div class="text-sm text-[#8a8f99] mb-1 tracking-wide">
+                            Tujuan
+                        </div>
+                        <div class="text-sm font-medium text-[#1f2d3d]">
+                            {{ displayData.purpose || "-" }}
+                        </div>
+                    </div>
+                </NGridItem>
+            </n-grid>
+        </NCard>
 
         <!-- Total Pinjaman Disetujui -->
         <div class="total-amount-section">

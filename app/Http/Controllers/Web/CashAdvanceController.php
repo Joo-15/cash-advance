@@ -7,6 +7,7 @@ use App\Http\Requests\CashAdvanceRequest;
 use App\Models\Approval;
 use App\Models\CashAdvance;
 use App\Traits\HasFilters;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -172,6 +173,43 @@ class CashAdvanceController extends Controller
                 ->back()
                 ->withInput()
                 ->with('error', 'Gagal memperbarui pengajuan pinjaman. Silakan coba lagi.');
+        }
+    }
+
+    public function generateReceipt($id)
+    {
+
+        dd($id);
+        try {
+            // Ambil data cash advance dengan relasi
+            $cashAdvance = CashAdvance::with([
+                'user',
+                'user.department',
+                'approvals',
+                'disbursement'
+            ])->findOrFail($id);
+
+            // Generate PDF menggunakan DomPDF
+            $pdf = Pdf::loadView('pdf.cash-advance-receipt', [
+                'data' => $cashAdvance,
+                'date' => now(),
+                'receipt_number' => 'CA/' . date('Ymd') . '/' . $cashAdvance->id
+            ]);
+
+            // Setting PDF
+            $pdf->setPaper('a4', 'portrait');
+            $pdf->setOptions([
+                'defaultFont' => 'sans-serif',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true
+            ]);
+
+            // Return PDF untuk ditampilkan di browser
+            return $pdf->stream("Tanda_Terima_{$cashAdvance->id}.pdf");
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Gagal generate receipt: ' . $e->getMessage()
+            ], 500);
         }
     }
 

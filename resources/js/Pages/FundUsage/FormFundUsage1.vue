@@ -20,6 +20,7 @@ import {
     NAlert,
     useMessage,
     useDialog,
+    NInputNumber,
 } from "naive-ui";
 import {
     CloudUploadOutline,
@@ -41,7 +42,12 @@ import {
     InformationCircleOutline,
     DownloadOutline,
 } from "@vicons/ionicons5";
-import { formatDate, formatRupiah } from "@/utils/helpers";
+import {
+    formatDate,
+    formatRupiah,
+    parseNumber,
+    formatNumber,
+} from "@/utils/helpers";
 import { toTypedSchema } from "@vee-validate/yup";
 import { fundUsageSchema } from "@/Validations/validationSchemas";
 import { useForm } from "vee-validate";
@@ -132,6 +138,7 @@ const isReportLocked = computed(() => {
 
 const getAlertType = () => {
     const statusMap = {
+        not_submitted: "warning",
         submitted: "warning",
         approved: "success",
         rejected: "error",
@@ -141,6 +148,7 @@ const getAlertType = () => {
 
 const getAlertTitle = () => {
     const titleMap = {
+        not_submitted: "Belum Dikirim",
         submitted: "Menunggu Review",
         approved: "Laporan Disetujui",
         rejected: "Laporan Ditolak",
@@ -149,12 +157,14 @@ const getAlertTitle = () => {
 };
 
 const getAlertMessage = () => {
-    if (displayData.value.reportStatus === "submitted") {
+    if (displayData.value.reportStatus === "not_submitted") {
+        return "Laporan belum dikirim";
+    } else if (displayData.value.reportStatus === "submitted") {
         return "Laporan sedang menunggu review dari finance.";
     } else if (displayData.value.reportStatus === "approved") {
         return "Laporan telah disetujui oleh finance.";
     } else if (displayData.value.reportStatus === "rejected") {
-        return `Laporan ditolak. Alasan: ${displayData.value.financeNotes || "Tidak ada catatan"}`;
+        return `${displayData.value.financeNotes || "Tidak ada catatan"}`;
     }
     return "";
 };
@@ -182,24 +192,6 @@ const getStatusType = () => {
     return statusMap[displayData.value.reportStatus] || "default";
 };
 
-const getReviewStatusType = () => {
-    const statusMap = {
-        submitted: "warning",
-        approved: "success",
-        rejected: "error",
-    };
-    return statusMap[displayData.value.reportStatus] || "default";
-};
-
-const getReviewStatusLabel = () => {
-    const statusMap = {
-        submitted: "Menunggu Review",
-        approved: "Disetujui",
-        rejected: "Ditolak",
-    };
-    return statusMap[displayData.value.reportStatus] || "-";
-};
-
 // Form Setup
 const {
     handleSubmit,
@@ -214,7 +206,7 @@ const {
         id: null,
         total_spent: null,
         report_notes: "",
-        attachment: null,
+        attachment: undefined,
     },
 });
 
@@ -299,6 +291,14 @@ const openPdfModal = () => {
 
 // Submit Report
 const submitForm = handleSubmit(async (values) => {
+    // const hasFile = fileList.value.length > 0 || displayData.value.attachment;
+
+    // if (!hasFile) {
+    //     message.error("Dokumen bukti wajib diupload");
+    //     setFieldError("attachment", "Dokumen bukti wajib diupload");
+    //     return;
+    // }
+
     dialog.info({
         title: "Konfirmasi Submit Laporan",
         content:
@@ -332,21 +332,6 @@ const submitForm = handleSubmit(async (values) => {
         },
     });
 });
-
-// // Review Methods (untuk Finance)
-// const openApproveModal = () => {
-//     dialog.info({
-//         title: "Konfirmasi Persetujuan",
-//         content: "Apakah Anda yakin ingin menyetujui laporan ini?",
-//         positiveText: "Ya, Setujui",
-//         negativeText: "Batal",
-//         onPositiveClick: async () => {
-//             reviewLoading.value = true;
-//             // TODO: Implement approve logic
-//             reviewLoading.value = false;
-//         },
-//     });
-// };
 
 // Fungsi untuk menyetujui laporan dengan catatan
 const approveReport = async () => {
@@ -393,8 +378,8 @@ const submitReview = async (status) => {
     try {
         await props.submit({
             values: formData,
-            method: "put", // atau "put" sesuai API Anda
-            url: "penggunaan-dana.review", // sesuaikan dengan endpoint API
+            method: "put",
+            url: "penggunaan-dana.review",
             id: displayData.value.id,
             onSuccess: () => {},
             onError: (error) => {},
@@ -404,24 +389,66 @@ const submitReview = async (status) => {
     }
 };
 
-const openRejectModal = () => {
-    dialog.info({
-        title: "Konfirmasi Penolakan",
-        content: "Apakah Anda yakin ingin menolak laporan ini?",
-        positiveText: "Ya, Tolak",
-        negativeText: "Batal",
-        onPositiveClick: async () => {
-            reviewLoading.value = true;
-            // TODO: Implement reject logic
-            reviewLoading.value = false;
-        },
-    });
-};
+// const openRejectModal = () => {
+//     dialog.info({
+//         title: "Konfirmasi Penolakan",
+//         content: "Apakah Anda yakin ingin menolak laporan ini?",
+//         positiveText: "Ya, Tolak",
+//         negativeText: "Batal",
+//         onPositiveClick: async () => {
+//             reviewLoading.value = true;
+//             reviewLoading.value = false;
+//         },
+//     });
+// };
 
 // Initialize Data
 const initializeData = () => {
+    // Reset semua state
+    fileList.value = [];
+    uploadError.value = "";
+
+    if (pdfUrl.value && pdfUrl.value.startsWith("blob:")) {
+        URL.revokeObjectURL(pdfUrl.value);
+    }
+    pdfUrl.value = "";
+
+    // ✅ Untuk existing file, kita tidak bisa set File object
+    // Karena file sudah ada di server, kita set attachment ke true
+    // TAPI schema mengharapkan File object, jadi kita perlu modifikasi
+
     if (displayData.value.attachment) {
         pdfUrl.value = getPdfUrl(displayData.value.attachment);
+
+        // ✅ Untuk existing file, buat dummy File object atau set ke true
+        // Cara 1: Set ke true (tapi schema akan error karena bukan File)
+        // setFieldValue("attachment", true);
+
+        // Cara 2: Buat dummy File object (RECOMMENDED)
+        const dummyFile = new File(
+            [],
+            getFileName(displayData.value.attachment),
+            {
+                type: "application/pdf",
+            },
+        );
+        setFieldValue("attachment", dummyFile);
+
+        // Clear error
+        setFieldError("attachment", undefined);
+        uploadError.value = "";
+    } else {
+        setFieldValue("attachment", null);
+    }
+
+    // Isi form dengan data existing
+    if (displayData.value.totalSpent) {
+        const totalValue =
+            typeof displayData.value.totalSpent === "number"
+                ? displayData.value.totalSpent
+                : parseFloat(displayData.value.totalSpent);
+        setFieldValue("total_spent", isNaN(totalValue) ? null : totalValue);
+        setFieldValue("report_notes", displayData.value.reportNotes || "");
     }
 };
 
@@ -431,10 +458,10 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="report-container">
+    <div class="max-h-[80vh] overflow-y-auto p-1 custom-scrollbar">
         <!-- Alert Status -->
         <NAlert
-            v-if="isReportLocked"
+            v-if="isReportLocked || !isReportLocked"
             :type="getAlertType()"
             :title="getAlertTitle()"
             class="mb-4"
@@ -443,13 +470,17 @@ onMounted(() => {
         </NAlert>
 
         <!-- Informasi Cash Advance -->
-        <NCard :bordered="false" class="info-card" size="small">
+        <NCard
+            :bordered="false"
+            class="mb-5 rounded-xl bg-white shadow-sm"
+            size="small"
+        >
             <template #header>
-                <div class="card-header">
+                <div class="flex items-center gap-2">
                     <NIcon size="18" color="#18a058">
                         <DocumentOutline />
                     </NIcon>
-                    <span class="card-title"
+                    <span class="font-semibold text-[15px] text-[#1f2d3d]"
                         >Informasi Pengajuan & Pencairan</span
                     >
                 </div>
@@ -457,17 +488,21 @@ onMounted(() => {
 
             <NGrid :cols="2" :x-gap="16" :y-gap="12">
                 <NGridItem>
-                    <div class="info-item">
-                        <div class="info-label">Peminjam</div>
-                        <div class="info-value">
+                    <div class="py-1">
+                        <div class="text-sm text-[#8a8f99] mb-1 tracking-wide">
+                            Peminjam
+                        </div>
+                        <div class="text-sm font-medium text-[#1f2d3d]">
                             {{ displayData.name ?? "-" }}
                         </div>
                     </div>
                 </NGridItem>
                 <NGridItem>
-                    <div class="info-item">
-                        <div class="info-label">Departemen</div>
-                        <div class="info-value">
+                    <div class="py-1">
+                        <div class="text-sm text-[#8a8f99] mb-1 tracking-wide">
+                            Departemen
+                        </div>
+                        <div class="text-sm font-medium text-[#1f2d3d]">
                             <NTag :bordered="false" type="info" size="small">
                                 {{ displayData.department ?? "-" }}
                             </NTag>
@@ -475,25 +510,31 @@ onMounted(() => {
                     </div>
                 </NGridItem>
                 <NGridItem>
-                    <div class="info-item">
-                        <div class="info-label">Tanggal Dicairkan</div>
-                        <div class="info-value">
+                    <div class="py-1">
+                        <div class="text-sm text-[#8a8f99] mb-1 tracking-wide">
+                            Tanggal Dicairkan
+                        </div>
+                        <div class="text-sm font-medium text-[#1f2d3d]">
                             {{ formatDate(displayData.disbursedDate ?? "-") }}
                         </div>
                     </div>
                 </NGridItem>
                 <NGridItem>
-                    <div class="info-item">
-                        <div class="info-label">Jumlah Dicairkan</div>
-                        <div class="info-value amount">
+                    <div class="py-1">
+                        <div class="text-sm text-[#8a8f99] mb-1 tracking-wide">
+                            Jumlah Dicairkan
+                        </div>
+                        <div class="text-base font-semibold text-[#18a058]">
                             {{ displayData.disbursedAmount }}
                         </div>
                     </div>
                 </NGridItem>
                 <NGridItem :span="2">
-                    <div class="info-item">
-                        <div class="info-label">Keperluan</div>
-                        <div class="info-value">
+                    <div class="py-1">
+                        <div class="text-sm text-[#8a8f99] mb-1 tracking-wide">
+                            Keperluan
+                        </div>
+                        <div class="text-sm font-medium text-[#1f2d3d]">
                             {{ displayData.purpose || "-" }}
                         </div>
                     </div>
@@ -506,13 +547,19 @@ onMounted(() => {
             @submit.prevent="submitForm"
             v-if="!isReportLocked && roleName === 'Employee'"
         >
-            <NCard :bordered="false" class="form-card" size="small">
+            <NCard
+                :bordered="false"
+                class="mb-5 rounded-xl bg-white shadow-sm"
+                size="small"
+            >
                 <template #header>
-                    <div class="card-header">
+                    <div class="flex items-center gap-2">
                         <NIcon size="18" color="#18a058">
                             <ReceiptOutline />
                         </NIcon>
-                        <span class="card-title">Detail Pengeluaran</span>
+                        <span class="font-semibold text-[15px] text-[#1f2d3d]"
+                            >Detail Pengeluaran</span
+                        >
                     </div>
                 </template>
 
@@ -522,11 +569,19 @@ onMounted(() => {
                     :feedback="errors.total_spent"
                     required
                 >
-                    <n-input
+                    <NInputNumber
                         v-model:value="total_spent"
                         placeholder="Masukkan total pengeluaran"
-                        type="number"
-                    />
+                        :show-button="false"
+                        :format="formatNumber"
+                        :parse="parseNumber"
+                        :min="1"
+                        class="w-full text-right"
+                    >
+                        <template #prefix>
+                            <span class="text-gray-500">Rp</span>
+                        </template>
+                    </NInputNumber>
                 </n-form-item>
 
                 <n-form-item
@@ -547,14 +602,22 @@ onMounted(() => {
             </NCard>
 
             <!-- Upload Dokumen Bukti -->
-            <NCard :bordered="false" class="upload-card" size="small">
+            <NCard
+                :bordered="false"
+                class="mb-5 rounded-xl bg-white shadow-sm"
+                size="small"
+            >
                 <template #header>
-                    <div class="card-header">
+                    <div class="flex items-center gap-2">
                         <NIcon size="18" color="#18a058">
                             <CloudUploadOutline />
                         </NIcon>
-                        <span class="card-title">Dokumen Bukti</span>
-                        <span class="card-subtitle">(Wajib diisi)</span>
+                        <span class="font-semibold text-[15px] text-[#1f2d3d]"
+                            >Dokumen Laporan</span
+                        >
+                        <span class="text-xs text-[#e53935] ml-1"
+                            >(Wajib diisi)</span
+                        >
                     </div>
                 </template>
 
@@ -563,7 +626,7 @@ onMounted(() => {
                     type="error"
                     closable
                     @close="clearError"
-                    class="error-alert"
+                    class="mb-4"
                 >
                     <template #icon>
                         <NIcon><AlertCircleOutline /></NIcon>
@@ -581,7 +644,7 @@ onMounted(() => {
                         @change="handleChange"
                     >
                         <NUploadDragger>
-                            <div class="upload-dragger-content">
+                            <div class="flex flex-col items-center gap-2 py-8">
                                 <NIcon size="32" color="#18a058">
                                     <CloudUploadOutline />
                                 </NIcon>
@@ -596,16 +659,18 @@ onMounted(() => {
                     </NUpload>
                 </div>
 
-                <div v-else class="file-preview">
-                    <div class="file-info">
+                <div v-else class="w-full">
+                    <div
+                        class="flex items-center gap-3 p-3 bg-[#fafafc] rounded-lg mb-4"
+                    >
                         <NIcon size="24" color="#18a058">
                             <DocumentTextOutline />
                         </NIcon>
-                        <div class="file-details">
-                            <div class="file-name">
+                        <div class="flex-1">
+                            <div class="text-[13px] font-medium text-[#1f2d3d]">
                                 {{ fileList[0]?.name || "Bukti Laporan.pdf" }}
                             </div>
-                            <div class="file-size">
+                            <div class="text-[11px] text-[#8a8f99] mt-0.5">
                                 {{
                                     fileList[0]?.file?.size
                                         ? (
@@ -615,7 +680,7 @@ onMounted(() => {
                                 }}
                             </div>
                         </div>
-                        <div class="file-actions">
+                        <div class="flex gap-2">
                             <NButton
                                 size="small"
                                 quaternary
@@ -631,7 +696,9 @@ onMounted(() => {
             </NCard>
 
             <!-- Action Buttons -->
-            <div class="action-buttons">
+            <div
+                class="flex justify-end gap-3 mt-5 pt-4 border-t border-gray-100"
+            >
                 <NButton @click="closeModal">
                     <template #icon>
                         <NIcon><CloseOutline /></NIcon>
@@ -656,39 +723,44 @@ onMounted(() => {
         <!-- View Mode (Setelah Submit) -->
         <div v-else>
             <!-- Ringkasan Laporan -->
-            <NCard :bordered="false" class="view-card" size="small">
+            <NCard
+                :bordered="false"
+                class="mb-5 rounded-xl bg-white shadow-sm"
+                size="small"
+            >
                 <template #header>
-                    <div class="card-header">
+                    <div class="flex items-center gap-2">
                         <NIcon size="18" color="#18a058">
                             <ReceiptOutline />
                         </NIcon>
-                        <span class="card-title">Ringkasan Laporan</span>
-                        <!-- <div class="status-badge">
-                            <NTag
-                                :type="getStatusType()"
-                                size="small"
-                                :bordered="false"
-                            >
-                                {{ getStatusLabel() }}
-                            </NTag>
-                        </div> -->
+                        <span class="font-semibold text-[15px] text-[#1f2d3d]"
+                            >Ringkasan Laporan</span
+                        >
                     </div>
                 </template>
 
                 <NGrid :cols="2" :x-gap="16" :y-gap="12">
                     <NGridItem>
-                        <div class="info-item">
-                            <div class="info-label">Total Pengeluaran</div>
-                            <div class="info-value amount">
+                        <div class="py-1">
+                            <div
+                                class="text-sm text-[#8a8f99] mb-1 tracking-wide"
+                            >
+                                Total Pengeluaran
+                            </div>
+                            <div class="text-base font-semibold text-[#18a058]">
                                 {{ formatRupiah(displayData.totalSpent) }}
                             </div>
                         </div>
                     </NGridItem>
                     <NGridItem>
-                        <div class="info-item">
-                            <div class="info-label">Sisa Dana</div>
+                        <div class="py-1">
                             <div
-                                class="info-value amount"
+                                class="text-sm text-[#8a8f99] mb-1 tracking-wide"
+                            >
+                                Sisa Dana
+                            </div>
+                            <div
+                                class="text-base font-semibold"
                                 :class="getSisaDanaClass()"
                             >
                                 {{ formatRupiah(getSisaDana()) }}
@@ -696,9 +768,13 @@ onMounted(() => {
                         </div>
                     </NGridItem>
                     <NGridItem :span="2">
-                        <div class="info-item bg-slate-50 p-4 rounded-lg">
-                            <div class="info-label">Catatan Pengeluaran</div>
-                            <div class="info-value">
+                        <div class="p-4 bg-slate-50 rounded-lg">
+                            <div
+                                class="text-sm text-[#8a8f99] mb-1 tracking-wide"
+                            >
+                                Catatan Pengeluaran
+                            </div>
+                            <div class="text-sm font-medium text-[#1f2d3d]">
                                 {{ displayData.reportNotes || "-" }}
                             </div>
                         </div>
@@ -710,42 +786,28 @@ onMounted(() => {
             <NCard
                 v-if="displayData.reportStatus !== 'not_submitted'"
                 :bordered="false"
-                class="review-card"
+                class="mb-5 rounded-xl bg-white shadow-sm"
                 size="small"
             >
                 <template #header>
-                    <div class="card-header">
+                    <div class="flex items-center gap-2">
                         <NIcon size="18" color="#18a058">
                             <PeopleOutline />
                         </NIcon>
-                        <span class="card-title">Review Finance</span>
+                        <span class="font-semibold text-[15px] text-[#1f2d3d]"
+                            >Review Finance</span
+                        >
                     </div>
                 </template>
 
-                <!-- <div class="review-status">
-                    <div class="status-item">
-                        <div class="status-label">Status Review:</div>
-                        <div class="status-value">
-                            <NTag :type="getReviewStatusType()" size="medium">
-                                {{ getReviewStatusLabel() }}
-                            </NTag>
-                        </div>
-                    </div>
-
-                    <div class="status-item" v-if="displayData.reviewedBy">
-                        <div class="status-label">Direview oleh:</div>
-                        <div class="status-value">
-                            {{ displayData.reviewedBy }}
-                        </div>
-                    </div>
-                </div> -->
-
                 <div
-                    class="finance-notes-section"
+                    class="mt-4 p-3 bg-[#fafafc] rounded-lg"
                     v-if="displayData.financeNotes"
                 >
-                    <div class="section-title">Catatan Finance</div>
-                    <div class="finance-notes-content">
+                    <div class="text-[13px] font-semibold text-[#4a5568] mb-2">
+                        Catatan Finance
+                    </div>
+                    <div class="text-[13px] text-[#1f2d3d] leading-relaxed">
                         {{ displayData.financeNotes }}
                     </div>
                 </div>
@@ -756,7 +818,7 @@ onMounted(() => {
                         roleName === 'Finance' &&
                         displayData.reportStatus === 'submitted'
                     "
-                    class="review-form"
+                    class="mt-5"
                 >
                     <n-divider>Review Laporan</n-divider>
 
@@ -769,7 +831,7 @@ onMounted(() => {
                         />
                     </n-form-item>
 
-                    <div class="review-actions">
+                    <div class="flex justify-end gap-3 mt-4">
                         <NButton
                             type="error"
                             @click="rejectReport"
@@ -801,7 +863,7 @@ onMounted(() => {
             <NCard
                 v-if="displayData.attachment"
                 :bordered="false"
-                class="view-card overflow-hidden"
+                class="mb-5 rounded-xl bg-white shadow-sm overflow-hidden"
                 size="small"
             >
                 <template #header>
@@ -809,9 +871,7 @@ onMounted(() => {
                         <NIcon size="20" color="#18a058">
                             <DocumentOutline />
                         </NIcon>
-                        <span
-                            class="font-semibold text-gray-700 dark:text-gray-300"
-                        >
+                        <span class="font-semibold text-gray-700">
                             Dokumen Laporan
                         </span>
                     </div>
@@ -827,13 +887,11 @@ onMounted(() => {
 
                         <div class="flex-1 min-w-0">
                             <div
-                                class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate"
+                                class="text-sm font-medium text-gray-800 truncate"
                             >
                                 {{ getFileName(displayData.attachment) }}
                             </div>
-                            <div
-                                class="text-xs text-gray-400 dark:text-gray-500 mt-1"
-                            >
+                            <div class="text-xs text-gray-400 mt-1">
                                 File Attachment
                             </div>
                         </div>
@@ -866,7 +924,7 @@ onMounted(() => {
             <div class="w-full h-[70vh]">
                 <iframe
                     :src="getPdfUrl(displayData.attachment)"
-                    class="w-full h-full"
+                    class="w-full h-full border-0"
                     frameborder="0"
                 ></iframe>
             </div>
@@ -875,64 +933,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.report-container {
-    max-height: 80vh;
-    overflow-y: auto;
-    padding: 4px;
-}
-
-.info-card,
-.form-card,
-.upload-card,
-.view-card,
-.review-card {
-    margin-bottom: 20px;
-    border-radius: 12px;
-    background: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-.card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.card-title {
-    font-weight: 600;
-    font-size: 15px;
-    color: #1f2d3d;
-}
-
-.card-subtitle {
-    font-size: 12px;
-    color: #e53935;
-    margin-left: 4px;
-}
-
-.info-label {
-    font-size: 14px;
-    color: #8a8f99;
-    margin-bottom: 4px;
-    letter-spacing: 0.3px;
-}
-
-.info-value {
-    font-size: 14px;
-    font-weight: 500;
-    color: #1f2d3d;
-}
-
-.info-value.amount {
-    color: #18a058;
-    font-weight: 600;
-    font-size: 16px;
-}
-
-.text-success {
-    color: #18a058;
-}
-
+/* Custom text color classes */
 .text-danger {
     color: #e53935;
 }
@@ -941,134 +942,26 @@ onMounted(() => {
     color: #ff9800;
 }
 
-.upload-dragger-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 32px;
+.text-success {
+    color: #18a058;
 }
 
-.file-preview {
-    width: 100%;
-}
-
-.file-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background: #fafafc;
-    border-radius: 8px;
-    margin-bottom: 16px;
-}
-
-.file-details {
-    flex: 1;
-}
-
-.file-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: #1f2d3d;
-}
-
-.file-size {
-    font-size: 11px;
-    color: #8a8f99;
-    margin-top: 2px;
-}
-
-.file-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.action-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid #f0f0f0;
-}
-
-.review-status {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 16px;
-}
-
-.status-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.status-label {
-    font-size: 13px;
-    font-weight: 500;
-    color: #4a5568;
-    min-width: 100px;
-}
-
-.status-value {
-    font-size: 14px;
-    color: #1f2d3d;
-}
-
-.finance-notes-section {
-    margin-top: 16px;
-    padding: 12px;
-    background: #fafafc;
-    border-radius: 8px;
-}
-
-.section-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #4a5568;
-    margin-bottom: 8px;
-}
-
-.finance-notes-content {
-    font-size: 13px;
-    color: #1f2d3d;
-    line-height: 1.5;
-}
-
-.review-form {
-    margin-top: 20px;
-}
-
-.review-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 16px;
-}
-
-.error-alert {
-    margin-bottom: 16px;
-}
-
-/* Scrollbar styling */
-.report-container::-webkit-scrollbar {
+/* Custom scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
     width: 6px;
 }
 
-.report-container::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 3px;
 }
 
-.report-container::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb {
     background: #c1c1c1;
     border-radius: 3px;
 }
 
-.report-container::-webkit-scrollbar-thumb:hover {
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
 }
 </style>

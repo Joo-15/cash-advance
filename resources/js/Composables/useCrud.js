@@ -53,7 +53,7 @@ export function useCrud(options = {}) {
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     // Method CRUD
-    const tambah = (formType, mode = 'create') => {
+    const tambah = (formType, mode = "create") => {
         currentFormType.value = formType;
         modalMode.value = mode;
         selectedRow.value = null;
@@ -61,7 +61,7 @@ export function useCrud(options = {}) {
         formRef.value?.resetForm();
     };
 
-    const edit = async (formType, mode = 'edit', row, fetchDetail = true) => {
+    const edit = async (formType, mode = "edit", row, fetchDetail = true) => {
         currentFormType.value = formType;
         modalMode.value = mode;
 
@@ -70,7 +70,7 @@ export function useCrud(options = {}) {
             const data =
                 fetchDetail && !row.detail
                     ? (await axios.get(route(`${routePrefix}.show`, row.id)))
-                        .data
+                          .data
                     : row;
 
             selectedRow.value = { ...data };
@@ -118,7 +118,7 @@ export function useCrud(options = {}) {
         });
     };
 
-    const proses = async (formType, mode = 'bayar', id) => {
+    const proses = async (formType, mode = "bayar", id) => {
         currentFormType.value = formType;
         modalMode.value = mode;
 
@@ -126,37 +126,38 @@ export function useCrud(options = {}) {
             // loadingDetail.value = true
 
             // Panggil endpoint getDetail
-            const response = await axios.get(route(`${routePrefix}.show`, id))
+            const response = await axios.get(route(`${routePrefix}.show`, id));
 
             // Cek response
             if (response.data.success) {
-                selectedRow.value = response.data.data
-                modalForm.value = true // Buka modal setelah data didapat
-
+                selectedRow.value = response.data.data;
+                modalForm.value = true; // Buka modal setelah data didapat
             } else {
-                message.error('Gagal mengambil data detail')
+                message.error("Gagal mengambil data detail");
             }
         } catch (error) {
-            console.error('Error fetching detail:', error)
+            console.error("Error fetching detail:", error);
 
             // Tampilkan pesan error
             if (error.response) {
                 // Server merespons dengan status code error
-                message.error(`Error: ${error.response.status} - ${error.response.data.message || 'Gagal mengambil data'}`)
+                message.error(
+                    `Error: ${error.response.status} - ${error.response.data.message || "Gagal mengambil data"}`,
+                );
             } else if (error.request) {
                 // Request dibuat tapi tidak ada respons
-                message.error('Tidak ada respons dari server')
+                message.error("Tidak ada respons dari server");
             } else {
                 // Error lainnya
-                message.error('Terjadi kesalahan: ' + error.message)
+                message.error("Terjadi kesalahan: " + error.message);
             }
         } finally {
             // loadingDetail.value = false
         }
-    }
+    };
 
     // FUNGSI DETAIL MENGGUNAKAN AXIOS
-    const fetchDetail = async (formType, mode = 'create', id) => {
+    const fetchDetail = async (formType, mode = "create", id) => {
         currentFormType.value = formType;
         modalMode.value = mode;
 
@@ -164,35 +165,77 @@ export function useCrud(options = {}) {
             // loadingDetail.value = true
 
             // Panggil endpoint getDetail
-            const response = await axios.get(route(`${routeDetail}.detail`, id))
+            const response = await axios.get(
+                route(`${routeDetail}.detail`, id),
+            );
 
             // Cek response
             if (response.data.success) {
-                selectedApproval.value = response.data.data
-                approvalStep.value = response.data.approvalStep
+                selectedApproval.value = response.data.data;
+                approvalStep.value = response.data.approvalStep;
 
-                modalForm.value = true // Buka modal setelah data didapat
+                modalForm.value = true; // Buka modal setelah data didapat
             } else {
-                message.error('Gagal mengambil data detail')
+                message.error("Gagal mengambil data detail");
             }
         } catch (error) {
-            console.error('Error fetching detail:', error)
+            console.error("Error fetching detail:", error);
 
             // Tampilkan pesan error
             if (error.response) {
                 // Server merespons dengan status code error
-                message.error(`Error: ${error.response.status} - ${error.response.data.message || 'Gagal mengambil data'}`)
+                message.error(
+                    `Error: ${error.response.status} - ${error.response.data.message || "Gagal mengambil data"}`,
+                );
             } else if (error.request) {
                 // Request dibuat tapi tidak ada respons
-                message.error('Tidak ada respons dari server')
+                message.error("Tidak ada respons dari server");
             } else {
                 // Error lainnya
-                message.error('Terjadi kesalahan: ' + error.message)
+                message.error("Terjadi kesalahan: " + error.message);
             }
         } finally {
             // loadingDetail.value = false
         }
-    }
+    };
+
+    const showPdfModal = ref(false);
+    const pdfUrl = ref("");
+    const currentReceiptId = ref(null);
+
+    const printReceipt = async (row) => {
+        try {
+            const response = await axios.get(
+                route(`${routePrefix}.receipt`, row.id),
+                {
+                    responseType: "blob", // Penting: untuk menerima file PDF
+                },
+            );
+
+            // Buat URL dari blob PDF
+            const blob = new Blob([response.data], { type: "application/pdf" });
+            const url = URL.createObjectURL(blob);
+
+            // Set URL untuk ditampilkan di iframe
+            pdfUrl.value = url;
+            currentReceiptId.value = row.id;
+
+            // Tampilkan modal
+            showPdfModal.value = true;
+
+            message.success("Dokumen siap ditampilkan");
+        } catch (error) {
+            console.error("Error printing receipt:", error);
+            message.error("Gagal menampilkan tanda terima");
+        }
+    };
+
+    const printPdf = () => {
+        if (pdfUrl.value) {
+            const printWindow = window.open(pdfUrl.value, "_blank");
+            printWindow.focus();
+        }
+    };
 
     // Method Form Submit
     const submit = async ({
@@ -319,6 +362,8 @@ export function useCrud(options = {}) {
         edit,
         hapus,
         fetchDetail,
+        printReceipt,
+        printPdf,
         proses,
 
         // Methods Form Submit

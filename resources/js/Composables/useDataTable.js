@@ -12,6 +12,7 @@ import {
     SendSharp,
     ReceiptOutline,
     AttachOutline,
+    PrintOutline,
 } from "@vicons/ionicons5";
 
 /**
@@ -368,6 +369,12 @@ export function useDataTable({
                         ? actionConfig.showDetail(row)
                         : actionConfig.showDetail
                     : true,
+            showPrint:
+                actionConfig.showPrint !== undefined
+                    ? typeof actionConfig.showPrint === "function"
+                        ? actionConfig.showPrint(row)
+                        : actionConfig.showPrint
+                    : true,
             showView:
                 actionConfig.showView !== undefined
                     ? typeof actionConfig.showView === "function"
@@ -381,6 +388,7 @@ export function useDataTable({
             showDelete = true,
             showView = false,
             showDetail = false,
+            showPrint = false,
             showProses = false,
             showCustom = false,
             customButtons = [],
@@ -433,6 +441,24 @@ export function useDataTable({
                     },
                     size,
                     tooltip: "Lihat Detail",
+                }),
+            );
+        }
+
+        if (showPrint && actions.onPrint) {
+            buttons.push(
+                createActionButton({
+                    type: "info",
+                    icon: PrintOutline,
+                    onClick: () =>
+                        actions.onDetail(row.cash_advance_id || row.id),
+                    props: {
+                        size,
+                        variant: "light",
+                        loading: row._loading_detail === true,
+                    },
+                    size,
+                    tooltip: "Print",
                 }),
             );
         }
