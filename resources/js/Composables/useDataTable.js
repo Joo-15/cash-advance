@@ -288,9 +288,9 @@ export function useDataTable({
                     default: () => label,
                     ...(icon
                         ? {
-                              icon: () =>
-                                  h(NIcon, null, { default: () => h(icon) }),
-                          }
+                            icon: () =>
+                                h(NIcon, null, { default: () => h(icon) }),
+                        }
                         : {}),
                 },
             );
@@ -451,7 +451,7 @@ export function useDataTable({
                     type: "info",
                     icon: PrintOutline,
                     onClick: () =>
-                        actions.onDetail(row.cash_advance_id || row.id),
+                        actions.onPrint(row.cash_advance_id || row.id),
                     props: {
                         size,
                         variant: "light",
@@ -506,10 +506,10 @@ export function useDataTable({
 
         return buttons.length
             ? h(
-                  NSpace,
-                  { align: "center", justify: placement, size: 4 },
-                  { default: () => buttons },
-              )
+                NSpace,
+                { align: "center", justify: placement, size: 4 },
+                { default: () => buttons },
+            )
             : null;
     };
 

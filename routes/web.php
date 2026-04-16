@@ -45,7 +45,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ============================================
     Route::middleware(['role:Super Admin,Admin,Employee'])->group(function () {
         Route::resource('pengajuan-pinjaman', CashAdvanceController::class);
-        Route::post('pengajuan-pinjaman/{receipt}/receipt', [CashAdvanceController::class, 'generateReceipt'])->name('pengajuan-pinjaman.receipt');
+        Route::get('pengajuan-pinjaman/{id}/receipt', [CashAdvanceController::class, 'printReceipt'])->name('pengajuan-pinjaman.receipt');
     });
 
     // ============================================

@@ -31,7 +31,7 @@ export const userSchema = yup.object({
             otherwise: (schema) => schema.nullable(), // Saat edit, tidak wajib
         })
         .min(6, "Password minimal 6 karakter"),
-    department_id: yup.number().required("Department harus dipilih"),
+    // department_id: yup.number().required("Department harus dipilih"),
     role_id: yup.number().required("Role harus dipilih"),
 });
 

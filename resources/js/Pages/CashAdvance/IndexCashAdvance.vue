@@ -21,6 +21,9 @@ import FormCashAdvance from "./FormCashAdvance.vue";
 import FormApproval from "../Approval/FormApproval.vue";
 import { useAuth } from "@/Composables/useAuth";
 import { Head } from "@inertiajs/vue3";
+import CetakTandaTerima from "./CetakTandaTerima.vue";
+import { NButton, NIcon, NModal, NSpace, NSpin } from "naive-ui";
+import { DownloadOutline, PrintOutline } from "@vicons/ionicons5";
 
 // Props definition
 const props = defineProps({
@@ -51,6 +54,8 @@ const {
 const {
     loadingButton,
     modalForm,
+    showPdfModal,
+    pdfUrl,
     currentFormType,
     modalMode,
     selectedRow,
@@ -61,6 +66,7 @@ const {
     hapus,
     fetchDetail,
     printReceipt,
+    closePdfModal,
     refresh,
     submit,
 } = useCrud({
@@ -184,8 +190,8 @@ const columnConfig = computed(() => {
             actionConfig: {
                 showEdit: (row) => row?.approvals?.[0].status === "pending",
                 showDelete: (row) => row?.approvals?.[0].status === "pending",
-                showPrint: (row) => row?.approvals?.[0].status === "approved",
                 showDetail: true,
+                showPrint: (row) => row?.approvals?.[0].status === "approved",
             },
             sorter: false,
             // ✅ Setting visible berdasarkan role
@@ -203,8 +209,8 @@ const columnConfig = computed(() => {
 const actions = {
     onEdit: (row) => edit("cash-advance", "edit", row),
     onDelete: hapus,
-    onPrint: (row) => printReceipt("cash-advance", "print", row),
     onDetail: (row) => fetchDetail("approval", "detail", row),
+    onPrint: (row) => printReceipt("cash-advance", "print", row),
 };
 
 // Table columns
@@ -224,6 +230,14 @@ const modalTitle = computed(() => {
     }
 
     return "Tambah Pinjaman";
+});
+
+// Watch sederhana
+watch(modalMode, (newValue, oldValue) => {
+    console.log("modalMode berubah:", {
+        from: oldValue,
+        to: newValue,
+    });
 });
 </script>
 
@@ -305,8 +319,62 @@ const modalTitle = computed(() => {
                         :submit="submit"
                         @updated="refresh"
                     />
+                    <!-- <CetakTandaTerima
+                        v-if="
+                            currentFormType === 'cash-advance' &&
+                            modalMode === 'print'
+                        "
+                        :loading="loadingButton"
+                        :data-edit="selectedRow"
+                        :close-modal="closeModal"
+                    /> -->
                 </template>
             </ModalForm>
+            <NModal
+                v-model:show="showPdfModal"
+                preset="card"
+                title="Tanda Terima Cash Advance"
+                style="width: 90%; max-width: 1200px"
+                :closable="true"
+                @close="closePdfModal"
+            >
+                <template #header-extra>
+                    <NSpace>
+                        <NButton size="small" @click="printPdf">
+                            <template #icon>
+                                <NIcon><PrintOutline /></NIcon>
+                            </template>
+                            Cetak
+                        </NButton>
+                        <NButton
+                            size="small"
+                            type="primary"
+                            @click="downloadPdf"
+                        >
+                            <template #icon>
+                                <NIcon><DownloadOutline /></NIcon>
+                            </template>
+                            Download
+                        </NButton>
+                    </NSpace>
+                </template>
+
+                <div class="w-full h-[70vh]">
+                    <div
+                        v-if="isPdfLoading"
+                        class="flex justify-center items-center h-full"
+                    >
+                        <NSpin size="large" />
+                        <span class="ml-3">Memuat dokumen...</span>
+                    </div>
+                    <iframe
+                        v-else
+                        :src="pdfUrl"
+                        class="w-full h-full border-0"
+                        frameborder="0"
+                    ></iframe>
+                </div>
+            </NModal>
         </template>
     </Container>
 </template>

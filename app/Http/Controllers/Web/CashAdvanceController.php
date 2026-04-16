@@ -176,21 +176,23 @@ class CashAdvanceController extends Controller
         }
     }
 
-    public function generateReceipt($id)
+    public function printReceipt($id)
     {
 
-        dd($id);
+        // dd($id);
         try {
             // Ambil data cash advance dengan relasi
             $cashAdvance = CashAdvance::with([
                 'user',
                 'user.department',
-                'approvals',
+                'approvals.user',
                 'disbursement'
             ])->findOrFail($id);
 
+            // dd($cashAdvance);
+
             // Generate PDF menggunakan DomPDF
-            $pdf = Pdf::loadView('pdf.cash-advance-receipt', [
+            $pdf = Pdf::loadView('pdf.receipt-cash-advance', [
                 'data' => $cashAdvance,
                 'date' => now(),
                 'receipt_number' => 'CA/' . date('Ymd') . '/' . $cashAdvance->id

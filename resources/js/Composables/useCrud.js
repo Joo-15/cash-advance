@@ -70,7 +70,7 @@ export function useCrud(options = {}) {
             const data =
                 fetchDetail && !row.detail
                     ? (await axios.get(route(`${routePrefix}.show`, row.id)))
-                          .data
+                        .data
                     : row;
 
             selectedRow.value = { ...data };
@@ -198,29 +198,28 @@ export function useCrud(options = {}) {
             // loadingDetail.value = false
         }
     };
-
     const showPdfModal = ref(false);
     const pdfUrl = ref("");
     const currentReceiptId = ref(null);
 
-    const printReceipt = async (row) => {
+    const printReceipt = async (formType, mode = "print", id) => {
+        currentFormType.value = formType;
+        modalMode.value = mode;
+
         try {
+            // ✅ Langsung kirim row.id, Ziggy akan otomatis mapping ke {id}
             const response = await axios.get(
-                route(`${routePrefix}.receipt`, row.id),
+                route(`${routePrefix}.receipt`, id),
                 {
-                    responseType: "blob", // Penting: untuk menerima file PDF
+                    responseType: "blob",
                 },
             );
 
-            // Buat URL dari blob PDF
             const blob = new Blob([response.data], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
 
-            // Set URL untuk ditampilkan di iframe
             pdfUrl.value = url;
-            currentReceiptId.value = row.id;
-
-            // Tampilkan modal
+            currentReceiptId.value = id;
             showPdfModal.value = true;
 
             message.success("Dokumen siap ditampilkan");
@@ -228,6 +227,15 @@ export function useCrud(options = {}) {
             console.error("Error printing receipt:", error);
             message.error("Gagal menampilkan tanda terima");
         }
+    };
+
+    const closePdfModal = () => {
+        showPdfModal.value = false;
+        if (pdfUrl.value && pdfUrl.value.startsWith('blob:')) {
+            URL.revokeObjectURL(pdfUrl.value);
+        }
+        pdfUrl.value = "";
+        currentReceiptId.value = null;
     };
 
     const printPdf = () => {
@@ -349,6 +357,8 @@ export function useCrud(options = {}) {
     return {
         // State
         modalForm,
+        showPdfModal,
+        pdfUrl,
         currentFormType,
         modalMode,
         selectedRow,
@@ -372,6 +382,7 @@ export function useCrud(options = {}) {
         // Methods Utility
         refresh,
         closeModal,
+        closePdfModal,
         getCurrentFilters,
     };
 }

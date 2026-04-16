@@ -52,12 +52,12 @@ class UserRequest extends FormRequest
                     'max:255'
                 ],
                 'password' => ['nullable', 'string', 'min:6', 'max:255'],
-                'department_id' => [
-                    'sometimes',
-                    'required',
-                    'integer',
-                    'exists:departments,id'
-                ],
+                // 'department_id' => [
+                //     'sometimes',
+                //     'required',
+                //     'integer',
+                //     'exists:departments,id'
+                // ],
                 'role_id' => [
                     'sometimes',
                     'required',
