@@ -70,7 +70,7 @@ export function useCrud(options = {}) {
             const data =
                 fetchDetail && !row.detail
                     ? (await axios.get(route(`${routePrefix}.show`, row.id)))
-                        .data
+                          .data
                     : row;
 
             selectedRow.value = { ...data };
@@ -201,13 +201,16 @@ export function useCrud(options = {}) {
     const showPdfModal = ref(false);
     const pdfUrl = ref("");
     const currentReceiptId = ref(null);
+    const isLoadingPdf = ref(false);
 
     const printReceipt = async (formType, mode = "print", id) => {
         currentFormType.value = formType;
         modalMode.value = mode;
 
+        // Set loading true
+        isLoadingPdf.value = true;
+
         try {
-            // ✅ Langsung kirim row.id, Ziggy akan otomatis mapping ke {id}
             const response = await axios.get(
                 route(`${routePrefix}.receipt`, id),
                 {
@@ -221,17 +224,19 @@ export function useCrud(options = {}) {
             pdfUrl.value = url;
             currentReceiptId.value = id;
             showPdfModal.value = true;
-
-            message.success("Dokumen siap ditampilkan");
         } catch (error) {
             console.error("Error printing receipt:", error);
             message.error("Gagal menampilkan tanda terima");
+        } finally {
+            setTimeout(() => {
+                isLoadingPdf.value = false;
+            }, 500);
         }
     };
 
     const closePdfModal = () => {
         showPdfModal.value = false;
-        if (pdfUrl.value && pdfUrl.value.startsWith('blob:')) {
+        if (pdfUrl.value && pdfUrl.value.startsWith("blob:")) {
             URL.revokeObjectURL(pdfUrl.value);
         }
         pdfUrl.value = "";
@@ -240,8 +245,81 @@ export function useCrud(options = {}) {
 
     const printPdf = () => {
         if (pdfUrl.value) {
-            const printWindow = window.open(pdfUrl.value, "_blank");
-            printWindow.focus();
+            const iframe = document.createElement("iframe");
+            iframe.style.position = "absolute";
+            iframe.style.width = "0";
+            iframe.style.height = "0";
+            iframe.style.border = "none";
+            document.body.appendChild(iframe);
+
+            // Tunggu iframe benar-benar loaded
+            iframe.onload = () => {
+                // Beri sedikit delay untuk memastikan konten siap
+                setTimeout(() => {
+                    iframe.contentWindow.print();
+                }, 500);
+
+                // Hapus iframe setelah print dialog selesai
+                const checkPrint = setInterval(() => {
+                    if (iframe.contentWindow.document.hidden) {
+                        clearInterval(checkPrint);
+                        setTimeout(() => {
+                            document.body.removeChild(iframe);
+                        }, 1000);
+                    }
+                }, 500);
+            };
+
+            // Handle error jika gagal load
+            iframe.onerror = () => {
+                console.error("Failed to load PDF");
+                document.body.removeChild(iframe);
+            };
+
+            iframe.src = pdfUrl.value;
+        }
+    };
+
+    const isDownloading = ref(false);
+
+    const downloadPdf = async () => {
+        if (!pdfUrl.value) {
+            message.warning("Tidak ada dokumen untuk didownload");
+            return;
+        }
+
+        const loading = message.loading("Mempersiapkan download...", {
+            duration: 0,
+        });
+
+        try {
+            // Fetch ulang PDF untuk memastikan file lengkap
+            const response = await fetch(pdfUrl.value);
+            const blob = await response.blob();
+
+            // Buat blob URL baru
+            const blobUrl = URL.createObjectURL(blob);
+
+            // Download
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.download = `tanda_terima_${currentReceiptId.value || Date.now()}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Cleanup
+            URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error("Download error:", error);
+            loading.destroy();
+            message.error("Gagal mendownload dokumen");
+        } finally {
+            setTimeout(() => {
+                loading.destroy();
+                isDownloading.value = false;
+                message.success("Download berhasil");
+            }, 500);
         }
     };
 
@@ -366,6 +444,7 @@ export function useCrud(options = {}) {
         approvalStep,
         loadingButton,
         loadingFetch,
+        isLoadingPdf,
 
         // Methods CRUD
         tambah,
@@ -373,6 +452,7 @@ export function useCrud(options = {}) {
         hapus,
         fetchDetail,
         printReceipt,
+        downloadPdf,
         printPdf,
         proses,
 

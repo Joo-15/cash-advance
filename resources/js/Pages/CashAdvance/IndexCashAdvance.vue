@@ -21,7 +21,6 @@ import FormCashAdvance from "./FormCashAdvance.vue";
 import FormApproval from "../Approval/FormApproval.vue";
 import { useAuth } from "@/Composables/useAuth";
 import { Head } from "@inertiajs/vue3";
-import CetakTandaTerima from "./CetakTandaTerima.vue";
 import { NButton, NIcon, NModal, NSpace, NSpin } from "naive-ui";
 import { DownloadOutline, PrintOutline } from "@vicons/ionicons5";
 
@@ -56,6 +55,7 @@ const {
     modalForm,
     showPdfModal,
     pdfUrl,
+    isLoadingPdf,
     currentFormType,
     modalMode,
     selectedRow,
@@ -66,6 +66,8 @@ const {
     hapus,
     fetchDetail,
     printReceipt,
+    printPdf,
+    downloadPdf,
     closePdfModal,
     refresh,
     submit,
@@ -147,7 +149,7 @@ const columnConfig = computed(() => {
             visible: true,
         },
         {
-            title: "Keperluan",
+            title: "Tujuan",
             key: "purpose",
             // width: 200,
             // ellipsis: { tooltip: true },
@@ -172,10 +174,9 @@ const columnConfig = computed(() => {
             align: "center",
             sorter: true,
             statusMap: {
-                pending: { type: "warning", label: "Pending" },
-                approved: { type: "success", label: "Approved" },
-                disbursed: { type: "info", label: "Disbursed" },
-                rejected: { type: "error", label: "Rejected" },
+                pending: { type: "warning", label: "Menunggu" },
+                approved: { type: "success", label: "Disetujui" },
+                rejected: { type: "error", label: "Ditolak" },
                 default: { type: "default", label: "Unknown" },
             },
             visible: true,
@@ -191,7 +192,7 @@ const columnConfig = computed(() => {
                 showEdit: (row) => row?.approvals?.[0].status === "pending",
                 showDelete: (row) => row?.approvals?.[0].status === "pending",
                 showDetail: true,
-                showPrint: (row) => row?.approvals?.[0].status === "approved",
+                showPrint: (row) => row?.status === "approved",
             },
             sorter: false,
             // ✅ Setting visible berdasarkan role
@@ -254,13 +255,13 @@ watch(modalMode, (newValue, oldValue) => {
                 @download="handleDownload"
             />
         </template>
-        <template #statCards>
+        <!-- <template #statCards>
             <StatCards
                 :stats="CASH_ADVANCE_STATS"
                 :stat-data="statData"
                 class="transition-all duration-150"
             />
-        </template>
+        </template> -->
         <template #filters>
             <Filters
                 :filters="filters"
@@ -319,15 +320,6 @@ watch(modalMode, (newValue, oldValue) => {
                         :submit="submit"
                         @updated="refresh"
                     />
-                    <!-- <CetakTandaTerima
-                        v-if="
-                            currentFormType === 'cash-advance' &&
-                            modalMode === 'print'
-                        "
-                        :loading="loadingButton"
-                        :data-edit="selectedRow"
-                        :close-modal="closeModal"
-                    /> -->
                 </template>
             </ModalForm>
             <NModal
@@ -361,14 +353,14 @@ watch(modalMode, (newValue, oldValue) => {
 
                 <div class="w-full h-[70vh]">
                     <div
-                        v-if="isPdfLoading"
+                        v-if="isLoadingPdf"
                         class="flex justify-center items-center h-full"
                     >
                         <NSpin size="large" />
                         <span class="ml-3">Memuat dokumen...</span>
                     </div>
                     <iframe
-                        v-else
+                        v-if="!isLoadingPdf"
                         :src="pdfUrl"
                         class="w-full h-full border-0"
                         frameborder="0"

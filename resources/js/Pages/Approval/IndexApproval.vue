@@ -141,7 +141,7 @@ const columnConfig = computed(() => {
         {
             title: "Tujuan",
             key: "purpose",
-            // width: 200,
+            width: 200,
             sorter: false,
             visible: true,
         },
@@ -691,6 +691,13 @@ const actions = {
 
 // Table columns
 const tableColumns = computed(() => createColumns(columnConfig.value, actions));
+
+const showDepartment = computed(() => {
+    const allowedRoles = ["general manager", "manager accounting"];
+    const role = roleName.value?.toLowerCase().trim();
+
+    return allowedRoles.includes(role);
+});
 </script>
 
 <template>
@@ -708,7 +715,7 @@ const tableColumns = computed(() => createColumns(columnConfig.value, actions));
                 :filters="filters"
                 :show-search="true"
                 :show-status="true"
-                :show-department="true"
+                :show-department="showDepartment"
                 :department-options="departmentOptions"
                 :status-options="STATUS_OPTIONS"
                 :loading-search="loadingSearch"

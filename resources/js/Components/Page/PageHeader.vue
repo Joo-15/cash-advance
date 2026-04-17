@@ -35,10 +35,11 @@ onMounted(() => {
         <div
             class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between py-2"
         >
-            <h1 class="text-2xl font-bold text-gray-800 p-2">
+            <h1
+                class="text-2xl font-bold bg-gradient-to-r from-green-600 via-green-500 to-green-500 bg-clip-text text-transparent p-2"
+            >
                 {{ title }}
             </h1>
-
             <div class="flex flex-col gap-2 w-full md:flex-row md:w-auto">
                 <n-button
                     v-if="showDownload"

@@ -1,9 +1,10 @@
 <script setup>
-import { NInput, NSelect } from "naive-ui";
+import { SearchOutline } from "@vicons/ionicons5";
+import { NIcon, NInput, NSelect } from "naive-ui";
 import { onMounted, ref } from "vue";
 
 const props = defineProps({
-    placeholder: { type: String, default: "Cari data disini.." },
+    placeholder: { type: String, default: "Cari data disini..." },
     filters: { type: Object, required: true },
     showSearch: { type: Boolean, default: false },
     showStatus: { type: Boolean, default: false },
@@ -48,7 +49,11 @@ onMounted(() => {
                         clearable
                         :loading="loadingSearch"
                         @update:value="$emit('update:search', $event)"
-                    />
+                    >
+                        <template #prefix>
+                            <n-icon :component="SearchOutline" />
+                        </template>
+                    </n-input>
                 </div>
 
                 <!-- Department Select -->

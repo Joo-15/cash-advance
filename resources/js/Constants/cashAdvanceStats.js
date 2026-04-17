@@ -7,20 +7,20 @@ export const CASH_ADVANCE_STATS = [
     },
     {
         key: "pengajuan_disetujui",
-        label: "Pengajuan Disetujui",
+        label: "Disetujui",
         color: "green",
         icon: "check",
     },
     {
         key: "pengajuan_pending",
-        label: "Menunggu Approval",
+        label: "Menunggu",
         color: "orange",
         icon: "clock",
     },
     {
         key: "pengajuan_ditolak",
-        label: "Pengajuan Ditolak",
+        label: "Ditolak",
         color: "red",
         icon: "close",
     },
-]
+];

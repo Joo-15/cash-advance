@@ -72,7 +72,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/penggunaan-dana/{disbursment}/review', [FundUsageController::class, 'review'])->name('penggunaan-dana.review');
     });
 
-
     // ============================================
     // SUPER ADMIN ONLY
     // ============================================

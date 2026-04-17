@@ -1,6 +1,5 @@
 <script setup>
 import { computed, ref } from "vue";
-
 import {
     NCard,
     NTag,
@@ -20,6 +19,7 @@ import {
     NCollapseItem,
     NAlert,
     NSpace,
+    NScrollbar,
 } from "naive-ui";
 import {
     CheckmarkCircleOutline,
@@ -42,16 +42,18 @@ const props = defineProps({
     submit: Function,
 });
 
-const value = ref("");
-const approvals = props.dataDetail; // Array of approvals
-const requestName = props.dataDetail[0]?.cash_advance?.user?.name || "Guest";
-const departmentName =
-    props.dataDetail[0]?.cash_advance?.user?.department?.name || "Guest";
-const getLastStatus = approvals[approvals.length - 1];
-const getStatusRequest = props.dataDetail[0]?.cash_advance?.status || "Guest";
-
 const emit = defineEmits(["update:showModal", "updated"]);
+const value = ref("");
 
+// Data
+const approvals = props.dataDetail;
+const requestName = approvals[0]?.cash_advance?.user?.name || "Guest";
+const departmentName =
+    approvals[0]?.cash_advance?.user?.department?.name || "Guest";
+const getLastStatus = approvals[approvals.length - 1];
+const getStatusRequest = approvals[0]?.cash_advance?.status || "Guest";
+
+// Status mapping
 const statusMap = {
     approved: "Disetujui",
     pending: "Menunggu",
@@ -71,11 +73,11 @@ const getTimelineType = (status) => {
     }
 };
 
-// Inisialisasi composable dengan reactive approvals
+// Approval steps composable
 const { getByStepId, getPrevious, getNext, getStatus, canApprove } =
     useApprovalSteps(computed(() => approvals));
 
-// Contoh penggunaan di computed
+// Computed properties
 const currentStep = computed(() => getByStepId(props.approvalStep));
 const currentStatus = computed(() => getStatus(props.approvalStep));
 const canApproveCurrent = computed(() => canApprove(props.approvalStep));
@@ -83,19 +85,12 @@ const canApproveCurrent = computed(() => canApprove(props.approvalStep));
 const approvalSteps = computed(() => {
     if (!approvals || !Array.isArray(approvals)) return [];
 
-    // Mapping data dari API
     const mappedSteps = approvals.map((approval, index) => {
-        // Tentukan status berdasarkan data
         let status = "-";
-        if (approval.status === "approved") {
-            status = "Disetujui";
-        } else if (approval.status === "pending") {
-            status = "Menunggu";
-        } else if (approval.status === "rejected") {
-            status = "Ditolak";
-        }
+        if (approval.status === "approved") status = "Disetujui";
+        else if (approval.status === "pending") status = "Menunggu";
+        else if (approval.status === "rejected") status = "Ditolak";
 
-        // Ambil nama-nama role dari approval_step_roles
         let roleNames = [];
         if (approval.approval_step?.approval_step_roles) {
             roleNames = approval.approval_step.approval_step_roles
@@ -103,13 +98,10 @@ const approvalSteps = computed(() => {
                 .filter((name) => name);
         }
 
-        // Buat title dari role names
-        let title = "";
-        if (roleNames.length > 0) {
-            title = roleNames.join(" / ");
-        } else {
-            title = `Step ${approval.approval_step?.step_order || index + 1}`;
-        }
+        let title =
+            roleNames.length > 0
+                ? roleNames.join(" / ")
+                : `Step ${approval.approval_step?.step_order || index + 1}`;
 
         return {
             id: approval.id,
@@ -117,7 +109,7 @@ const approvalSteps = computed(() => {
             step_order: approval.approval_step?.step_order || index + 1,
             status: status,
             date: approval.approved_at ? formatDate(approval.approved_at) : "",
-            approved_by: approval.user?.name || null, // ✅ Sekarang terisi
+            approved_by: approval.user?.name || null,
             approved_by_id: approval.user?.id,
             approved_by_role: approval.user?.role?.name,
             approved_by_department: approval.user?.department?.name,
@@ -130,16 +122,14 @@ const approvalSteps = computed(() => {
         };
     });
 
-    // Manual step pertama (pengajuan dibuat)
-    const firstApproval = approvals[0];
     const manualFirstStep = {
         id: "manual-start",
         title: "Pengajuan Diterima",
         step_order: 0,
         status: "Pengajuan",
-        date: formatDate(firstApproval?.created_at),
-        approved_by: firstApproval?.cash_advance?.user?.name || "System",
-        approved_by_role: firstApproval?.cash_advance?.user?.name,
+        date: formatDate(approvals[0]?.created_at),
+        approved_by: approvals[0]?.cash_advance?.user?.name || "System",
+        approved_by_role: approvals[0]?.cash_advance?.user?.name,
         notes: "Pengajuan cash advance berhasil dibuat",
         raw_status: "approved",
         role_names: ["System"],
@@ -152,17 +142,15 @@ const approvalSteps = computed(() => {
     return [manualFirstStep, ...mappedSteps];
 });
 
-// Cari semua step pending
-const pendingSteps = computed(() => {
-    return approvals?.filter((a) => a.status === "pending") || [];
-});
+// Pending steps
+const pendingSteps = computed(
+    () => approvals?.filter((a) => a.status === "pending") || [],
+);
 
-// Cari pending terakhir (step_order terbesar)
 const lastPendingStep = computed(() => {
     const pending = pendingSteps.value;
     if (pending.length === 0) return null;
 
-    // Urutkan berdasarkan step_order descending
     return [...pending].sort((b, a) => {
         const orderA = a.approval_step?.step_order || a.approval_step_id;
         const orderB = b.approval_step?.step_order || b.approval_step_id;
@@ -176,11 +164,12 @@ const beforeStepPending = approvalSteps.value.find(
         lastPendingStep?.value?.approval_step_id,
 );
 
+// Detail items
 const items = [
     {
         label: "Tujuan",
         value: props.dataDetail[0]?.cash_advance?.purpose,
-        span: 2, // ⬅️ gabung 2 kolom
+        span: 2,
     },
     {
         label: "Jumlah",
@@ -193,6 +182,7 @@ const items = [
     },
 ];
 
+// Handlers
 const handleApprove = () => {
     props.submit({
         values: {
@@ -229,162 +219,175 @@ const handleReject = () => {
 </script>
 
 <template>
-    <!-- HEADER -->
-    <div
-        class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-gray-100"
-    >
-        <div class="flex items-center gap-3">
-            <!-- Icon Avatar -->
-            <div
-                class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-md"
-            >
-                <svg
-                    class="w-5 h-5 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    ></path>
-                </svg>
-            </div>
-
-            <div>
-                <h3 class="text-lg font-semibold text-gray-800 leading-tight">
-                    {{ requestName }}
-                </h3>
-                <p class="text-xs text-gray-400 mt-0.5">
-                    Pengajuan Cash Advance
-                </p>
-            </div>
-
-            <n-tag size="medium" type="info" bordered class="ml-1">
-                {{ departmentName }}
-            </n-tag>
-        </div>
-
-        <div class="meta" v-if="props.roleName !== 'Employee'">
-            <n-tag
-                :type="getTimelineType(statusMap[currentStatus?.status])"
-                round
-                size="large"
-                class="shadow-sm"
-            >
-                {{ statusMap[currentStatus?.status] }}
-            </n-tag>
-        </div>
-    </div>
-
-    <!-- DETAIL - Simple Clean -->
-    <div
-        class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-xl"
-    >
+    <div class="approval-detail">
+        <!-- HEADER -->
         <div
-            v-for="item in items"
-            :key="item.label"
-            :class="[item.span === 2 ? 'col-span-2' : '']"
+            class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-gray-100"
         >
-            <div
-                v-if="item.label"
-                class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1"
-            >
-                {{ item.label }}
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-md"
+                >
+                    <svg
+                        class="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                    </svg>
+                </div>
+
+                <div>
+                    <h3
+                        class="text-lg font-semibold text-gray-800 leading-tight"
+                    >
+                        {{ requestName }}
+                    </h3>
+                    <p class="text-xs text-gray-400 mt-0.5">
+                        Pengajuan Cash Advance
+                    </p>
+                </div>
+
+                <n-tag size="medium" type="info" bordered class="ml-1">
+                    {{ departmentName }}
+                </n-tag>
             </div>
-            <div
-                :class="[
-                    'text-gray-800',
-                    item.highlight
-                        ? 'text-lg font-bold text-green-600'
-                        : 'text-sm font-medium',
-                ]"
-            >
-                {{ item.value || "-" }}
+
+            <div v-if="props.roleName !== 'Employee'" class="meta">
+                <n-tag
+                    :type="getTimelineType(statusMap[currentStatus?.status])"
+                    round
+                    size="large"
+                    class="shadow-sm"
+                >
+                    {{ statusMap[currentStatus?.status] }}
+                </n-tag>
             </div>
         </div>
-    </div>
 
-    <!-- APPROVAL -->
-    <n-grid :cols="2" x-gap="16" class="approval-grid">
-        <!-- TIMELINE -->
-        <n-gi>
-            <div class="card-section">
-                <h3>Alur Persetujuan</h3>
-
-                <n-timeline>
-                    <n-timeline-item
-                        v-for="(step, i) in approvalSteps"
-                        :key="i"
-                        :type="getTimelineType(step.status)"
-                        :title="step.title ?? null"
-                        :time="step.date"
+        <!-- CONTENT SCROLLABLE -->
+        <n-scrollbar style="max-height: 350px" class="my-4">
+            <!-- DETAIL -->
+            <div
+                class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 p-4 bg-slate-50 rounded-xl"
+            >
+                <div
+                    v-for="item in items"
+                    :key="item.label"
+                    :class="[item.span === 2 ? 'col-span-2' : '']"
+                >
+                    <div
+                        v-if="item.label"
+                        class="text-[10px] font-medium text-gray-400 uppercase"
                     >
-                        <template #default>
-                            <n-space vertical size="small">
-                                <!-- Status Tag dan Approved By dalam satu baris -->
-                                <div class="status-row">
-                                    <n-tag
-                                        :type="getTimelineType(step.status)"
-                                        size="small"
-                                        round
-                                    >
-                                        {{ step.status ?? "Pengajuan" }}
-                                    </n-tag>
-
-                                    <!-- Approved By di sebelah kiri status -->
-                                    <div
-                                        v-if="step.approved_by"
-                                        class="approved-by"
-                                    >
-                                        <n-icon size="14" :depth="3">
-                                            <person-outline />
-                                        </n-icon>
-                                        <span>{{ step.approved_by }}</span>
-                                    </div>
-                                </div>
-                            </n-space>
-                        </template>
-                    </n-timeline-item>
-                </n-timeline>
+                        {{ item.label }}
+                    </div>
+                    <div
+                        :class="[
+                            'text-gray-800',
+                            item.highlight
+                                ? 'font-semibold text-green-600'
+                                : 'font-medium',
+                        ]"
+                    >
+                        {{ item.value || "-" }}
+                    </div>
+                </div>
             </div>
-        </n-gi>
 
-        <!-- REVIEW NOTES -->
-        <n-gi>
-            <n-collapse default-expanded-names="1" accordion>
-                <n-collapse-item title="Catatan" name="1">
-                    <div class="card-section notes">
-                        <n-list class="notes-list">
-                            <n-list-item
-                                class="no-space"
-                                v-for="(note, i) in approvalSteps.slice(1)"
+            <!-- APPROVAL GRID -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- TIMELINE -->
+                <div class="rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-gray-400 mb-3">
+                        Alur Persetujuan
+                    </h3>
+
+                    <div class="pr-2">
+                        <n-timeline>
+                            <n-timeline-item
+                                v-for="(step, i) in approvalSteps"
                                 :key="i"
+                                :type="getTimelineType(step.status)"
+                                :title="step.title ?? null"
+                                :time="step.date"
                             >
-                                <div class="note-item">
-                                    <div class="note-header">
-                                        <div class="note-title">
-                                            {{ note.title }}
+                                <template #default>
+                                    <div class="flex flex-col gap-1">
+                                        <div
+                                            class="flex items-center justify-between flex-wrap gap-2"
+                                        >
+                                            <n-tag
+                                                :type="
+                                                    getTimelineType(step.status)
+                                                "
+                                                size="small"
+                                                round
+                                            >
+                                                {{ step.status ?? "Pengajuan" }}
+                                            </n-tag>
+                                            <div
+                                                v-if="step.approved_by"
+                                                class="flex items-center gap-1 text-xs text-gray-500"
+                                            >
+                                                <n-icon size="12"
+                                                    ><person-outline
+                                                /></n-icon>
+                                                <span>{{
+                                                    step.approved_by
+                                                }}</span>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div class="note-status">
-                                        {{ note.notes || "-" }}
-                                    </div>
-                                </div>
-                            </n-list-item>
-                        </n-list>
+                                </template>
+                            </n-timeline-item>
+                        </n-timeline>
                     </div>
-                </n-collapse-item>
-            </n-collapse>
-        </n-gi>
-    </n-grid>
-    <n-form v-if="canApproveCurrent && props.roleName !== 'Employee'">
-        <!-- NOTES -->
-        <n-grid :cols="1" x-gap="16" class="approval-grid">
-            <n-grid-item>
+                </div>
+
+                <!-- REVIEW NOTES -->
+                <div class="border-l pl-2">
+                    <div class="p-4">
+                        <h3 class="text-sm font-semibold text-gray-400 mb-3">
+                            Catatan
+                        </h3>
+                        <div class="notes-container max-h-[400px]">
+                            <div
+                                v-for="(note, i) in approvalSteps.slice(1)"
+                                :key="i"
+                                class="py-3 border-b border-gray-100 last:border-0"
+                            >
+                                <div class="font-medium text-sm text-gray-700">
+                                    {{ note.title }}
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    {{ note.notes || "-" }}
+                                </div>
+                            </div>
+                            <div
+                                v-if="approvalSteps.slice(1).length === 0"
+                                class="text-center text-gray-400 text-sm py-4"
+                            >
+                                Belum ada catatan
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </n-scrollbar>
+
+        <!-- FORM APPROVAL -->
+        <div
+            v-if="canApproveCurrent && props.roleName !== 'Employee'"
+            class="mt-4 pt-4"
+        >
+            <n-form>
                 <n-form-item label="Catatan Persetujuan">
                     <n-input
                         v-model:value="value"
@@ -394,238 +397,82 @@ const handleReject = () => {
                         :disabled="!canApproveCurrent"
                     />
                 </n-form-item>
-            </n-grid-item>
-        </n-grid>
 
-        <!-- BUTTON ACTIONS -->
-        <n-grid :cols="2" x-gap="12" class="button-grid">
-            <n-grid-item>
-                <n-button
-                    type="error"
-                    size="large"
-                    block
-                    :loading="loading"
-                    :disabled="loading"
-                    @click="handleReject"
-                >
-                    <template #icon>
-                        <n-icon><close-circle-outline /></n-icon>
-                    </template>
-                    Tolak
-                </n-button>
-            </n-grid-item>
-            <n-grid-item>
-                <n-button
-                    type="success"
-                    size="large"
-                    block
-                    :loading="loading"
-                    :disabled="loading"
-                    @click="handleApprove"
-                >
-                    <template #icon>
-                        <n-icon><checkmark-circle-outline /></n-icon>
-                    </template>
-                    Setujui
-                </n-button>
-            </n-grid-item>
-        </n-grid>
-    </n-form>
-    <!-- PESAN jika form tidak tampil -->
+                <div class="grid grid-cols-2 gap-3 mt-4">
+                    <n-button
+                        type="error"
+                        size="large"
+                        block
+                        :loading="loading"
+                        :disabled="loading"
+                        @click="handleReject"
+                    >
+                        <template #icon>
+                            <n-icon><close-circle-outline /></n-icon>
+                        </template>
+                        Tolak
+                    </n-button>
+                    <n-button
+                        type="success"
+                        size="large"
+                        block
+                        :loading="loading"
+                        :disabled="loading"
+                        @click="handleApprove"
+                    >
+                        <template #icon>
+                            <n-icon><checkmark-circle-outline /></n-icon>
+                        </template>
+                        Setujui
+                    </n-button>
+                </div>
+            </n-form>
+        </div>
 
-    <n-alert
-        class="mt-5"
-        v-if="
-            (lastPendingStep?.status != null &&
-                !canApproveCurrent &&
-                currentStep?.status !== 'rejected') ||
-            props.roleName === 'Employee'
-        "
-        :type="Number(approvalStep) === 1 ? 'info' : 'warning'"
-        :show-icon="true"
-    >
-        <span
+        <!-- ALERT MESSAGE -->
+        <n-alert
             v-if="
-                lastPendingStep?.status == null &&
-                props.roleName === 'Employee' &&
-                getStatusRequest === 'disbursed'
+                (lastPendingStep?.status != null &&
+                    !canApproveCurrent &&
+                    currentStep?.status !== 'rejected') ||
+                props.roleName === 'Employee'
             "
+            :type="Number(approvalStep) === 1 ? 'info' : 'warning'"
+            :show-icon="true"
+            class="mt-4"
         >
-            Dana sudah di serahkan <b>{{ requestName }}</b>
-        </span>
-        <span
-            v-else-if="
-                lastPendingStep?.status == null &&
-                props.roleName === 'Employee' &&
-                getLastStatus?.status === 'approved'
-            "
-        >
-            Dana bisa diambil di <b>Finance</b>
-        </span>
-        <span
-            v-if="
-                lastPendingStep?.status == null &&
-                props.roleName === 'Employee' &&
-                getLastStatus?.status === 'rejected'
-            "
-        >
-            Pengajuan anda ditolak.
-        </span>
-        <span v-else-if="lastPendingStep?.status == 'pending'">
-            Menunggu persetujuan <b>{{ beforeStepPending?.title }}</b>
-        </span>
-    </n-alert>
+            <span
+                v-if="
+                    lastPendingStep?.status == null &&
+                    props.roleName === 'Employee' &&
+                    getStatusRequest === 'disbursed'
+                "
+            >
+                Dana sudah di serahkan <b>{{ requestName }}</b>
+            </span>
+            <span
+                v-else-if="
+                    lastPendingStep?.status == null &&
+                    props.roleName === 'Employee' &&
+                    getLastStatus?.status === 'approved'
+                "
+            >
+                Dana bisa diambil di <b>Finance</b>
+            </span>
+            <span
+                v-if="
+                    lastPendingStep?.status == null &&
+                    props.roleName === 'Employee' &&
+                    getLastStatus?.status === 'rejected'
+                "
+            >
+                Pengajuan anda ditolak.
+            </span>
+            <span v-else-if="lastPendingStep?.status == 'pending'">
+                Menunggu persetujuan <b>{{ beforeStepPending?.title }}</b>
+            </span>
+        </n-alert>
+    </div>
 </template>
 
-<style scoped>
-/* ======================
-   CARD
-====================== */
-:deep(.n-list-item) {
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-.status-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.approved-by {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    color: #666;
-}
-
-.notes-list {
-    background: transparent;
-}
-
-.note-item {
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
-}
-
-.note-item:last-child {
-    border-bottom: none;
-}
-
-/* Header (title + time) */
-.note-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.note-title {
-    font-weight: 500;
-    font-size: 14px;
-}
-
-.note-time {
-    font-size: 12px;
-    color: #999;
-}
-
-/* Date */
-.note-date {
-    font-size: 12px;
-    color: #aaa;
-    margin-top: 2px;
-}
-
-/* Status */
-.note-status {
-    font-size: 12px;
-    margin-top: 4px;
-    color: #666;
-}
-
-/* ======================
-   HEADER
-====================== */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.user h2 {
-    margin: 0 0 6px;
-}
-
-.meta {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-/* ======================
-   DETAIL
-====================== */
-.details {
-    margin-bottom: 20px;
-    padding: 16px;
-    background: #f5f7fa;
-    border-radius: 8px;
-}
-
-.detail-label {
-    font-size: 12px;
-    color: #777;
-}
-
-.detail-value {
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.detail-value.highlight {
-    color: #18a058;
-    font-weight: 600;
-}
-
-/* ======================
-   APPROVAL
-====================== */
-.approval-grid {
-    align-items: flex-start;
-}
-
-.card-section {
-    background: #fafafa;
-    padding: 16px;
-    border-radius: 10px;
-    height: 100%;
-}
-
-.card-section h3 {
-    margin-bottom: 12px;
-}
-
-/* Notes scroll */
-.notes {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-/* ======================
-   RESPONSIVE
-====================== */
-@media (max-width: 768px) {
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-    }
-
-    .approval-grid {
-        grid-template-columns: 1fr !important;
-    }
-}
-</style>
+<style scoped></style>

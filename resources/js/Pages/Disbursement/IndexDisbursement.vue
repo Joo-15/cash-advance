@@ -157,7 +157,7 @@ const columnConfig = [
         sorter: true, // Aktifkan sorting
         statusMap: {
             pending: { type: "warning", label: "Pending" },
-            approved: { type: "success", label: "Approved" },
+            approved: { type: "success", label: "Disetujui" },
             disbursed: { type: "info", label: "Disbursed" },
             rejected: { type: "error", label: "Rejected" },
             default: { type: "default", label: "Unknown" },

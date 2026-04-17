@@ -175,18 +175,12 @@ const [disbursed_at] = defineField("disbursed_at");
 
         <!-- Form Pencairan -->
         <div class="form-section">
-            <n-divider title-placement="center" class="text-indigo-600">
+            <!-- <n-divider title-placement="center" class="text-indigo-600">
                 <b>JUMLAH PENCAIRAN</b>
-            </n-divider>
+            </n-divider> -->
             <n-form @submit.prevent="submitForm">
                 <!-- Grid 2 kolom -->
-                <div
-                    style="
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 16px;
-                    "
-                >
+                <div class="grid grid-cols-1">
                     <!-- Jumlah Pencairan -->
                     <n-form-item
                         size="large"

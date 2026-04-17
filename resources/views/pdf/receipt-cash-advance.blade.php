@@ -20,17 +20,20 @@
 
         /* Container utama untuk A4 */
         .a4-container {
-            width: 600px;
+            /* width: 600px; */
             max-width: 210mm;
             margin: 0 auto;
+            padding: 40px;
             background: #fff;
-            padding: 15mm 15mm 15mm 15mm;
         }
 
         .receipt {
-            width: 100%;
-            margin: 0 auto;
+            width: auto;
+            margin: 0;
             background: #fff;
+            padding: 15mm 15mm 15mm 15mm;
+
+            border: 3px solid black
         }
 
         .receipt-header {
@@ -80,7 +83,7 @@
         }
 
         .info-value {
-            border-bottom: 1px dotted #a8a6a6;
+            border-bottom: 1px dashed #a8a6a6;
             padding: 12px 8px;
             font-size: 13px;
             background: #fff;
@@ -143,7 +146,7 @@
             font-size: 10px;
             margin-top: 10px;
             padding-top: 8px;
-            border-top: 1px dashed #ddd;
+            /* border-top: 1px dashed #ddd; */
         }
 
         .status-approved {
@@ -225,7 +228,7 @@
                             <td class="info-label">NAMA</td>
                             <td style="width:20px">:</td>
                             <td class="info-value">
-                                <strong>{{ $data->user->name ?? '_________________________' }}</strong>
+                                <strong>{{ strtoupper($data->user->name ?? '_________________________') }}</strong>
                             </td>
                         </tr>
                         <tr>
@@ -233,7 +236,7 @@
                             <td>:</td>
 
                             <td class="info-value">
-                                {{ $data->user->department->name ?? '_________________________' }}
+                                {{ strtoupper($data->user->department->name ?? '_________________________') }}
                             </td>
                         </tr>
                         <tr>
@@ -241,7 +244,7 @@
                             <td>:</td>
 
                             <td class="info-value">
-                                {{ $tanggal ?? date('d/m/Y') }}
+                                {{ strtoupper(\Carbon\Carbon::parse($data->request_date)->translatedFormat('d F Y')) }}
                             </td>
                         </tr>
                         <tr>
@@ -249,7 +252,7 @@
                             <td>:</td>
 
                             <td class="info-value">
-                                <strong style="color: #28a745; font-size: 14px;">Rp
+                                <strong style="font-size: 14px;">Rp
                                     {{ number_format($data->amount, 0, ',', '.') }}</strong>
                             </td>
                         </tr>
@@ -258,15 +261,34 @@
                             <td>:</td>
 
                             <td class="info-value">
-                                {{ $data->purpose ?? '_________________________' }}
+                                {{ strtoupper($data->purpose ?? '_________________________') }}
                             </td>
                         </tr>
                         <tr>
-                            <td class="info-label">DITERIMA</td>
-                            <td>:</td>
+                            <!-- TABEL KIRI -->
+                            <td style="vertical-align: top;">
+                                <table style="border-collapse: collapse; border-spacing: 0;">
+                                    <tr>
+                                        <th style="border:2px solid black; padding:5px 20px">DITERIMA</th>
+                                    </tr>
+                                    <tr>
+                                        <td style="border:2px solid black; height:100px"></td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td></td>
 
-                            <td class="info-value">
-                                {{ $data->user->name ?? '_________________________' }}
+                            <!-- TABEL KANAN -->
+                            <td style="vertical-align: top;">
+                                <table style="width:100%;">
+                                    <tr>
+                                        <td class="info-value" style="padding:25px 0"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-value" style="padding:25px 0"></td>
+                                    </tr>
+
+                                </table>
                             </td>
                         </tr>
                     </table>
@@ -274,7 +296,7 @@
 
                 <!-- Tanda Tangan - Modern Style -->
                 <div class="signature">
-                    <h2>TANDA TANGAN</h2>
+                    <h2>MENGETAHUI</h2>
                     <table>
                         <thead>
                             <tr>

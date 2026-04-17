@@ -87,11 +87,13 @@ class CashAdvanceController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
+        $totalPengajuan = $statusCounts->only(['pending', 'approved'])->sum();
+
         return Inertia::render('CashAdvance/IndexCashAdvance', [
             'cashadvance' => $cashadvance,
             'filters' => $request->only(['search', 'status', 'per_page', 'sort', 'order']),
             'statData' => [
-                'total_pengajuan' => $statusCounts->sum(),
+                'total_pengajuan' => $totalPengajuan,
                 'pengajuan_disetujui' => $statusCounts->get('approved', 0),
                 'pengajuan_pending' => $statusCounts->get('pending', 0),
                 'pengajuan_ditolak' => $statusCounts->get('rejected', 0),
