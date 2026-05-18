@@ -148,16 +148,11 @@ class FundUsageController extends Controller
             ]);
 
 
-            // Set message
-            if ($fileUploaded && !empty($updateData)) {
-                $message = "File dan data berhasil diperbarui";
-            } else {
-                $message = "Tidak ada data yang diupdate";
-            }
+
 
             return redirect()
                 ->back()
-                ->with('success', $message);
+                ->with('success', "Laporan berhasil dikirim");
         } catch (\Exception $e) {
             Log::error('Update failed', [
                 'cash_advance_id' => $penggunaan_dana->id,
