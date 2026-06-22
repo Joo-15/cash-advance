@@ -149,7 +149,7 @@ const columnConfig = computed(() => {
             visible: true,
         },
         {
-            title: "Tujuan",
+            title: "Deskripsi Penggunaan Dana",
             key: "purpose",
             // width: 200,
             // ellipsis: { tooltip: true },
@@ -250,7 +250,7 @@ watch(modalMode, (newValue, oldValue) => {
                 add-button-text="Ajukan Pinjaman"
                 title="Pengajuan Pinjaman"
                 :show-add="true"
-                :show-download="true"
+                :show-download="false"
                 @add="tambah('cash-advance', 'create')"
                 @download="handleDownload"
             />

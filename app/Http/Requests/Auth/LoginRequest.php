@@ -21,24 +21,23 @@ class LoginRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'login' => ['required', 'string'], // Ubah dari 'email' ke 'login'
             'password' => ['required', 'string'],
         ];
     }
 
+    /**
+     * Get custom messages for validator errors.
+     */
     public function messages(): array
     {
         return [
-            'email.required' => 'Email wajib diisi.',
-            'email.email' => 'Format email tidak valid.',
-            'email.string' => 'Email harus berupa teks.',
-
+            'login.required' => 'Email atau username wajib diisi.',
+            'login.string' => 'Email atau username harus berupa teks.',
             'password.required' => 'Kata sandi wajib diisi.',
             'password.string' => 'Kata sandi harus berupa teks.',
         ];
@@ -53,12 +52,15 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // Cari user berdasarkan email atau username
+        $credentials = $this->getCredentials();
+
+        // Coba login
+        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                // 'email' => trans('auth.failed'),
-                'email' => 'Username / email atau kata sandi salah.',
+                'login' => 'Email/Username atau kata sandi salah.',
             ]);
         }
 
@@ -66,9 +68,23 @@ class LoginRequest extends FormRequest
     }
 
     /**
+     * Get credentials based on login input.
+     */
+    protected function getCredentials(): array
+    {
+        $login = $this->input('login');
+
+        // Cek apakah input adalah email atau username
+        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        return [
+            $field => $login,
+            'password' => $this->input('password'),
+        ];
+    }
+
+    /**
      * Ensure the login request is not rate limited.
-     *
-     * @throws \Illuminate\Validation\ValidationException
      */
     public function ensureIsNotRateLimited(): void
     {
@@ -81,7 +97,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            'login' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
@@ -93,6 +109,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')) . '|' . $this->ip());
+        return Str::transliterate(Str::lower($this->string('login')) . '|' . $this->ip());
     }
 }

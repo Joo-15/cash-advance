@@ -8,17 +8,17 @@ const showPassword = ref(false);
 const errors = reactive({});
 
 const form = useForm({
-    email: "",
+    login: "",
     password: "",
     remember: false,
 });
 
 const handleLogin = () => {
-    errors.email = null;
+    errors.login = null;
     errors.password = null;
 
-    if (!form.email.trim()) {
-        errors.email = "Email tidak boleh kosong";
+    if (!form.login.trim()) {
+        errors.login = "Email tidak boleh kosong";
         return;
     }
 
@@ -226,7 +226,7 @@ const handleForgotPassword = () => {
                         </div>
 
                         <!-- Testimonial / Stats -->
-                        <div
+                        <!-- <div
                             class="pt-8 border-t border-white/20 animate-fadeInUp animation-delay-400"
                         >
                             <div class="flex space-x-8">
@@ -267,7 +267,7 @@ const handleForgotPassword = () => {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
 
@@ -285,7 +285,7 @@ const handleForgotPassword = () => {
         <div
             class="w-full lg:w-[30%] h-screen flex items-center justify-center bg-gray-100 relative overflow-y-auto"
         >
-            <div class="w-full h-full animate-fadeInRight">
+            <div class="w-full h-full">
                 <!-- Mobile Logo -->
                 <!-- <div class="lg:hidden text-center mb-8">
                     <div class="flex justify-center mb-3">
@@ -372,7 +372,7 @@ const handleForgotPassword = () => {
                                     </div>
 
                                     <input
-                                        v-model="form.email"
+                                        v-model="form.login"
                                         type="text"
                                         required
                                         class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 hover:bg-white focus:bg-white"
@@ -382,7 +382,7 @@ const handleForgotPassword = () => {
                                 </div>
                                 <InputError
                                     class="mt-2 animate-shake"
-                                    :message="form.errors.email"
+                                    :message="form.errors.login"
                                 />
                             </div>
 
@@ -694,10 +694,6 @@ const handleForgotPassword = () => {
 /* Animation Classes */
 .animate-fadeInUp {
     animation: fadeInUp 0.6s ease-out forwards;
-}
-
-.animate-fadeInRight {
-    animation: fadeInRight 0.6s ease-out forwards;
 }
 
 .animate-fadeInDown {

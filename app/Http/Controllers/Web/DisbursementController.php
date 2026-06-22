@@ -86,7 +86,7 @@ class DisbursementController extends Controller
 
     public function store(DisbursementRequest $request)
     {
-
+        // dd($request->all());
         $validated = $request->validated();
         $validated['finance_id'] = Auth::id();
 

@@ -46,7 +46,7 @@ const displayData = computed(() => {
         purpose: item?.purpose,
         name: item?.user?.name,
         department: item?.user?.department?.name,
-        amount: formatRupiah(item.amount),
+        amount: item.amount,
         requestDate: item?.request_date,
         approveDate: lastApproval?.approved_at
             ? lastApproval.approved_at.split(" ")[0]
@@ -67,7 +67,7 @@ const { handleSubmit, errors, defineField, setValues, resetForm } = useForm({
     initialValues: {
         id: null,
         cash_advance_id: displayData.value.id,
-        amount: null,
+        amount: displayData.value.amount,
         disbursed_at: new Date().getTime(),
     },
 });
@@ -150,7 +150,7 @@ const [disbursed_at] = defineField("disbursed_at");
                             Jumlah Diajukan
                         </div>
                         <div class="text-base font-semibold text-[#18a058]">
-                            {{ displayData.amount }}
+                            {{ formatNumber(displayData.amount) }}
                         </div>
                     </div>
                 </NGridItem>
@@ -182,15 +182,9 @@ const [disbursed_at] = defineField("disbursed_at");
                 <!-- Grid 2 kolom -->
                 <div class="grid grid-cols-1">
                     <!-- Jumlah Pencairan -->
-                    <n-form-item
-                        size="large"
-                        label="Jumlah dicairkan"
-                        :validation-status="errors.amount ? 'error' : null"
-                        :feedback="errors.amount"
-                        required
-                    >
+                    <!-- <n-form-item size="large" label="Jumlah dicairkan" required>
                         <n-input-number
-                            v-model:value="amount"
+                            v-model:value="displayData.amount"
                             placeholder="Masukkan jumlah"
                             :show-button="false"
                             :format="formatNumber"
@@ -202,10 +196,10 @@ const [disbursed_at] = defineField("disbursed_at");
                                 <span class="text-gray-500">Rp</span>
                             </template>
                         </n-input-number>
-                    </n-form-item>
+                    </n-form-item> -->
 
                     <!-- Tanggal Pencairan -->
-                    <n-form-item
+                    <!-- <n-form-item
                         size="large"
                         label="Tanggal"
                         :validation-status="
@@ -222,7 +216,15 @@ const [disbursed_at] = defineField("disbursed_at");
                             class="w-full"
                             placeholder="Pilih tanggal"
                         />
-                    </n-form-item>
+                    </n-form-item> -->
+
+                    <input type="hidden" name="amount" :value="amount" />
+
+                    <input
+                        type="hidden"
+                        name="disbursed_at"
+                        :value="disbursed_at"
+                    />
                 </div>
 
                 <!-- Buttons -->

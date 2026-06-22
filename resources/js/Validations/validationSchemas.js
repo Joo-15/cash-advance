@@ -5,7 +5,7 @@ export const cashAdvanceSchema = yup.object({
 
     purpose: yup
         .string()
-        .required("Keperluan wajib diisi")
+        .required("Deskripsi wajib diisi")
         .min(3, "Minimal 3 karakter"),
 
     amount: yup
