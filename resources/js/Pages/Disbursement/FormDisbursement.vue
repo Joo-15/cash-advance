@@ -170,7 +170,9 @@ const [disbursed_at] = defineField("disbursed_at");
         <!-- Total Pinjaman Disetujui -->
         <div class="total-amount-section">
             <div class="total-label">Total Pinjaman Disetujui</div>
-            <div class="total-amount">{{ displayData.amount }}</div>
+            <div class="total-amount">
+                {{ formatNumber(displayData.amount) }}
+            </div>
         </div>
 
         <!-- Form Pencairan -->

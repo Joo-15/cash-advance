@@ -117,7 +117,7 @@ const columnConfig = [
         sorter: false,
     },
     {
-        title: "Tujuan",
+        title: "Deskripsi Penggunaan Dana",
         key: "purpose",
         // width: 200,
         ellipsis: { tooltip: true },
