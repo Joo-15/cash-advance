@@ -27,7 +27,6 @@ return new class extends Migration
                 'pending',
                 'approved',
                 'rejected',
-                'disbursed'
             ])->default('pending');
             $table->text('notes')->nullable();
             $table->timestamp('approved_at')->nullable();

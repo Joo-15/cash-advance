@@ -21,18 +21,14 @@ import { cashAdvanceSchema } from "@/Validations/validationSchemas";
 import { formatNumber, parseNumber } from "@/utils/helpers";
 import { CloseOutline, SaveOutline } from "@vicons/ionicons5";
 
-/*
-| Props & Emits
-*/
+// ============ PROPS & EMITS ============
 const props = defineProps({
-    loading: Boolean,
-    showModal: Boolean,
-    dataEdit: Object,
-    closeModal: Function,
-    submit: Function,
+    loading: { type: Boolean, default: false },
+    showModal: { type: Boolean, default: false },
+    dataEdit: { type: Object, default: null },
+    closeModal: { type: Function, required: true },
+    submit: { type: Function, required: true },
 });
-
-console.log("dd", props.dataEdit);
 
 const emit = defineEmits(["update:showModal", "updated"]);
 

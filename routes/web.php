@@ -1,6 +1,5 @@
 <?php
 
-
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Web\ApprovalController;
 use App\Http\Controllers\Web\ApprovalStepController;
@@ -12,17 +11,6 @@ use App\Http\Controllers\Web\DisbursementController;
 use App\Http\Controllers\Web\FundUsageController;
 use App\Http\Controllers\Web\UserController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-
-// Public Routes
-// Route::get('/', function () {
-//     return Inertia::render('Welcome', [
-//         'canLogin' => Route::has('login'),
-//         'canRegister' => Route::has('register'),
-//         'laravelVersion' => Application::VERSION,
-//         'phpVersion' => PHP_VERSION,
-//     ]);
-// });
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -85,6 +73,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('data-master/departments', DepartmentController::class);
     });
 });
+
+
+// Public Routes
+// Route::get('/', function () {
+//     return Inertia::render('Welcome', [
+//         'canLogin' => Route::has('login'),
+//         'canRegister' => Route::has('register'),
+//         'laravelVersion' => Application::VERSION,
+//         'phpVersion' => PHP_VERSION,
+//     ]);
+// });
 
 // Auth Routes (login, register, etc.)
 require __DIR__ . '/auth.php';

@@ -1,4 +1,3 @@
-<!-- Pages/CashAdvance/IndexCashAdvance.vue -->
 <script setup>
 import { computed, inject, ref, onMounted, watch } from "vue";
 
