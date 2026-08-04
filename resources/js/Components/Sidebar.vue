@@ -211,6 +211,12 @@ const allMenuOptions = [
         roleAccess: ["Super Admin", "Admin", "Employee", "Finance"],
     },
     {
+        label: "Laporan",
+        key: "/laporan",
+        icon: renderIcon(CashOutline),
+        roleAccess: ["Super Admin", "Admin", "Finance"],
+    },
+    {
         label: "Manajemen User",
         key: "/users",
         icon: renderIcon(PersonOutline),

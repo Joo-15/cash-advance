@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Web\LaporanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Web\ApprovalController;
 use App\Http\Controllers\Web\ApprovalStepController;
@@ -58,6 +59,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:Super Admin,Admin,Employee,Finance'])->group(function () {
         Route::resource('/penggunaan-dana', FundUsageController::class);
         Route::put('/penggunaan-dana/{disbursment}/review', [FundUsageController::class, 'review'])->name('penggunaan-dana.review');
+    });
+
+    Route::middleware(['role:Super Admin,Admin,Finance'])->group(function () {
+        Route::resource('/laporan', LaporanController::class);
     });
 
     // ============================================
