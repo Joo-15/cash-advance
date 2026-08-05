@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\CashAdvance;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Inertia\Inertia;
 
 class LaporanController extends Controller
 {
     public function index(Request $request)
     {
-
         $perPage = (int) $request->input('per_page', 10);
 
         $fundUsage = CashAdvance::with([
@@ -38,13 +38,24 @@ class LaporanController extends Controller
                     $query->orderBy($request->sort, $request->order);
                 }
             })
+            ->when($request->start_date && $request->end_date, function ($query) use ($request) {
+                // dd($request->all());
+
+                $query->whereHas('disbursement', function ($q) use ($request) {
+                    $q->whereBetween('disbursed_at', [
+                        Carbon::parse($request->start_date)->startOfDay(),
+                        Carbon::parse($request->end_date)->endOfDay()
+                    ]);
+                });
+            })
+
             ->whereHas('disbursement', function ($query) {
-                $query->whereIn('report_status', ['approved']);
+                $query->whereIn('report_status', ['approved', 'not_submitted', 'submitted']);
             })
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
-
+        // dd($fundUsage);
         return Inertia::render('Report/IndexReport', [
             'fundUsage' => $fundUsage,
             'filters' => $request->only([
@@ -52,9 +63,15 @@ class LaporanController extends Controller
                 'status',
                 'per_page',
                 'sort',
-                'order'
+                'order',
+
             ]),
 
         ]);
+    }
+
+    public function cetakPdf(Request $request)
+    {
+        dd($request->all());
     }
 }

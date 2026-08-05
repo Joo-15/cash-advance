@@ -63,6 +63,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['role:Super Admin,Admin,Finance'])->group(function () {
         Route::resource('/laporan', LaporanController::class);
+        Route::get('/laporan/{date}/cetak', [LaporanController::class, 'cetakPdf'])->name('report.cetakPdf');
     });
 
     // ============================================

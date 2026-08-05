@@ -67,13 +67,14 @@ const {
     route: route("laporan.index"),
     filters: {
         search: props.filters.search || "",
+        dateRange: props.filters.dateRange || "",
         status: props.filters.status || null,
         pageSize: Number(props.fundUsage.per_page ?? 10),
         page: Number(props.fundUsage.current_page ?? 1),
         sort: props.filters.sort || null,
         order: props.filters.order || null,
     },
-    only: ["laporan"],
+    only: ["fundUsage"],
     debounceTime: 300, // Tambahkan debounce time
     tableConfig: {
         currency: "IDR",
@@ -83,17 +84,32 @@ const {
     },
 });
 
-// Table data transformation
+// Table data transformation dengan remaining_amount
 const rows = computed(() => {
     const currentPage = props.fundUsage.current_page || 1;
     const perPage = props.fundUsage.per_page || 10;
     const startIndex = (currentPage - 1) * perPage;
 
-    return props.fundUsage.data.map((row, idx) => ({
-        ...row,
-        detail: true,
-        rowNumber: startIndex + idx + 1,
-    }));
+    return props.fundUsage.data.map((row, idx) => {
+        // Hitung remaining_amount
+        const disbursementAmount = parseFloat(row.disbursement?.amount) || 0;
+        const totalSpent = parseFloat(row.disbursement?.total_spent) || 0;
+        const remainingAmount = disbursementAmount - totalSpent;
+
+        return {
+            ...row,
+            detail: true,
+            rowNumber: startIndex + idx + 1,
+            // Tambahkan remaining_amount
+            remaining_amount: remainingAmount,
+            // Tambahkan formatted jika perlu
+            formatted_remaining: new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR",
+                minimumFractionDigits: 0,
+            }).format(remainingAmount),
+        };
+    });
 });
 
 // Column configuration
@@ -150,17 +166,29 @@ const columnConfig = [
         sorter: true,
     },
     {
-        title: "Aksi",
-        key: "actions",
-        type: "action",
-        width: 120,
-        fixed: "right",
+        title: "Status",
+        key: "disbursement.report_status",
+        type: "status",
+        width: 130,
         align: "center",
-        actionConfig: {
-            showProses: (row) => row?.status === "disbursed",
+        statusMap: {
+            approved: { type: "success", label: "Selesai" },
+            not_submitted: { type: "warning", label: "Belum dikirim" },
+            submitted: { type: "error", label: "Menunggu verifikasi" },
         },
-        sorter: false,
     },
+    // {
+    //     title: "Aksi",
+    //     key: "actions",
+    //     type: "action",
+    //     width: 120,
+    //     fixed: "right",
+    //     align: "center",
+    //     actionConfig: {
+    //         showProses: (row) => row?.status === "disbursed",
+    //     },
+    //     sorter: false,
+    // },
 ];
 
 // Actions configuration
@@ -176,17 +204,19 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
     <Head title="Laporan" />
     <Container>
         <template #header>
-            <PageHeader title="Laporan"></PageHeader>
+            <PageHeader title="Laporan Cash Advance"></PageHeader>
         </template>
         <template #filters>
             <Filters
                 :filters="filters"
-                :show-search="true"
-                :show-select="true"
+                :show-date-range="true"
+                :show-download="true"
                 :select-options="STATUS_OPTIONS_PENCAIRAN"
                 :loading-search="loadingSearch"
+                @update:dateRange="filters.dateRange = $event"
                 @update:search="filters.search = $event"
                 @update:status="filters.status = $event"
+                @update:download="filters.download = $event"
             ></Filters>
         </template>
         <template #content>
@@ -213,7 +243,7 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
                 :auto-focus="false"
             >
                 <template #form="{ closeModal }">
-                    <FormFundUsage1
+                    <!-- <FormFundUsage1
                         v-if="currentFormType === 'fundUsage'"
                         :modal-mode="modalMode"
                         :loading="loadingButton"
@@ -222,7 +252,7 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
                         :close-modal="closeModal"
                         :submit="submit"
                         @updated="refresh"
-                    />
+                    /> -->
                 </template>
             </ModalForm>
         </template>

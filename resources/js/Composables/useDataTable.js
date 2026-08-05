@@ -70,6 +70,18 @@ const formatDateSafe = (value, format = "DD-MM-YYYY") => {
     }
 };
 
+const toIndonesiaDate = (timestamp) => {
+    if (!timestamp) return null;
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return null;
+
+    // Format manual (YYYY-MM-DD)
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
 /**
  ===================================================
  KONSTANTA & DEFAULT CONFIG
@@ -131,6 +143,7 @@ export function useDataTable({
     // Reactive filter lokal
     const filters = reactive({
         search: initialFilters.search || "",
+        dateRange: initialFilters.dateRange || null,
         status: initialFilters.status || null,
         department: initialFilters.department || null,
         pageSize: initialFilters.pageSize || initialPageSize,
@@ -756,6 +769,15 @@ export function useDataTable({
      ===================================================
      */
 
+    // if (filters.dateRange && filters.dateRange.length === 2) {
+    //     const startDate = new Date(filters.dateRange[0]);
+    //     const endDate = new Date(filters.dateRange[1]);
+
+    //     // Format: YYYY-MM-DD
+    //     params.start_date = startDate.toISOString().split("T")[0];
+    //     params.end_date = endDate.toISOString().split("T")[0];
+    // }
+
     const fetchData = (page = currentPage.value) => {
         const params = {
             page,
@@ -768,6 +790,15 @@ export function useDataTable({
         if (filters.sort && filters.order) {
             params.sort = filters.sort;
             params.order = filters.order;
+        }
+
+        if (filters.dateRange && filters.dateRange.length === 2) {
+            const startDate = new Date(filters.dateRange[0]).valueOf();
+            const endDate = new Date(filters.dateRange[1]).valueOf();
+
+            // Format: YYYY-MM-DD
+            params.start_date = toIndonesiaDate(startDate);
+            params.end_date = toIndonesiaDate(endDate);
         }
 
         router.get(route, params, {
@@ -797,6 +828,14 @@ export function useDataTable({
         () => filters.search,
         () => {
             loadingSearch.value = true;
+            debouncedFetch();
+        },
+    );
+
+    watch(
+        () => filters.dateRange,
+        () => {
+            loadingTable.value = true;
             debouncedFetch();
         },
     );
