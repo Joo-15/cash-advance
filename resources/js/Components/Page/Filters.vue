@@ -1,4 +1,5 @@
 <script setup>
+import { router } from "@inertiajs/vue3";
 import { DownloadOutline, SearchOutline } from "@vicons/ionicons5";
 import {
     NButton,
@@ -10,6 +11,7 @@ import {
 } from "naive-ui";
 import { onMounted, ref } from "vue";
 
+// ========== PROPS ==========
 const props = defineProps({
     placeholder: { type: String, default: "Cari data disini..." },
     filters: { type: Object, required: true },
@@ -20,23 +22,27 @@ const props = defineProps({
     showDownload: { type: Boolean, default: false },
     departmentOptions: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
+    printPdf: { type: Boolean, default: false },
+    pdfUrl: { type: String, default: "" },
     loadingSearch: { type: Boolean, default: false },
     loadingOptions: { type: Boolean, default: false },
+    loadingPdf: { type: Boolean, default: false },
 });
 
+// ========== EMITS ==========
 const emit = defineEmits([
     "update:search",
     "update:dateRange",
     "update:status",
     "update:department",
-    "download",
+    "update:pdfUrl",
+    "update:loadingPdf",
+    "update:printPdf",
+    "downloadPdf", // ✅ Tambahkan event download
+    "closePdf", // ✅ Tambahkan event close
 ]);
 
 const animatedFilters = ref(false);
-const showPdfModal = ref(false);
-const pdfUrl = ref("");
-const currentReceiptId = ref(null);
-const isLoadingPdf = ref(false);
 const message = useMessage();
 
 const toIndonesiaDate = (timestamp) => {
@@ -58,112 +64,129 @@ const exportPDF = async () => {
         return;
     }
 
-    const [startDate, endDate] = props.filters.dateRange;
-
-    // Validasi tanggal
-    if (!startDate || !endDate) {
-        message.warning("Tanggal mulai dan tanggal akhir harus diisi!");
-        return;
-    }
-
-    // Validasi tanggal mulai tidak boleh lebih besar dari tanggal akhir
-    if (new Date(startDate) > new Date(endDate)) {
-        message.warning(
-            "Tanggal mulai tidak boleh lebih besar dari tanggal akhir!",
-        );
-        return;
-    }
-
     // Set loading true
-    isLoadingPdf.value = true;
+    emit("update:loadingPdf", true);
 
     try {
+        // Validasi tanggal
+        const startDateObj = new Date(props.filters.dateRange[0]);
+        const endDateObj = new Date(props.filters.dateRange[1]);
+
+        if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+            message.error("Format tanggal tidak valid!");
+            return;
+        }
+
+        // Cek apakah start date lebih kecil dari end date
+        if (startDateObj > endDateObj) {
+            message.warning(
+                "Tanggal mulai harus lebih kecil dari tanggal akhir!",
+            );
+            return;
+        }
+
         // Format date untuk dikirim ke backend
-        const params = {
-            start_date: formatDateTimestamp(startDate),
-            end_date: formatDateTimestamp(endDate),
-            // Tambahkan parameter tambahan jika diperlukan
-            form_type: props.formType || "default",
-            mode: "print",
-        };
+        const startDate = toIndonesiaDate(startDateObj);
+        const endDate = toIndonesiaDate(endDateObj);
 
-        const response = await axios.get(route(`report.cetakPdf`), {
-            params: params,
-            responseType: "blob",
-            timeout: 30000, // 30 detik timeout
-        });
+        const dateParam = `${startDate}_${endDate}`;
 
-        // Cek response
-        if (!response.data || response.data.size === 0) {
-            throw new Error("PDF kosong atau tidak valid");
+        const response = await axios.get(
+            route("report.cetakPdf", {
+                date: dateParam,
+            }),
+            {
+                responseType: "blob",
+                timeout: 30000, // 30 detik timeout
+            },
+        );
+
+        // Cek response status
+        if (response.status !== 200) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const blob = new Blob([response.data], {
-            type: response.headers["content-type"] || "application/pdf",
-        });
-
-        // Validasi blob
-        if (blob.size === 0) {
-            throw new Error("File PDF kosong");
+        // Cek apakah response adalah PDF
+        const contentType = response.headers["content-type"];
+        if (!contentType || !contentType.includes("application/pdf")) {
+            // Jika response berupa error message dalam bentuk JSON
+            try {
+                const text = await response.data.text();
+                const errorData = JSON.parse(text);
+                message.error(errorData.message || "Gagal generate PDF");
+                return;
+            } catch {
+                message.error("Response yang diterima bukan file PDF");
+                return;
+            }
         }
 
+        const blob = new Blob([response.data], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
 
-        // Simpan URL untuk preview
-        pdfUrl.value = url;
-        currentFormType.value = props.formType || "default";
-        showPdfModal.value = true;
-
-        message.success("PDF berhasil dimuat!");
+        emit("update:printPdf", true);
+        emit("update:pdfUrl", url);
     } catch (error) {
-        console.error("Error printing receipt:", error);
+        console.error("Error exporting PDF:", error);
 
-        // Error handling yang lebih detail
-        if (error.response) {
-            // Server meresponse dengan error
-            if (error.response.status === 404) {
-                message.error("Endpoint tidak ditemukan!");
-            } else if (error.response.status === 422) {
-                message.error("Data tidak valid! Periksa kembali input Anda.");
-            } else if (error.response.status === 500) {
-                message.error("Terjadi kesalahan pada server!");
-            } else {
-                message.error(
-                    error.response.data?.message || "Gagal menampilkan PDF",
-                );
-            }
+        // Handle error dengan lebih baik
+        if (error.code === "ECONNABORTED") {
+            message.error("Waktu permintaan habis, silakan coba lagi");
+        } else if (error.response) {
+            // Server merespon dengan error status
+            message.error(
+                error.response.data?.message || "Gagal menampilkan PDF",
+            );
         } else if (error.request) {
             // Request dibuat tapi tidak ada response
-            message.error(
-                "Tidak ada respons dari server. Periksa koneksi Anda!",
-            );
+            message.error("Tidak ada respon dari server, periksa koneksi Anda");
         } else {
-            // Error lainnya
-            message.error(error.message || "Gagal menampilkan PDF");
+            message.error("Terjadi kesalahan saat menampilkan PDF");
         }
     } finally {
-        setTimeout(() => {
-            isLoadingPdf.value = false;
-        }, 500);
+        // Reset loading state
+        emit("update:loadingPdf", false);
     }
 };
 
-// Fungsi untuk format date ke timestamp atau format yang diinginkan
-const formatDateTimestamp = (date) => {
-    if (!date) return null;
+const printPdf = () => {
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "absolute";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "none";
+    document.body.appendChild(iframe);
 
-    // Jika date adalah string, konversi ke Date object
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+    // Tunggu iframe benar-benar loaded
+    iframe.onload = () => {
+        // Beri sedikit delay untuk memastikan konten siap
+        setTimeout(() => {
+            iframe.contentWindow.print();
+        }, 500);
 
-    // Opsi 1: Kirim sebagai timestamp (milliseconds)
-    return dateObj.getTime();
+        // Hapus iframe setelah print dialog selesai
+        const checkPrint = setInterval(() => {
+            if (iframe.contentWindow.document.hidden) {
+                clearInterval(checkPrint);
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                }, 1000);
+            }
+        }, 500);
+    };
 
-    // Opsi 2: Kirim sebagai ISO string
-    // return dateObj.toISOString();
+    // Handle error jika gagal load
+    iframe.onerror = () => {
+        console.error("Failed to load PDF");
+        document.body.removeChild(iframe);
+    };
 
-    // Opsi 3: Kirim sebagai format YYYY-MM-DD
-    // return dateObj.toISOString().split('T')[0];
+    iframe.src = props.pdfUrl;
 };
+
+defineExpose({
+    printPdf,
+});
 
 onMounted(() => {
     setTimeout(() => {
@@ -236,13 +259,13 @@ onMounted(() => {
                         ghost
                         type="primary"
                         class="!w-full md:!w-auto"
-                        :loading="isLoadingPdf"
+                        :loading="loadingPdf"
                         @click="exportPDF"
                     >
                         <template #icon>
                             <n-icon><download-outline /></n-icon>
                         </template>
-                        {{ isLoadingPdf ? "Loading..." : "Cetak PDF" }}
+                        {{ loadingPdf ? "Loading..." : "Preview PDF" }}
                     </n-button>
                 </div>
             </div>
