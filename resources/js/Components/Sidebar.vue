@@ -16,6 +16,7 @@ import {
     BusinessSharp,
     BusinessOutline,
     CubeSharp,
+    DocumentText,
 } from "@vicons/ionicons5";
 
 /* =====================
@@ -213,7 +214,7 @@ const allMenuOptions = [
     {
         label: "Laporan",
         key: "/laporan",
-        icon: renderIcon(CashOutline),
+        icon: renderIcon(DocumentText),
         roleAccess: ["Super Admin", "Admin", "Finance"],
     },
     {
