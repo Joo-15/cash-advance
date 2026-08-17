@@ -90,10 +90,12 @@ const exportPDF = async () => {
         const endDate = toIndonesiaDate(endDateObj);
 
         const dateParam = `${startDate}_${endDate}`;
+        const status = props.filters.status || "";
 
         const response = await axios.get(
             route("report.cetakPdf", {
                 date: dateParam,
+                status: status,
             }),
             {
                 responseType: "blob",

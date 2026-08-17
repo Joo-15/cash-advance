@@ -30,7 +30,9 @@ class LaporanController extends Controller
                 });
             })
             ->when($request->status, function ($query) use ($request) {
-                $query->where('status', $request->status);
+                $query->whereHas('disbursement', function ($q) use ($request) {
+                    $q->where('report_status', $request->status);
+                });
             })
             ->when($request->sort && $request->order, function ($query) use ($request) {
                 // Whitelist field yang boleh di-sort
@@ -75,6 +77,8 @@ class LaporanController extends Controller
     public function cetakPdf(Request $request, $date = null)
     {
         try {
+            // dd($request->status);
+            // dd($date);
             // Parse date
             if (!$date) {
                 return response()->json(['message' => 'Parameter date diperlukan'], 400);
@@ -92,12 +96,15 @@ class LaporanController extends Controller
                 'disbursement',
                 'user.department'
             ])
-                ->whereHas('disbursement', function ($q) use ($startDate, $endDate) {
+                ->whereHas('disbursement', function ($q) use ($startDate, $endDate, $request) {
                     $q->whereBetween('disbursed_at', [
                         Carbon::parse($startDate)->startOfDay(),
                         Carbon::parse($endDate)->endOfDay()
                     ])
-                        ->whereIn('report_status', ['approved', 'not_submitted', 'submitted']);
+                        ->whereIn('report_status', ['approved', 'not_submitted', 'submitted'])
+                        ->when($request->status, function ($query) use ($request) {
+                            return $query->where('report_status', $request->status);
+                        });
                 })
                 ->orderBy('created_at', 'desc')
                 ->get();

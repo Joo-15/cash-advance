@@ -24,6 +24,6 @@ export const STATUS_REPORT_OPTIONS = [
     { label: "Semua Status", value: null },
     { label: "Belum Dikirim", value: STATUS.NOT_SUBMITTED },
     { label: "Menunggu Review", value: STATUS.SUBMITTED },
-    { label: "Disetujui", value: STATUS.APPROVED },
-    { label: "Ditolak", value: STATUS.REJECTED },
+    { label: "Selesai", value: STATUS.APPROVED },
+    // { label: "Ditolak", value: STATUS.REJECTED },
 ];

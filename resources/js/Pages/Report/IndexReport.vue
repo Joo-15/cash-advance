@@ -6,7 +6,11 @@ import { useDataTable } from "@/Composables/useDataTable";
 import { useCrud } from "@/Composables/useCrud";
 
 // Constants
-import { STATUS_OPTIONS_PENCAIRAN } from "@/Constants/status";
+import {
+    STATUS_OPTIONS,
+    STATUS_OPTIONS_PENCAIRAN,
+    STATUS_REPORT_OPTIONS,
+} from "@/Constants/status";
 
 // Components
 import BaseTable from "@/Components/DataTable/BaseTable.vue";
@@ -224,8 +228,10 @@ const tableColumns = computed(() => createColumns(columnConfig, actions));
                 ref="handleFilter"
                 :filters="filters"
                 :show-date-range="true"
+                :show-status="true"
                 :show-download="true"
                 :select-options="STATUS_OPTIONS_PENCAIRAN"
+                :status-options="STATUS_REPORT_OPTIONS"
                 :loading-search="loadingSearch"
                 @update:dateRange="filters.dateRange = $event"
                 @update:search="filters.search = $event"
