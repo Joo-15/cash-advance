@@ -5,6 +5,13 @@ import InertiaDataTable from "@/Components/DataTable/InertiaDataTable.vue";
 import { RefreshOutline } from "@vicons/ionicons5";
 import { onMounted, ref } from "vue";
 
+// Constants
+import {
+    STATUS_OPTIONS,
+    STATUS_OPTIONS_PENCAIRAN,
+    STATUS_REPORT_OPTIONS,
+} from "@/Constants/status";
+
 // Props - TERIMA semua dari parent
 const props = defineProps({
     columns: { type: Array, required: true },
@@ -32,9 +39,16 @@ const emit = defineEmits([
 
 const animatedTable = ref(false);
 
-const getStatusLabel = (value) => {
-    const option = props.selectOptions.find((opt) => opt.value === value);
-    return option?.label || value;
+// const getStatusLabel = (value) => {
+//     const option = props.selectOptions.find((opt) => opt.value === value);
+//     return option?.label || value;
+// };
+
+const getStatusLabel = (statusValue) => {
+    const option = STATUS_REPORT_OPTIONS.find(
+        (opt) => opt.value === statusValue,
+    );
+    return option ? option.label : "Status Tidak Diketahui";
 };
 
 onMounted(() => {
@@ -58,6 +72,7 @@ onMounted(() => {
             <!-- Active Filters -->
             <div
                 v-if="
+                    filters.dateRange ||
                     filters.search ||
                     filters.status ||
                     filters.department ||
@@ -65,6 +80,14 @@ onMounted(() => {
                 "
                 class="mb-4 flex flex-wrap gap-2"
             >
+                <n-tag
+                    v-if="filters.dateRange"
+                    type="info"
+                    closable
+                    @close="filters.dateRange = ''"
+                >
+                    Tanggal
+                </n-tag>
                 <n-tag
                     v-if="filters.search"
                     type="info"
@@ -87,7 +110,7 @@ onMounted(() => {
                     closable
                     @close="filters.status = null"
                 >
-                    Status: {{ getStatusLabel(filters.status) }}
+                    Status
                 </n-tag>
                 <n-tag
                     v-if="hasActiveSortFn()"

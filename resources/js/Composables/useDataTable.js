@@ -924,6 +924,11 @@ export function useDataTable({
         filters.status = null;
         filters.sort = null;
         filters.order = null;
+        filters.disbursed_at = null;
+        filters.dateRange = {
+            start_date: null,
+            end_date: null,
+        };
 
         resetSort();
 

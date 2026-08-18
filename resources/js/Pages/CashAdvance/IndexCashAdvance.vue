@@ -7,7 +7,6 @@ import { useCrud } from "@/Composables/useCrud";
 
 // Constants
 import { STATUS_OPTIONS } from "@/Constants/status";
-import { CASH_ADVANCE_STATS } from "@/Constants/cashAdvanceStats";
 
 // Components
 import BaseTable from "@/Components/DataTable/BaseTable.vue";
@@ -248,7 +247,7 @@ watch(modalMode, (newValue, oldValue) => {
             <PageHeader
                 add-button-text="Ajukan Pinjaman"
                 title="Pengajuan Pinjaman"
-                :show-add="true"
+                :show-add="isEmployee"
                 :show-download="false"
                 @add="tambah('cash-advance', 'create')"
                 @download="handleDownload"
